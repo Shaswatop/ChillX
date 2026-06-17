@@ -1,0 +1,229 @@
+<style>
+/* ── CHATHEAD OVERLAY (Messenger-style) ── */
+#chHead{position:fixed!important;bottom:24px!important;left:24px!important;z-index:2147483647!important;cursor:grab;user-select:none;-webkit-user-select:none;display:flex;flex-direction:column;align-items:flex-start;gap:0;pointer-events:none}
+#chHead>*{pointer-events:auto}
+#chBubble{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#2d7dd2,#1a5276);border:2px solid rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:#fff;box-shadow:0 4px 24px rgba(45,125,210,0.35);transition:all .3s cubic-bezier(0.34,1.56,0.64,1);position:relative;overflow:hidden;flex-shrink:0}
+#chBubble img{width:100%;height:100%;object-fit:cover;display:block}
+#chBubble .ch-inner-icon{font-size:1.3rem;color:#fff}
+#chBubble.call-active{animation:chPulse 1.8s ease-in-out infinite}
+#chBubble.call-speaking{animation:chSpeaking .6s ease-in-out infinite;border-color:#4ade80!important;box-shadow:0 0 30px rgba(74,222,128,0.4)!important}
+@keyframes chPulse{0%,100%{box-shadow:0 4px 24px rgba(45,125,210,0.35)}50%{box-shadow:0 4px 36px rgba(45,125,210,0.6)}}
+@keyframes chSpeaking{0%,100%{transform:scale(1);border-color:rgba(74,222,128,0.6)}50%{transform:scale(1.08);border-color:#4ade80;box-shadow:0 0 40px rgba(74,222,128,0.5)}}
+#chBadge{position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;border-radius:10px;background:#ff4757;color:#fff;font-size:.55rem;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 5px;border:2px solid #fff;font-family:'Poppins',sans-serif;line-height:1}
+#chPanel{position:fixed!important;bottom:88px!important;left:24px!important;z-index:2147483646!important;width:min(320px,calc(100vw - 48px));max-height:min(440px,calc(100vh - 120px));background:#fff;border-radius:18px;box-shadow:0 12px 60px rgba(0,0,0,0.18);display:none;flex-direction:column;overflow:hidden;border:1px solid rgba(0,0,0,0.06)}
+#chPanel.open{display:flex}
+#chPanelHead{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid rgba(0,0,0,0.06);background:#f8faff;flex-shrink:0}
+#chPanelHead .chp-title{font-size:.82rem;font-weight:700;color:#1a1a2e;flex:1;font-family:'Poppins',sans-serif}
+#chPanelHead .chp-title i{color:#2d7dd2;margin-right:6px}
+#chPanelHead .chp-btn{background:none;border:none;color:#999;cursor:pointer;font-size:1rem;padding:4px 6px;border-radius:8px;transition:all .15s;line-height:1}
+#chPanelHead .chp-btn:hover{background:rgba(0,0,0,0.04);color:#333}
+#chCallBar{display:none;align-items:center;gap:10px;padding:10px 14px;background:linear-gradient(135deg,rgba(45,125,210,0.06),rgba(26,82,118,0.04));border-bottom:1px solid rgba(45,125,210,0.08);flex-shrink:0}
+#chCallBar.active{display:flex}
+#chCallBar .ccb-avatar{width:36px;height:36px;border-radius:50%;overflow:hidden;background:rgba(45,125,210,0.08);display:flex;align-items:center;justify-content:center;font-size:1rem;color:#2d7dd2;border:2px solid rgba(45,125,210,0.12);flex-shrink:0}
+#chCallBar .ccb-avatar img{width:100%;height:100%;object-fit:cover}
+#chCallBar .ccb-info{flex:1;min-width:0}
+#chCallBar .ccb-name{font-size:.72rem;font-weight:700;color:#1a1a2e}
+#chCallBar .ccb-status{font-size:.6rem;color:#4ade80;display:flex;align-items:center;gap:4px}
+#chCallBar .ccb-status .dot{width:6px;height:6px;border-radius:50%;background:#4ade80;animation:chSpeaking .6s ease-in-out infinite}
+#chCallBar .ccb-actions{display:flex;gap:4px}
+#chCallBar .ccb-actions button{width:32px;height:32px;border-radius:50%;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.7rem;transition:all .15s;flex-shrink:0}
+#chCallBar .ccb-actions .ccb-mic{background:rgba(45,125,210,0.1);color:#2d7dd2}
+#chCallBar .ccb-actions .ccb-mic:hover{background:rgba(45,125,210,0.2)}
+#chCallBar .ccb-actions .ccb-mic.muted{background:rgba(255,71,87,0.1);color:#ff4757}
+#chCallBar .ccb-actions .ccb-end{background:rgba(255,71,87,0.15);color:#ff4757}
+#chCallBar .ccb-actions .ccb-end:hover{background:rgba(255,71,87,0.25)}
+#chMsgs{flex:1;overflow-y:auto;padding:10px 12px 6px;display:flex;flex-direction:column;gap:5px}
+#chMsgs .ch-empty{text-align:center;color:#bbb;font-size:.68rem;margin:auto;padding:20px}
+#chMsgs .ch-msg{max-width:100%;padding:7px 10px;border-radius:10px;font-size:.72rem;line-height:1.45;word-wrap:break-word}
+#chMsgs .ch-msg .ch-sender{font-weight:700;font-size:.6rem;color:#2d7dd2;margin-bottom:2px}
+#chMsgs .ch-msg .ch-text{color:#1a1a2e}
+#chMsgs .ch-msg .ch-time{font-size:.52rem;color:#bbb;margin-top:2px;text-align:right}
+#chMsgs .ch-msg.self{background:rgba(45,125,210,0.08);align-self:flex-end;border-bottom-right-radius:3px}
+#chMsgs .ch-msg.other{background:rgba(0,0,0,0.03);align-self:flex-start;border-bottom-left-radius:3px}
+#chMsgs::-webkit-scrollbar{width:3px}
+#chMsgs::-webkit-scrollbar-thumb{background:rgba(45,125,210,0.15);border-radius:3px}
+#chInputRow{display:flex;align-items:center;gap:6px;padding:8px 10px 10px;border-top:1px solid rgba(0,0,0,0.06);flex-shrink:0}
+#chInputRow input{flex:1;padding:8px 12px;border-radius:10px;border:1px solid rgba(45,125,210,0.12);background:#f8faff;color:#1a1a2e;font-size:.72rem;outline:none;font-family:'Poppins',sans-serif;transition:border .2s}
+#chInputRow input:focus{border-color:#2d7dd2}
+#chInputRow input::placeholder{color:#bbb}
+#chInputRow button{padding:8px 14px;border-radius:10px;border:none;background:linear-gradient(135deg,#2d7dd2,#1a5276);color:#fff;cursor:pointer;font-size:.7rem;font-weight:600;transition:all .2s;font-family:inherit}
+#chInputRow button:hover{filter:brightness(1.1)}
+#chInputRow button:disabled{opacity:.4;cursor:default;filter:none}
+#chInputRow.hidden{display:none}
+</style>
+
+<div id="chHead">
+  <div id="chBubble" onclick="chToggle()" draggable="false">
+    <i class="fas fa-user ch-inner-icon" id="chBubbleIcon"></i>
+    <span id="chBadge" style="display:none">0</span>
+  </div>
+</div>
+
+<div id="chPanel">
+  <div id="chPanelHead">
+    <span class="chp-title"><i class="fas fa-comments"></i>Friends</span>
+    <button class="chp-btn" onclick="chMinimize()" title="Minimize"><i class="fas fa-minus"></i></button>
+    <button class="chp-btn" onclick="chClose()" title="Close"><i class="fas fa-times"></i></button>
+  </div>
+  <div id="chCallBar">
+    <div class="ccb-avatar" id="chCallAvatar"><i class="fas fa-user"></i></div>
+    <div class="ccb-info">
+      <div class="ccb-name" id="chCallName">On Call</div>
+      <div class="ccb-status"><span class="dot"></span>Live</div>
+    </div>
+    <div class="ccb-actions">
+      <button class="ccb-mic" id="chCallMicBtn" onclick="chCallToggleMic()" title="Mute"><i class="fas fa-microphone"></i></button>
+      <button class="ccb-end" onclick="chCallEnd()" title="End call"><i class="fas fa-phone-slash"></i></button>
+    </div>
+  </div>
+  <div id="chMsgs"><div class="ch-empty">Room chat — join a multiplayer room to chat</div></div>
+  <div id="chInputRow">
+    <input id="chInput" type="text" placeholder="Type a message..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();chSend()}">
+    <button id="chSendBtn" onclick="chSend()">Send</button>
+  </div>
+</div>
+
+<script>
+// ── CHATHEAD STATE ──
+var chRoomCode=(new URLSearchParams(window.location.search)).get('room')||'';
+var chUserId=0,chUserName='';
+var chLastId=0,chTimer=null,chOpen=false,chUnread=0;
+var chDrag={active:false,x:0,y:0,elX:0,elY:0};
+var chCallCheckTimer=null;
+
+try{
+  var ud=document.getElementById('user-data');
+  if(ud){var uj=JSON.parse(ud.textContent);chUserId=uj.id||0;chUserName=uj.display_name||uj.username||''}
+}catch(e){}
+if(!chUserId&&typeof window.callUserId!=='undefined')chUserId=window.callUserId;
+
+// hide text chat if no room
+if(!chRoomCode)document.getElementById('chInputRow').classList.add('hidden');
+
+// set bubble avatar
+var ic=document.getElementById('chBubbleIcon');
+fetch('/api/shop/avatar/?user_id='+chUserId).then(function(r){
+  if(r.ok)return r.blob();
+  throw'no avatar'
+}).then(function(b){
+  var url=URL.createObjectURL(b);
+  var bub=document.getElementById('chBubble');
+  bub.innerHTML='<img src="'+url+'" alt="" draggable="false">';
+}).catch(function(){});
+
+// ── DRAG ──
+['mousedown','touchstart'].forEach(function(evt){
+  document.getElementById('chBubble').addEventListener(evt,function(e){
+    var t=evt==='touchstart'?e.touches[0]:e;
+    if(evt==='mousedown'&&e.button!==0)return;
+    chDrag.active=true;chDrag.x=t.clientX;chDrag.y=t.clientY;
+    var head=document.getElementById('chHead');
+    chDrag.elX=parseInt(head.style.left)||parseInt(window.getComputedStyle(head).left)||0;chDrag.elY=parseInt(head.style.top)||parseInt(window.getComputedStyle(head).top)||0;
+    var moveEvt=evt==='touchstart'?'touchmove':'mousemove',upEvt=evt==='touchstart'?'touchend':'mouseup';
+    function onMove(ev){
+      if(!chDrag.active)return;
+      var p=ev.touches?ev.touches[0]:ev;
+      head.style.left=(chDrag.elX+(p.clientX-chDrag.x))+'px';
+      head.style.top=(chDrag.elY+(p.clientY-chDrag.y))+'px';
+    }
+    function onUp(){chDrag.active=false;document.removeEventListener(moveEvt,onMove);document.removeEventListener(upEvt,onUp)}
+    document.addEventListener(moveEvt,onMove);document.addEventListener(upEvt,onUp);
+    e.preventDefault();
+  });
+});
+
+// ── TOGGLE / MINIMIZE / CLOSE ──
+function chToggle(){
+  chOpen=!chOpen;
+  document.getElementById('chPanel').classList.toggle('open',chOpen);
+  if(chOpen){
+    chUnread=0;document.getElementById('chBadge').style.display='none';
+    chUpdateCallBar();chPoll();
+    if(chTimer)clearInterval(chTimer);chTimer=setInterval(chPoll,3000);
+    if(chCallCheckTimer)clearInterval(chCallCheckTimer);chCallCheckTimer=setInterval(chUpdateCallBar,2000);
+    setTimeout(function(){document.getElementById('chInput').focus()},100);
+  }else{
+    if(chTimer){clearInterval(chTimer);chTimer=null}
+    if(chCallCheckTimer){clearInterval(chCallCheckTimer);chCallCheckTimer=null}
+  }
+}
+function chMinimize(){chOpen=false;document.getElementById('chPanel').classList.remove('open');if(chTimer){clearInterval(chTimer);chTimer=null}if(chCallCheckTimer){clearInterval(chCallCheckTimer);chCallCheckTimer=null}}
+function chClose(){chMinimize()}
+
+// ── CALL BAR ──
+function chUpdateCallBar(){
+  var bar=document.getElementById('chCallBar');
+  if(typeof pc!=='undefined'&&pc&&typeof callPeerId!=='undefined'&&callPeerId){
+    bar.classList.add('active');
+    document.getElementById('chBubble').classList.add('call-active');
+    document.getElementById('chCallName').textContent='Player '+(callPeerId||'');
+    var rv=document.getElementById('remoteVideo');
+    if(rv&&rv.srcObject)chDetectSpeaking(rv.srcObject);
+  }else{
+    bar.classList.remove('active');
+    document.getElementById('chBubble').classList.remove('call-active','call-speaking');
+  }
+}
+
+var chAudioCtx=null,chAudioAnalyser=null,chSpeakingTimer=null;
+function chDetectSpeaking(stream){
+  if(!chAudioCtx){
+    try{
+      chAudioCtx=new(window.AudioContext||window.webkitAudioContext)();
+      chAudioAnalyser=chAudioCtx.createAnalyser();chAudioAnalyser.fftSize=256;
+      chAudioCtx.createMediaStreamSource(stream).connect(chAudioAnalyser);
+    }catch(e){return}
+  }
+  if(chSpeakingTimer)clearInterval(chSpeakingTimer);
+  chSpeakingTimer=setInterval(function(){
+    if(!pc||!chAudioAnalyser){clearInterval(chSpeakingTimer);chSpeakingTimer=null;return}
+    var data=new Uint8Array(chAudioAnalyser.frequencyBinCount);
+    chAudioAnalyser.getByteFrequencyData(data);
+    var avg=data.reduce(function(a,b){return a+b},0)/data.length;
+    var bub=document.getElementById('chBubble');
+    if(avg>15)bub.classList.add('call-speaking');else bub.classList.remove('call-speaking');
+  },300);
+}
+
+function chCallToggleMic(){
+  if(typeof localStream==='undefined'||!localStream)return;
+  var t=localStream.getAudioTracks()[0];
+  if(!t)return;
+  t.enabled=!t.enabled;
+  var btn=document.getElementById('chCallMicBtn');
+  if(t.enabled){btn.className='ccb-mic';btn.innerHTML='<i class="fas fa-microphone"></i>'}else{btn.className='ccb-mic muted';btn.innerHTML='<i class="fas fa-microphone-slash"></i>'}
+}
+function chCallEnd(){
+  if(typeof endCall==='function')endCall();
+  document.getElementById('chCallBar').classList.remove('active');
+  document.getElementById('chBubble').classList.remove('call-active','call-speaking');
+}
+
+// ── TEXT CHAT ──
+function chSend(){
+  var inp=document.getElementById('chInput'),btn=document.getElementById('chSendBtn'),text=inp.value.trim();
+  if(!text||!chRoomCode)return;
+  btn.disabled=true;
+  fetch('/multiplayer/chat/send/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':chCSRF()},body:JSON.stringify({room_code:chRoomCode,message:text})})
+    .then(function(r){return r.json()}).then(function(d){if(d.ok){inp.value='';chLastId=Math.max(chLastId,d.message_id||0)}}).catch(function(){}).finally(function(){btn.disabled=false;inp.focus()});
+}
+function chPoll(){
+  if(!chRoomCode)return;
+  fetch('/multiplayer/chat/poll/?room_code='+encodeURIComponent(chRoomCode)+'&after='+chLastId)
+    .then(function(r){return r.json()}).then(function(d){
+      if(d.messages&&d.messages.length){
+        var c=document.getElementById('chMsgs'),e=c.querySelector('.ch-empty');if(e)e.remove();
+        d.messages.forEach(function(m){
+          chLastId=Math.max(chLastId,m.id);
+          var div=document.createElement('div');div.className='ch-msg '+(m.sender_id===chUserId?'self':'other');
+          var t=new Date(m.timestamp*1000),ts=t.getHours().toString().padStart(2,'0')+':'+t.getMinutes().toString().padStart(2,'0');
+          div.innerHTML='<div class="ch-sender">'+chEsc(m.sender_name||'')+'</div><div class="ch-text">'+chEsc(m.text)+'</div><div class="ch-time">'+ts+'</div>';
+          c.appendChild(div);c.scrollTop=c.scrollHeight;
+          if(!chOpen){chUnread++;var b=document.getElementById('chBadge');b.textContent=chUnread;b.style.display=''}
+        });
+      }
+    }).catch(function(){});
+}
+function chCSRF(){var m=document.cookie.match(/csrftoken=([^;]+)/);return m?m[1]:''}
+function chEsc(t){var d=document.createElement('div');d.textContent=t;return d.innerHTML}
+</script>

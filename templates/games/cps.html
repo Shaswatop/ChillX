@@ -1,0 +1,330 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>CPS Test</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Black+Ops+One&family=Lilita+One&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a1929;color:#e8e0d0;font-family:'Poppins',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;user-select:none;position:relative}
+body::before{content:'';position:fixed;inset:0;z-index:-1;background:url('/static/BG.png') center/cover no-repeat;filter:blur(12px) brightness(0.7);}
+.game-wrap{width:100%;max-width:520px;margin-top:56px;padding:32px 28px;background:#0d3b66;border:1px solid #1d4d6b;border-radius:24px;text-align:center;position:relative;overflow:hidden;z-index:1}
+.game-wrap::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(ellipse at 20% 0,rgba(74,158,196,0.03) 0%,transparent 50%),radial-gradient(ellipse at 80% 100%,rgba(74,158,196,0.02) 0%,transparent 50%);pointer-events:none;z-index:0}
+.game-wrap>*{position:relative;z-index:1}
+h1{font-family:'Cinzel',serif;font-size:1.1rem;font-weight:700;color:rgba(255,255,255,0.2);margin-bottom:12px;letter-spacing:2px;text-transform:uppercase}
+.target-bar{display:none;align-items:center;justify-content:center;gap:10px;margin-bottom:12px;padding:6px 14px;background:rgba(74,158,196,0.04);border:1px solid rgba(74,158,196,0.06);border-radius:10px}
+.target-bar.show{display:flex}
+.target-label{font-size:.65rem;color:rgba(74,158,196,0.35);letter-spacing:1px;text-transform:uppercase}
+.target-value{font-size:.95rem;font-weight:700;color:#4a9ec4}
+.cps-display{font-size:3.5rem;font-weight:700;color:#4a9ec4;margin:8px 0;text-shadow:0 0 20px rgba(74,158,196,0.3)}
+.stats{display:flex;justify-content:center;gap:40px;margin:12px 0}
+.stat{text-align:center}
+.stat-num{font-size:1.4rem;font-weight:700;color:#4a9ec4}
+.stat-label{font-size:.6rem;color:rgba(74,158,196,0.3);text-transform:uppercase;letter-spacing:1.5px}
+.time-select{display:flex;justify-content:center;gap:6px;margin-bottom:14px}
+.time-btn{padding:6px 16px;border:1px solid rgba(74,158,196,0.06);border-radius:8px;background:rgba(40,35,50,0.15);color:rgba(74,158,196,0.3);font-size:.68rem;font-weight:500;cursor:pointer;transition:all .25s;font-family:'Inter',sans-serif}
+.time-btn:hover{background:rgba(60,50,70,0.2);color:rgba(74,158,196,0.5)}
+.time-btn.active{background:rgba(74,158,196,0.06);border-color:rgba(74,158,196,0.08);color:#4a9ec4}
+.timer-bar{width:100%;height:3px;background:rgba(74,158,196,0.03);border-radius:3px;overflow:hidden;margin:14px 0}
+.timer-fill{height:100%;background:linear-gradient(90deg,#4a9ec4,#3a8eb4);width:100%;border-radius:3px;transition:width .1s linear}
+.click-area{width:100%;aspect-ratio:1/1;border-radius:18px;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:all .3s;cursor:pointer;background:rgba(40,35,50,0.06);border:1px solid rgba(74,158,196,0.04);max-height:280px;position:relative}
+.click-area::before{content:'';position:absolute;inset:-1px;border-radius:19px;background:linear-gradient(135deg,rgba(74,158,196,0.02),rgba(74,158,196,0.01));z-index:-1;opacity:0;transition:opacity .4s}
+.click-area:hover{border-color:rgba(74,158,196,0.06)}
+.click-area:hover::before{opacity:1}
+.click-area.active{background:rgba(74,158,196,0.02);border-color:rgba(74,158,196,0.06);box-shadow:0 0 30px rgba(74,158,196,0.03)}
+.click-area.active::before{opacity:0}
+.click-text{font-size:1.8rem;font-weight:700;pointer-events:none;font-family:'Cinzel',serif}
+.click-text.active{color:#4a9ec4}
+.click-text.waiting{color:rgba(74,158,196,0.5);animation:pulseCta 2s ease-in-out infinite;text-shadow:0 0 20px rgba(74,158,196,0.3)}
+@keyframes pulseCta{0%,100%{opacity:0.5}50%{opacity:0.8}}
+.click-hint{font-size:.65rem;color:rgba(74,158,196,0.25);margin-top:6px;pointer-events:none}
+.ripple{position:absolute;border-radius:50%;background:rgba(74,158,196,0.08);transform:scale(0);animation:rippleAnim .5s ease-out forwards;pointer-events:none}
+@keyframes rippleAnim{to{transform:scale(4);opacity:0}}
+.overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.8);z-index:1000;animation:overFade .3s ease}
+@keyframes overFade{0%{opacity:0}100%{opacity:1}}
+.overlay.show{display:flex}
+.over-card{background:#0d3b66;border:1px solid #1d4d6b;border-radius:20px;padding:30px 34px 26px;max-width:380px;width:90%;text-align:center;animation:cardPop .4s cubic-bezier(0.34,1.56,0.64,1);box-shadow:0 16px 60px rgba(0,0,0,0.6);z-index:2}
+@keyframes cardPop{0%{opacity:0;transform:scale(0.85) translateY(20px)}100%{opacity:1;transform:scale(1) translateY(0)}}
+.over-animal{font-size:4rem;margin-bottom:4px;display:block}
+.over-title{font-size:1.6rem;font-weight:700;color:#f0e8d0;margin-bottom:4px}
+.over-sub{font-size:.8rem;color:rgba(74,158,196,0.3);margin-bottom:10px}
+.over-cps{font-size:2rem;font-weight:700;color:#4a9ec4;margin-bottom:2px}
+.over-clicks{font-size:.7rem;color:rgba(74,158,196,0.15);margin-bottom:10px}
+.over-result{display:none;padding:8px;border-radius:8px;font-size:.75rem;font-weight:600;margin-bottom:10px}
+.over-result.passed{display:block;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.1);color:#22c55e}
+.over-result.failed{display:block;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.1);color:#f87171}
+.over-actions{display:flex;gap:8px;justify-content:center;margin-top:4px}
+.over-btn{padding:9px 24px;border:1px solid rgba(74,158,196,0.08);border-radius:10px;font-size:.75rem;font-weight:600;cursor:pointer;transition:all .3s;background:rgba(74,158,196,0.06);color:#4a9ec4;font-family:'Inter',sans-serif}
+.over-btn:hover{background:rgba(74,158,196,0.1);border-color:rgba(74,158,196,0.12)}
+.over-btn.primary{background:rgba(34,197,94,0.06);border-color:rgba(34,197,94,0.08);color:#22c55e}
+.over-btn.primary:hover{background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.12)}
+.over-btn.secondary{background:rgba(168,85,247,0.06);border-color:rgba(168,85,247,0.08);color:#a855f7}
+.over-btn.secondary:hover{background:rgba(168,85,247,0.1);border-color:rgba(168,85,247,0.12)}
+.over-ranks{display:flex;justify-content:center;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.over-rank{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1px solid rgba(74,158,196,0.06);background:rgba(40,35,50,0.15);opacity:0.35;transition:all .3s;font-size:1.3rem}
+.over-rank.active{border-color:rgba(74,158,196,0.15);opacity:1;transform:scale(1.1);background:rgba(74,158,196,0.06)}
+.over-rank-label{font-size:.48rem;color:rgba(74,158,196,0.25);margin-top:2px;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap}
+.over-rank-wrap{text-align:center}
+@media(max-width:400px){
+  .stats{flex-wrap:wrap;gap:6px}
+  .stat-num{font-size:.85rem}
+  .result-modal{padding:14px;max-width:95%}
+  .result-modal .grid{grid-template-columns:1fr}
+  .words-box{padding:8px 10px;min-height:70px}
+}
+</style>
+<style>
+.chillx-header{position:fixed;top:0;left:0;right:0;z-index:10000;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:#0d3b66;border-bottom:2px solid #1d4d6b;box-shadow:0 4px 16px rgba(0,0,0,0.3);transition:transform 0.3s ease;}
+.chillx-header.hidden{transform:translateY(-100%);}
+.chillx-header .left{display:flex;align-items:center;gap:10px;}
+.chillx-back{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#fff;border:1.5px solid #0a2a4a;color:#0a2a4a;text-decoration:none;font-size:.78rem;transition:all .25s;cursor:pointer;}
+.chillx-back:hover{background:#d6e8f5;color:#2a2a3a;transform:scale(1.05);}
+.chillx-brand{display:flex;align-items:center;gap:8px;font-family:'Black Ops One',cursive;font-size:.95rem;color:#2a2a3a;text-shadow:0 1px 0 rgba(255,255,255,0.4);}
+.chillx-brand img{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#d6e8f5,#bedbf0);border:2px solid #0d3b66;padding:2px;}
+.chillx-header .right{display:flex;align-items:center;gap:6px;}
+.chillx-pill{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:linear-gradient(180deg,#4a9ec4,#0d3b66);border:1.5px solid #0a2a4a;border-radius:14px;color:#2a2a3a;font-family:'Black Ops One',cursive;font-size:.72rem;box-shadow:inset 0 1px 0 rgba(255,255,255,0.4);}
+.chillx-pill i{font-size:.65rem;}
+.chillx-toggle{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#fff;border:1.5px solid #0a2a4a;color:#0a2a4a;cursor:pointer;font-size:.78rem;transition:all .25s;text-decoration:none;}
+.chillx-toggle:hover{background:#d6e8f5;color:#2a2a3a;}
+</style>
+</head>
+<body>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<div class="chillx-header" id="chillxHeader">
+  <div class="left">
+    <a href="{% url 'dashboard' %}" class="chillx-back" title="Back to Dashboard"><i class="fas fa-arrow-left"></i></a>
+    <div class="chillx-brand"><img src="{% static 'LOGO.png' %}" alt="ChillX"><span>CHILLX · CPS</span></div>
+  </div>
+  <div class="right">
+    <span class="chillx-pill"><i class="fas fa-mouse-pointer"></i> CPS</span>
+    <button class="chillx-toggle" id="hideHeaderBtn" title="Hide header (H)"><i class="fas fa-eye-slash"></i></button>
+    <a href="{% url 'dashboard' %}" class="chillx-toggle" title="Exit (Esc)"><i class="fas fa-times"></i></a>
+  </div>
+</div>
+
+<div class="game-wrap">
+  <h1>🖱️ CPS Test</h1>
+  <div class="target-bar" id="targetBar">
+    <span class="target-label">Target</span>
+    <span class="target-value" id="targetDisplay">0 CPS</span>
+  </div>
+  <div class="cps-display" id="cpsDisplay">0</div>
+  <div class="stats">
+    <div class="stat"><div class="stat-num" id="clicks">0</div><div class="stat-label">Clicks</div></div>
+    <div class="stat"><div class="stat-num" id="cpsTimer">10</div><div class="stat-label">Seconds</div></div>
+  </div>
+  <div class="time-select" id="timeSelect">
+    <button class="time-btn" data-time="1" onclick="setTime(1)">1s</button>
+    <button class="time-btn" data-time="3" onclick="setTime(3)">3s</button>
+    <button class="time-btn active" data-time="10" onclick="setTime(10)">10s</button>
+    <button class="time-btn" data-time="30" onclick="setTime(30)">30s</button>
+    <button class="time-btn" data-time="60" onclick="setTime(60)">60s</button>
+  </div>
+  <div class="timer-bar"><div class="timer-fill" id="timerFill"></div></div>
+  <div class="click-area" id="clickArea" onclick="handleClick(event)">
+    <div class="click-text waiting" id="clickText">Click to start</div>
+    <div class="click-hint">Tap anywhere in the box</div>
+  </div>
+</div>
+
+<div class="overlay" id="resultOverlay">
+  <div class="over-card">
+    <span class="over-animal" id="resultAnimal">🐢</span>
+    <div class="over-title" id="resultTitle">Tortoise</div>
+    <div class="over-sub" id="resultSub">Slow and steady...</div>
+    <div class="over-cps" id="resultCps">0 CPS</div>
+    <div class="over-clicks" id="resultClicks">0 clicks in 10s</div>
+    <div class="over-result" id="resultStatus"></div>
+    <div class="over-ranks" id="rankBar"></div>
+    <div class="over-actions" id="resultActions">
+      <button class="over-btn" onclick="closeResult()">Try Again</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var RANKS=[
+  {min:0,animal:'🪱',name:'Worm',sub:'Crawling... literally.'},
+  {min:1,animal:'🦥',name:'Sloth',sub:'Did you fall asleep?'},
+  {min:2,animal:'🐌',name:'Snail',sub:'Maybe try using more than one finger?'},
+  {min:3.5,animal:'🐢',name:'Tortoise',sub:'Slow and steady... very slow.'},
+  {min:5,animal:'🐇',name:'Rabbit',sub:'Not bad! You have some speed!'},
+  {min:6.5,animal:'🦅',name:'Eagle',sub:'Fast reflexes! Impressive!'},
+  {min:8,animal:'🐆',name:'Cheetah',sub:'Lightning fast! You are a beast!'},
+  {min:9.5,animal:'🚀',name:'Rocket',sub:'Blazing speed! Almost inhuman!'},
+  {min:11,animal:'⚡',name:'God',sub:'Are you even human?! Unbelievable!'}
+]
+
+var isRunning=false,timeLeft=10,clickCount=0,timer=null,selectedTime=10,audioCtx=null
+var challengeTarget=null,challengeId=null,lastCps=null
+
+function init(){
+  var p=new URLSearchParams(window.location.search)
+  if(p.get('time')){var t=parseInt(p.get('time'));if([1,3,10,30,60].includes(t))setTime(t)}
+  if(p.get('target')){challengeTarget=parseFloat(p.get('target'));document.getElementById('targetBar').classList.add('show');document.getElementById('targetDisplay').textContent=challengeTarget+' CPS'}
+  if(p.get('challenge'))challengeId=p.get('challenge')
+}
+
+function playClick(){
+  if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)()
+  var osc=audioCtx.createOscillator(),gain=audioCtx.createGain()
+  osc.connect(gain);gain.connect(audioCtx.destination)
+  osc.frequency.value=800;osc.type='sine'
+  gain.gain.setValueAtTime(0.15,audioCtx.currentTime)
+  gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.08)
+  osc.start();osc.stop(audioCtx.currentTime+0.08)
+}
+
+function setTime(t){
+  if(isRunning)return
+  selectedTime=t
+  document.querySelectorAll('.time-btn').forEach(function(b){b.classList.toggle('active',parseInt(b.dataset.time)===t)})
+  timeLeft=t
+  document.getElementById('cpsTimer').textContent=t
+  document.getElementById('timerFill').style.width='100%'
+  document.getElementById('cpsDisplay').textContent='0'
+  document.getElementById('clicks').textContent='0'
+}
+
+function spawnRipple(e){
+  var area=document.getElementById('clickArea')
+  var rect=area.getBoundingClientRect()
+  var r=document.createElement('div');r.className='ripple'
+  var size=40
+  r.style.width=size+'px';r.style.height=size+'px'
+  r.style.left=(e.clientX-rect.left-size/2)+'px';r.style.top=(e.clientY-rect.top-size/2)+'px'
+  area.appendChild(r)
+  setTimeout(function(){r.remove()},500)
+}
+
+function handleClick(e){
+  if(!isRunning){
+    isRunning=true;clickCount=0;timeLeft=selectedTime
+    document.getElementById('clickArea').className='click-area active'
+    document.getElementById('clickText').textContent='CLICK FAST!';document.getElementById('clickText').className='click-text active'
+    document.getElementById('cpsDisplay').textContent='0';document.getElementById('clicks').textContent='0';document.getElementById('cpsTimer').textContent=timeLeft
+    document.getElementById('timerFill').style.width='100%'
+    timer=setInterval(function(){
+      timeLeft--
+      document.getElementById('cpsTimer').textContent=timeLeft
+      document.getElementById('timerFill').style.width=(timeLeft/selectedTime*100)+'%'
+      if(timeLeft<=0)endGame()
+    },1000)
+    // count the first click that starts the test
+    clickCount++
+    playClick();spawnRipple(e)
+    document.getElementById('clicks').textContent=clickCount
+    var cps = timeLeft > 0 ? clickCount / timeLeft : 0;
+    document.getElementById('cpsDisplay').textContent=cps.toFixed(1)
+    return
+  }
+  clickCount++
+  playClick();spawnRipple(e)
+  document.getElementById('clicks').textContent=clickCount
+  var cps = timeLeft > 0 ? clickCount / timeLeft : 0;
+  document.getElementById('cpsDisplay').textContent=cps.toFixed(1)
+}
+
+function endGame(){
+  isRunning=false;clearInterval(timer)
+  lastCps=clickCount/selectedTime
+  document.getElementById('cpsDisplay').textContent=lastCps.toFixed(1)
+  document.getElementById('clickText').textContent=lastCps.toFixed(1)+' CPS';document.getElementById('clickText').className='click-text'
+  document.getElementById('clickArea').className='click-area'
+  showResult(lastCps)
+}
+
+function showResult(cps){
+  var rank=RANKS[0]
+  for(var i=RANKS.length-1;i>=0;i--){if(cps>=RANKS[i].min){rank=RANKS[i];break}}
+  document.getElementById('resultAnimal').textContent=rank.animal
+  document.getElementById('resultTitle').textContent=rank.name
+  document.getElementById('resultSub').textContent=rank.sub
+  document.getElementById('resultCps').textContent=cps.toFixed(1)+' CPS'
+  document.getElementById('resultClicks').textContent=clickCount+' clicks in '+selectedTime+'s'
+  document.getElementById('resultStatus').className='over-result'
+  var bar=document.getElementById('rankBar');bar.innerHTML=''
+  for(var i=0;i<RANKS.length;i++){
+    var w=document.createElement('div');w.className='over-rank-wrap'
+    var c=document.createElement('div');c.className='over-rank'+(RANKS[i]===rank?' active':'')
+    c.textContent=RANKS[i].animal
+    var l=document.createElement('div');l.className='over-rank-label'
+    l.textContent=RANKS[i].name
+    w.appendChild(c);w.appendChild(l);bar.appendChild(w)
+  }
+  // Actions
+  var acts=document.getElementById('resultActions')
+  acts.innerHTML='<button class="over-btn" onclick="closeResult()">Try Again</button>'
+  if(challengeId){
+    var passed=cps>=challengeTarget
+    var btn=document.createElement('button')
+    btn.className='over-btn primary'
+    btn.textContent=passed?'✓ Submit Result':'Submit Anyway'
+    btn.onclick=function(){submitResult(cps)}
+    acts.appendChild(btn)
+  }
+  document.getElementById('resultOverlay').classList.add('show')
+}
+
+function submitResult(cps){
+  var passed=cps>=challengeTarget
+  document.getElementById('resultStatus').textContent=passed?'Challenge Passed! Well done!':'Failed — '+cps.toFixed(1)+'/'+challengeTarget+' CPS'
+  document.getElementById('resultStatus').className='over-result '+(passed?'passed':'failed')
+  document.getElementById('resultActions').innerHTML='<button class="over-btn" onclick="closeResult()">Try Again</button>'
+  if(passed){
+    var backBtn=document.createElement('button')
+    backBtn.className='over-btn secondary'
+    backBtn.textContent='← Back to Challenges'
+    backBtn.onclick=function(){window.location.href='/challenges/'}
+    document.getElementById('resultActions').appendChild(backBtn)
+  }
+  // Send result to server
+  var xhr=new XMLHttpRequest()
+  xhr.open('POST','/challenges/verify-cps/',true)
+  xhr.setRequestHeader('Content-Type','application/x-www-form-urlencoded')
+  xhr.setRequestHeader('X-CSRFToken',getCSRF())
+   xhr.onload=function(){
+     if(xhr.status===200){
+       var d=JSON.parse(xhr.responseText)
+       if(d.passed&&d.status==='completed'){
+         document.getElementById('resultStatus').textContent='✓ Completed! +'+d.xp+' XP, Rs '+d.coins
+         document.getElementById('resultStatus').className='over-result passed'
+         document.getElementById('resultActions').innerHTML=''
+         setTimeout(function(){
+           if(window.opener&&!window.opener.closed)window.opener.location.reload()
+           window.close()
+         },2000)
+       }
+     }
+   }
+  xhr.send('challenge_id='+challengeId+'&score='+cps.toFixed(1)+'&target='+challengeTarget+'&clicks='+clickCount+'&time='+selectedTime)
+}
+
+function getCSRF(){
+  var name='csrftoken',m=document.cookie.match('(^|;)\\s*'+name+'\\s*=\\s*([^;]+)')
+  return m?m.pop():''
+}
+
+function closeResult(){
+  document.getElementById('resultOverlay').classList.remove('show')
+  resetGame()
+}
+
+function resetGame(){
+  isRunning=false;clearInterval(timer);timeLeft=selectedTime;clickCount=0
+  document.getElementById('cpsDisplay').textContent='0';document.getElementById('clicks').textContent='0';document.getElementById('cpsTimer').textContent=selectedTime
+  document.getElementById('timerFill').style.width='100%'
+  document.getElementById('clickText').textContent='Click to start';document.getElementById('clickText').className='click-text waiting'
+  document.getElementById('clickArea').className='click-area'
+  document.getElementById('resultStatus').className='over-result'
+}
+
+init()
+</script>
+
+<script>(function(){var h=document.getElementById('chillxHeader'),b=document.getElementById('hideHeaderBtn');if(!h||!b)return;b.addEventListener('click',function(){h.classList.toggle('hidden');b.innerHTML=h.classList.contains('hidden')?'<i class="fas fa-eye"></i>':'<i class="fas fa-eye-slash"></i>';});})();</script>
+</body>
+</html>

@@ -1,0 +1,194 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>Memory Test</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Black+Ops+One&family=Lilita+One&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a1929;color:#e0e0e0;font-family:'Inter','Segoe UI',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;user-select:none}
+body::before{content:'';position:fixed;inset:0;z-index:-1;background:url('/static/BG.png') center/cover no-repeat;filter:blur(12px) brightness(0.7);}
+.game-wrap{width:100%;max-width:500px;padding:24px;text-align:center;margin-top:56px;background:#0d3b66;border:2px solid #1d4d6b;border-radius:24px}
+h1{font-size:1.1rem;font-weight:600;color:#d6e8f5;margin-bottom:16px;letter-spacing:1px;text-transform:uppercase}
+.stats{display:flex;justify-content:center;gap:30px;margin-bottom:20px}
+.stat{text-align:center}
+.stat-num{font-size:1.4rem;font-weight:700;color:#4a9ec4}
+.stat-label{font-size:.65rem;color:rgba(255,255,255,0.2);text-transform:uppercase;letter-spacing:1px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:320px;margin:0 auto}
+.cell{aspect-ratio:1;border-radius:16px;cursor:pointer;transition:all .15s;opacity:0.4;border:2px solid transparent}
+.cell.active{opacity:1;transform:scale(1.04)}
+.cell.lit{opacity:1;transform:scale(1.06);border-color:rgba(255,255,255,0.15);box-shadow:0 0 30px rgba(255,255,255,0.06)}
+.cell-0{background:#ef4444}.cell-1{background:#3b82f6}.cell-2{background:#22c55e}.cell-3{background:#eab308}
+.status{font-size:1.1rem;font-weight:500;color:rgba(255,255,255,0.2);margin:16px 0;min-height:30px}
+.overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.8);z-index:100}
+.overlay.hidden{display:none}
+.overlay-title{font-size:1.3rem;font-weight:600;color:#f0f0f0;margin-bottom:6px}
+.overlay-sub{font-size:.8rem;color:rgba(255,255,255,0.3);margin-bottom:20px}
+.btn{padding:12px 36px;border:none;border-radius:10px;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .3s;background:linear-gradient(180deg,#4a9ec4,#0d3b66);color:#fff}
+.btn:hover{transform:scale(1.04);box-shadow:0 4px 20px rgba(74,158,196,0.25)}
+.chillx-header{position:fixed;top:0;left:0;right:0;z-index:10000;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:#0d3b66;border-bottom:2px solid #1d4d6b;box-shadow:0 4px 16px rgba(0,0,0,0.3);transition:transform 0.3s ease;}
+.chillx-header.hidden{transform:translateY(-100%);}
+.chillx-header .left{display:flex;align-items:center;gap:10px;}
+.chillx-back{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#fff;border:1.5px solid #0a2a4a;color:#0a2a4a;text-decoration:none;font-size:.78rem;transition:all .25s;cursor:pointer;}
+.chillx-back:hover{background:#d6e8f5;color:#2a2a3a;transform:scale(1.05);}
+.chillx-brand{display:flex;align-items:center;gap:8px;font-family:'Black Ops One',cursive;font-size:.95rem;color:#2a2a3a;text-shadow:0 1px 0 rgba(255,255,255,0.4);}
+.chillx-brand img{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#d6e8f5,#bedbf0);border:2px solid #0d3b66;padding:2px;}
+.chillx-header .right{display:flex;align-items:center;gap:6px;}
+.chillx-pill{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:linear-gradient(180deg,#4a9ec4,#0d3b66);border:1.5px solid #0a2a4a;border-radius:14px;color:#2a2a3a;font-family:'Black Ops One',cursive;font-size:.72rem;box-shadow:inset 0 1px 0 rgba(255,255,255,0.4);}
+.chillx-pill i{font-size:.65rem;}
+.chillx-toggle{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#fff;border:1.5px solid #0a2a4a;color:#0a2a4a;cursor:pointer;font-size:.78rem;transition:all .25s;text-decoration:none;}
+.chillx-toggle:hover{background:#d6e8f5;color:#2a2a3a;}
+@media(max-width:400px){
+  .stats{flex-wrap:wrap;gap:6px}
+  .stat-num{font-size:.85rem}
+  .result-modal{padding:14px;max-width:95%}
+  .result-modal .grid{grid-template-columns:1fr}
+  .words-box{padding:8px 10px;min-height:70px}
+}
+</style>
+</head>
+<body>
+<div class="chillx-header" id="chillxHeader">
+  <div class="left">
+    <a href="{% url 'dashboard' %}" class="chillx-back" title="Back to Dashboard"><i class="fas fa-arrow-left"></i></a>
+    <div class="chillx-brand"><img src="{% static 'LOGO.png' %}" alt="ChillX"><span>CHILLX · MEMORY</span></div>
+  </div>
+  <div class="right">
+    <span class="chillx-pill"><i class="fas fa-brain"></i> MEMORY</span>
+    <button class="chillx-toggle" id="hideHeaderBtn" title="Hide header (H)"><i class="fas fa-eye-slash"></i></button>
+    <a href="{% url 'dashboard' %}" class="chillx-toggle" title="Exit (Esc)"><i class="fas fa-times"></i></a>
+  </div>
+</div>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<div class="overlay" id="overlay">
+  <div class="overlay-title">🧠 Memory Test</div>
+  <div class="overlay-sub">Watch the pattern, then repeat it</div>
+  <button class="btn" onclick="startGame()">Start</button>
+</div>
+<div class="game-wrap">
+  <h1>🧠 Memory Sequence</h1>
+  <div class="stats">
+    <div class="stat"><div class="stat-num" id="level">0</div><div class="stat-label">Level</div></div>
+    <div class="stat"><div class="stat-num" id="bestScore">0</div><div class="stat-label">Best</div></div>
+  </div>
+  <div class="grid" id="grid">
+    <div class="cell cell-0" data-idx="0"></div>
+    <div class="cell cell-1" data-idx="1"></div>
+    <div class="cell cell-2" data-idx="2"></div>
+    <div class="cell cell-3" data-idx="3"></div>
+  </div>
+  <div class="status" id="status">Press Start</div>
+<div id="challengeResult" style="display:none;margin-top:12px;padding:12px;border-radius:10px;font-size:.8rem;font-weight:500;"></div>
+</div>
+<script>
+var sequence=[],playerIdx=0,level=0,best=0,isPlaying=false,isInput=false,timeout=null
+var cells=document.querySelectorAll('.cell')
+
+function startGame(){
+  sequence=[];playerIdx=0;level=0;isPlaying=true;isInput=false
+  document.getElementById('overlay').classList.add('hidden')
+  document.getElementById('level').textContent='0'
+  document.getElementById('status').textContent='Watching...'
+  nextRound()
+}
+
+function nextRound(){
+  if(!isPlaying)return
+  level++;isInput=false
+  document.getElementById('level').textContent=level
+  if(level>best){best=level;document.getElementById('bestScore').textContent=best}
+  document.getElementById('status').textContent='Round '+level+' — Watch...'
+  // Add random step
+  sequence.push(Math.floor(Math.random()*4))
+  playSequence(0)
+}
+
+function playSequence(idx){
+  if(idx>=sequence.length){
+    setTimeout(function(){isInput=true;document.getElementById('status').textContent='Your turn — tap the pattern'},400)
+    return
+  }
+  var cellIdx=sequence[idx]
+  var cell=cells[cellIdx]
+  cell.classList.add('lit')
+  setTimeout(function(){
+    cell.classList.remove('lit')
+    setTimeout(function(){playSequence(idx+1)},200)
+  },500)
+}
+
+cells.forEach(function(cell){
+  cell.addEventListener('click',function(){
+    if(!isInput||!isPlaying)return
+    var idx=parseInt(this.dataset.idx)
+    // Flash
+    this.classList.add('active')
+    if(sequence[playerIdx]===idx){
+      // Correct
+      playerIdx++
+      setTimeout(function(){cell.classList.remove('active')},200)
+      if(playerIdx>=sequence.length){
+        playerIdx=0;isInput=false
+        document.getElementById('status').textContent='Correct!'
+        if(challengeTarget&&level>=challengeTarget){
+          var finalLevel=level
+          isPlaying=false
+          document.getElementById('overlay').classList.remove('hidden')
+          document.getElementById('overlay').innerHTML='<div class="overlay-title">Challenge Complete!</div><div class="overlay-sub">You reached level '+finalLevel+'</div><button class="btn" onclick="location.reload()">Play Again</button>'
+          if(challengeId)setTimeout(function(){submitResult(finalLevel)},800)
+        } else {
+          setTimeout(function(){nextRound()},600)
+        }
+      }
+    } else {
+      // Wrong
+      this.style.opacity='1';this.style.borderColor='rgba(239,68,68,0.3)'
+      document.getElementById('status').textContent='Game Over — Score: '+(level-1)
+      isPlaying=false;isInput=false
+      var finalScore=level-1
+      setTimeout(function(){
+        cell.style.opacity='';cell.style.borderColor=''
+        cell.classList.remove('active')
+        document.getElementById('overlay').classList.remove('hidden')
+        document.getElementById('overlay').innerHTML='<div class="overlay-title">Game Over</div><div class="overlay-sub">You reached level '+finalScore+'</div><button class="btn" onclick="location.reload()">Play Again</button>'
+        if(challengeId)setTimeout(function(){submitResult(finalScore)},800)
+      },600)
+    }
+  })
+})
+// ── Challenge auto-submit ──
+var challengeId=null,challengeTarget=null
+var p=new URLSearchParams(window.location.search)
+if(p.get('target'))challengeTarget=parseInt(p.get('target'))
+if(p.get('challenge'))challengeId=p.get('challenge')
+function getCSRF(){var m=document.cookie.match(/csrftoken=([^;]+)/);return m?m[1]:''}
+function submitResult(score){
+  if(!challengeId)return
+  var xhr=new XMLHttpRequest()
+  xhr.open('POST','/challenges/verify-memory/',true)
+  xhr.setRequestHeader('Content-Type','application/x-www-form-urlencoded')
+  xhr.setRequestHeader('X-CSRFToken',getCSRF())
+  xhr.onload=function(){
+    try{
+      var r=JSON.parse(xhr.responseText)
+      var div=document.getElementById('challengeResult')
+      div.style.display='block'
+      if(r.passed){
+        div.style.background='rgba(34,197,94,0.1)';div.style.border='1px solid rgba(34,197,94,0.2)'
+        div.style.color='#4ade80';div.textContent='Challenge passed! +'+r.xp+'XP, Rs '+r.coins
+        setTimeout(function(){if(window.opener&&!window.opener.closed)window.opener.location.reload();window.close()},2000)
+      } else {
+        div.style.background='rgba(239,68,68,0.1)';div.style.border='1px solid rgba(239,68,68,0.2)'
+        div.style.color='#f87171';div.textContent='Challenge failed — need level '+challengeTarget
+      }
+    }catch(e){}
+  }
+  xhr.send('challenge_id='+challengeId+'&score='+score+'&target='+challengeTarget)
+}
+(function(){var h=document.getElementById('chillxHeader'),b=document.getElementById('hideHeaderBtn');if(!h||!b)return;b.addEventListener('click',function(){h.classList.toggle('hidden');b.innerHTML=h.classList.contains('hidden')?'<i class="fas fa-eye"></i>':'<i class="fas fa-eye-slash"></i>';});})();
+</script>
+</body>
+</html>

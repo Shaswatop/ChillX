@@ -1,0 +1,12 @@
+<script>
+(function(){
+  if(window.__spaIntervalIds)return;
+  var orig=window.setInterval;
+  window.__spaIntervalIds=[];
+  window.setInterval=function(fn,ms){
+    var id=orig(fn,ms);
+    window.__spaIntervalIds.push(id);
+    return id;
+  };
+})();
+</script>

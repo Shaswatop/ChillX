@@ -1,0 +1,544 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>Typing · ChillX</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Source+Code+Pro:wght@400;500;600;700&family=Black+Ops+One&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+:root{--bg:#f0f2f5;--surface:#ffffff;--border:#d1d5db;--accent:#4a9ec4;--text:#1a2332;--dim:#8899aa;--caret:#e2b714;--correct:#27ae60;--incorrect:#e74c3c;--extra:#c0392b}
+*{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-family:'Poppins',sans-serif;overflow:hidden}
+body{display:flex;align-items:center;justify-content:center;flex-direction:column;padding:10px}
+.game-wrap{width:100%;max-width:680px;display:flex;flex-direction:column;gap:6px}
+.progress-row{display:flex;gap:10px;margin-bottom:2px}
+.prog-label{font-size:.5rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px;display:flex;justify-content:space-between}
+.prog-bar{height:3px;background:rgba(0,0,0,0.06);border-radius:2px;overflow:hidden}
+.prog-bar-inner{height:100%;border-radius:2px;transition:width .2s ease;width:0%}
+.prog-bar-inner.self{background:var(--caret)}
+.prog-bar-inner.opp{background:var(--accent);opacity:.6}
+.stats{display:flex;justify-content:center;gap:18px;padding:2px 0}
+.stat{text-align:center}
+.stat-num{font-size:1.2rem;font-weight:600;color:var(--text);font-family:'Source Code Pro',monospace;line-height:1.2}
+.stat-label{font-size:.5rem;color:var(--dim);text-transform:uppercase;letter-spacing:1.5px}
+.timer-bar{width:100%;height:2px;background:rgba(0,0,0,0.06);border-radius:2px;overflow:hidden}
+.timer-fill{height:100%;background:var(--caret);width:100%;transition:width .1s linear}
+.words-wrap{position:relative;margin:8px 0}
+.words-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;min-height:100px;max-height:160px;overflow:hidden;cursor:text;position:relative}
+.words-display{display:flex;flex-wrap:wrap;gap:4px 6px;line-height:1.5;font-family:'Source Code Pro',monospace;font-size:1rem;font-weight:500;color:var(--dim);align-content:flex-start}
+.words-display .word{display:flex;padding:0;margin:0}
+.words-display .char{display:inline-block;position:relative;padding:0 0.5px;border-radius:1px}
+.words-display .char.correct{color:var(--correct)}
+.words-display .char.incorrect{color:var(--incorrect);background:rgba(231,76,60,0.08)}
+.words-display .char.extra{color:var(--extra);background:rgba(192,57,43,0.1)}
+.words-display .char.current::after{content:'';position:absolute;top:1px;bottom:1px;left:0;width:2.5px;background:var(--caret);animation:caretBlink 1s step-end infinite;border-radius:1.5px;box-shadow:0 0 6px var(--caret)}
+@keyframes caretBlink{0%,100%{opacity:1}50%{opacity:0}}
+.words-display .word.done-correct .char{color:var(--correct)}
+.words-display .word.done-incorrect .char{color:var(--incorrect);background:rgba(231,76,60,0.05)}
+.opp-cursor{position:absolute;width:2px;height:1.3em;background:var(--accent);opacity:.5;pointer-events:none;z-index:5;border-radius:1px;animation:oppPulse 1.2s ease-in-out infinite}
+@keyframes oppPulse{0%,100%{opacity:.5}50%{opacity:.2}}
+.opp-cursor{position:absolute;width:2px;height:1.2em;background:var(--accent);opacity:.4;transition:all .15s ease;pointer-events:none;z-index:5;border-radius:1px}
+.hint{text-align:center;font-size:.65rem;color:var(--dim);padding:8px 0}
+.result-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.8);display:none;align-items:center;justify-content:center}
+.result-overlay.show{display:flex}
+.result-modal{background:var(--surface);border:2px solid var(--border);border-radius:16px;padding:20px;text-align:center;max-width:320px;width:90%}
+.result-modal h2{font-size:1rem;color:var(--text);margin-bottom:2px;font-family:'Black Ops One',cursive;letter-spacing:2px}
+.result-modal .sub{font-size:.6rem;color:var(--dim);margin-bottom:10px}
+.result-modal .big-num{font-size:2rem;font-weight:700;color:var(--text);font-family:'Source Code Pro',monospace}
+.result-modal .big-label{font-size:.55rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.result-modal .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-bottom:10px}
+.result-modal .grid-item{background:var(--bg);border-radius:6px;padding:4px 6px}
+.result-modal .grid-item .val{font-size:.9rem;font-weight:600;color:var(--accent);font-family:'Source Code Pro',monospace}
+.result-modal .grid-item .lbl{font-size:.45rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px}
+.result-modal .status-text{font-size:.65rem;padding:6px;border-radius:6px;margin-bottom:8px}
+.result-actions{display:flex;gap:6px;justify-content:center;margin-top:8px}
+.result-btn{padding:6px 16px;border:none;border-radius:8px;font-family:'Poppins',sans-serif;font-size:.6rem;font-weight:600;cursor:pointer;transition:all .2s}
+.result-btn-primary{background:var(--accent);border:1px solid var(--border);color:#fff}
+.result-btn-primary:hover{filter:brightness(1.1)}
+.result-btn-ghost{background:var(--bg);border:1px solid var(--border);color:var(--dim)}
+.result-btn-ghost:hover{background:var(--border);color:var(--text)}
+#screenshotPreview{display:none;max-width:100%;max-height:110px;border-radius:8px;margin:6px auto;border:1px solid var(--border)}
+#hiddenInput{position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0}
+.opp-info{display:flex;align-items:center;justify-content:center;gap:6px;padding:4px 0;margin-bottom:2px}
+.opp-info .o-avatar{width:24px;height:24px;border-radius:50%;overflow:hidden;background:rgba(74,158,196,0.08);display:flex;align-items:center;justify-content:center;border:2px solid rgba(74,158,196,0.15);flex-shrink:0}
+.opp-info .o-avatar img{width:100%;height:100%;object-fit:cover}
+.opp-info .o-avatar i{font-size:10px;color:var(--dim)}
+.opp-info .o-name{font-size:.6rem;font-weight:600;color:var(--text)}
+.opp-info .o-rank{font-size:.5rem;color:var(--dim)}
+@media(max-width:400px){
+  .stats{flex-wrap:wrap;gap:6px}
+  .stat-num{font-size:.85rem}
+  .result-modal{padding:14px;max-width:95%}
+  .result-modal .grid{grid-template-columns:1fr}
+  .words-box{padding:8px 10px;min-height:70px}
+}
+@media(pointer:coarse){
+  #hiddenInput{position:static;width:100%;height:44px;margin-top:6px;padding:10px 14px;border-radius:10px;border:2px solid var(--border);background:var(--bg);color:var(--text);font-size:1rem;font-family:'Poppins',monospace;outline:none;resize:none;display:block;opacity:1;pointer-events:auto}
+  #hiddenInput:focus{border-color:var(--accent)}
+  .words-box{min-height:100px}
+}
+</style>
+</head>
+<body>
+
+<div class="game-wrap">
+  <div class="opp-info" id="oppInfo" style="display:none">
+    <div class="o-avatar" id="oppAvatar"><i class="fas fa-user"></i></div>
+    <div class="o-name" id="oppNameDisplay">Opponent</div>
+    <div class="o-rank" id="oppRankDisplay"></div>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="stat-num" id="timerDisplay">30</div><div class="stat-label">Time</div></div>
+    <div class="stat"><div class="stat-num" id="wpmDisplay">0</div><div class="stat-label">WPM</div></div>
+    <div class="stat"><div class="stat-num" id="rawWpmDisplay">0</div><div class="stat-label">Raw</div></div>
+    <div class="stat"><div class="stat-num" id="accDisplay">100</div><div class="stat-label">Acc %</div></div>
+  </div>
+  <div class="timer-bar"><div class="timer-fill" id="timerFill"></div></div>
+  <div class="progress-row">
+    <div class="prog-group">
+      <div class="prog-label"><span>You</span><span id="progSelfLabel">0%</span></div>
+      <div class="prog-bar"><div class="prog-bar-inner self" id="progSelf"></div></div>
+    </div>
+    <div class="prog-group">
+      <div class="prog-label"><span id="oppNameLabel">Opponent</span><span id="progOppLabel">0%</span></div>
+      <div class="prog-bar"><div class="prog-bar-inner opp" id="progOpp"></div></div>
+    </div>
+  </div>
+  <div class="words-wrap">
+    <div class="words-box" id="wordsBox" onclick="focusInput()">
+      <div class="words-display" id="wordsDisplay" style="position:relative"></div>
+      <div class="opp-cursor" id="oppCursor" style="display:none"></div>
+    </div>
+    <div class="hint" id="hint">Typing test will start automatically</div>
+  </div>
+</div>
+
+<div class="result-overlay" id="resultOverlay">
+  <div class="result-modal" id="resultModal">
+    <h2>TYPING</h2>
+    <div class="sub" id="resultSub">Complete</div>
+    <div class="big-num" id="resultWpm">0</div>
+    <div class="big-label">WPM</div>
+    <div class="grid">
+      <div class="grid-item"><div class="val" id="rRaw">0</div><div class="lbl">Raw</div></div>
+      <div class="grid-item"><div class="val" id="rAcc">0%</div><div class="lbl">Accuracy</div></div>
+      <div class="grid-item"><div class="val" id="rTime">0s</div><div class="lbl">Time</div></div>
+    </div>
+    <div class="status-text" id="resultStatus">Preparing screenshot...</div>
+    <img id="screenshotPreview" alt="Screenshot preview">
+    <div class="result-actions">
+      <button class="result-btn result-btn-primary" id="submitScreenshotBtn" onclick="submitScreenshot()"><i class="fas fa-camera"></i> Submit</button>
+      <button class="result-btn result-btn-ghost" onclick="closeResults()">Close</button>
+    </div>
+  </div>
+</div>
+
+<textarea id="hiddenInput" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+// ── State ──
+var passage='',words=[],wordCount=0
+var curWord=0,curChar=0
+var totalStrokes=0,correctStrokes=0,incorrectStrokes=0,extraStrokes=0
+var prevInputLen=0
+var isRunning=false,isFinished=false,timer=null,duration=30,timeLeft=30
+var startTime=0,elapsed=0,screenshotData=null
+var challengeTarget=35
+
+// ── DOM refs ──
+var $=function(id){return document.getElementById(id)}
+var wordsDisplay=$('wordsDisplay'),hiddenInput=$('hiddenInput')
+
+// ── Build character-level words (Monkeytype-style) ──
+function buildWords(){
+  wordsDisplay.innerHTML=''
+  words=passage.split(/\s+/).filter(function(w){return w.length>0})
+  wordCount=words.length
+  words.forEach(function(w,wi){
+    var wordDiv=document.createElement('div')
+    wordDiv.className='word'
+    wordDiv.id='w_'+wi
+    for(var ci=0;ci<w.length;ci++){
+      var ch=document.createElement('span')
+      ch.className='char'
+      if(wi===0&&ci===0)ch.className+=' current'
+      ch.textContent=w[ci]
+      ch.id='c_'+wi+'_'+ci
+      wordDiv.appendChild(ch)
+    }
+    wordsDisplay.appendChild(wordDiv)
+  })
+}
+
+// ── Cursor ──
+function moveCursor(w,c){
+  var prev=document.querySelector('.char.current')
+  if(prev)prev.classList.remove('current')
+  var next=document.getElementById('c_'+w+'_'+c)
+  if(next)next.classList.add('current')
+}
+
+// ── Mark helpers ──
+function markChar(w,c,cls){
+  var el=document.getElementById('c_'+w+'_'+c)
+  if(el)el.className='char '+cls
+}
+
+function markExtra(w,c,ch){
+  var parent=document.getElementById('w_'+w)
+  if(!parent)return
+  var existing=document.getElementById('e_'+w+'_'+c)
+  if(!existing){
+    var el=document.createElement('span')
+    el.className='char extra'
+    el.textContent=ch||'*'
+    el.id='e_'+w+'_'+c
+    parent.appendChild(el)
+  }
+}
+
+// ── Sound ──
+var audioCtx2=null
+function playTick(freq,dur,vol){
+  try{
+    if(!audioCtx2)audioCtx2=new(window.AudioContext||window.webkitAudioContext)()
+    var osc=audioCtx2.createOscillator(),gain=audioCtx2.createGain()
+    osc.connect(gain);gain.connect(audioCtx2.destination)
+    osc.frequency.value=freq;osc.type='sine'
+    gain.gain.setValueAtTime(vol,audioCtx2.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.001,audioCtx2.currentTime+dur)
+    osc.start();osc.stop(audioCtx2.currentTime+dur)
+  }catch(e){}
+}
+function playCorrect(){playTick(880,0.06,0.18)}
+function playIncorrect(){playTick(200,0.1,0.20)}
+function playBackspace(){playTick(440,0.04,0.10)}
+
+// ── Monkeytype-style process single character ──
+function typeChar(ch){
+  var exp=words[curWord]
+  if(curChar<exp.length){
+    if(ch===exp[curChar]){
+      markChar(curWord,curChar,'correct')
+      correctStrokes++
+      if(isRunning&&!isFinished)playCorrect()
+    }else{
+      markChar(curWord,curChar,'incorrect')
+      incorrectStrokes++
+      if(isRunning&&!isFinished)playIncorrect()
+    }
+  }else{
+    markExtra(curWord,curChar,ch)
+    extraStrokes++
+    if(isRunning&&!isFinished)playIncorrect()
+  }
+  totalStrokes++
+  curChar++
+  moveCursor(curWord,curChar)
+  updateStats()
+}
+
+// ── Submit word on space ──
+function submitWord(typed){
+  var exp=words[curWord]
+  var wordEl=document.getElementById('w_'+curWord)
+  if(wordEl){
+    var allOk=true
+    for(var ci=0;ci<Math.max(typed.length,exp.length);ci++){
+      if(ci<exp.length&&ci<typed.length&&typed[ci]===exp[ci]){
+        markChar(curWord,ci,'correct')
+      }else if(ci<exp.length){
+        markChar(curWord,ci,'incorrect')
+        allOk=false
+      }else{
+        markExtra(curWord,ci,typed[ci])
+      }
+    }
+    wordEl.className='word '+(allOk?'done-correct':'done-incorrect')
+  }
+  curWord++;curChar=0
+  prevInputLen=0
+  if(curWord>=wordCount){endTest();return}
+  moveCursor(curWord,0)
+  updateStats()
+}
+
+// ── Input handler (tracks input length delta, handles backspace) ──
+hiddenInput.addEventListener('input',function(){
+  if(!isRunning||isFinished)return
+  if(curWord>=wordCount){endTest();return}
+
+  var val=this.value
+
+  // Detect space → submit word
+  if(val.endsWith(' ')){
+    var typed=val.trim()
+    this.value=''
+    submitWord(typed)
+    return
+  }
+
+  var newLen=val.length
+
+  if(newLen>prevInputLen){
+    // Characters added
+    var added=val.substring(prevInputLen,newLen)
+    for(var i=0;i<added.length;i++){
+      typeChar(added[i])
+      if(curWord>=wordCount||isFinished)return
+    }
+  }else if(newLen<prevInputLen){
+    // Backspace — move cursor back, unmark char
+    if(isRunning&&!isFinished)playBackspace()
+    var diff=prevInputLen-newLen
+    for(var i=0;i<diff;i++){
+      curChar=Math.max(0,curChar-1)
+      // Clear current character styling
+      var el=document.getElementById('c_'+curWord+'_'+curChar)
+      if(el)el.className='char'
+      // Remove extra chars
+      var ex=document.getElementById('e_'+curWord+'_'+curChar)
+      if(ex)ex.remove()
+    }
+    moveCursor(curWord,curChar)
+  }
+
+  prevInputLen=newLen
+})
+
+// ── Allow Tab to restart (Monkeytype) ──
+document.addEventListener('keydown',function(e){
+  if(e.key==='Tab'){
+    e.preventDefault()
+    startTest()
+  }
+})
+
+// ── Refocus hidden input on click ──
+function focusInput(){if(isRunning&&!isFinished)hiddenInput.focus()}
+
+// ── Auto-focus hidden input on any keystroke during game ──
+document.addEventListener('keydown',function(e){
+  if(isRunning&&!isFinished&&document.activeElement!==hiddenInput&&!e.ctrlKey&&!e.metaKey&&!e.altKey){
+    hiddenInput.focus()
+  }
+})
+
+// ── Start test ──
+function startTest(){
+  if(!passage||isRunning)return
+  resetTest()
+  isRunning=true;isFinished=false;timeLeft=duration
+  $('hint').style.display='none'
+  if(!wordsDisplay.children.length)buildWords()
+  moveCursor(0,0)
+  $('timerFill').style.width='100%'
+  $('timerDisplay').textContent=timeLeft
+  prevInputLen=0
+  startTime=Date.now()
+  hiddenInput.value=''
+  hiddenInput.disabled=false
+  hiddenInput.focus()
+  timer=setInterval(function(){
+    timeLeft--
+    $('timerDisplay').textContent=timeLeft
+    $('timerFill').style.width=(timeLeft/duration*100)+'%'
+    updateStats()
+    if(timeLeft<=0)endTest()
+  },1000)
+}
+
+// ── Stats update ──
+function updateStats(){
+  elapsed=(Date.now()-startTime)/1000
+  var mins=elapsed/60||0.001
+  var netWpm=Math.round((correctStrokes/5)/mins)
+  var rawWpm=Math.round((totalStrokes/5)/mins)
+  var acc=correctStrokes+incorrectStrokes>0?Math.round(correctStrokes/(correctStrokes+incorrectStrokes)*100):100
+  $('wpmDisplay').textContent=netWpm
+  $('rawWpmDisplay').textContent=rawWpm
+  $('accDisplay').textContent=acc
+  var pct=Math.min(100,Math.round(curWord/wordCount*100))
+  $('progSelf').style.width=pct+'%'
+  $('progSelfLabel').textContent=pct+'%'
+  sendProgress({
+    wpm:netWpm,raw:rawWpm,accuracy:acc,
+    word_index:curWord,char_index:curChar,total_words:wordCount,
+    percent_complete:Math.min(100,Math.round(curWord/wordCount*100))
+  })
+}
+
+// ── End test ──
+function endTest(){
+  if(isFinished)return
+  isRunning=false;isFinished=true;clearInterval(timer)
+  hiddenInput.blur();hiddenInput.disabled=true
+  elapsed=Math.max(elapsed,(Date.now()-startTime)/1000)
+  $('resultWpm').textContent=$('wpmDisplay').textContent
+  $('rRaw').textContent=$('rawWpmDisplay').textContent
+  $('rAcc').textContent=$('accDisplay').textContent+'%'
+  $('rTime').textContent=Math.round(elapsed)+'s'
+  sendComplete({wpm:$('wpmDisplay').textContent,raw:$('rawWpmDisplay').textContent,accuracy:$('accDisplay').textContent,time:Math.round(elapsed)})
+  showResultModal()
+}
+
+// ── Result modal ──
+function showResultModal(){
+  $('resultSub').textContent='WPM '+$('wpmDisplay').textContent+' · '+$('accDisplay').textContent+'% acc'
+  $('resultStatus').textContent='Capturing screenshot...'
+  $('resultStatus').className='status-text waiting'
+  $('submitScreenshotBtn').disabled=true
+  $('resultOverlay').classList.add('show')
+  setTimeout(captureScreenshot,400)
+}
+
+function captureScreenshot(){
+  var target=$('resultModal')
+  if(typeof html2canvas!=='undefined'){
+    html2canvas(target,{backgroundColor:'#0d3b66',scale:2}).then(function(canvas){
+      screenshotData=canvas.toDataURL('image/png')
+      $('screenshotPreview').src=screenshotData
+      $('screenshotPreview').style.display='block'
+      $('resultStatus').textContent='Screenshot ready! Click Submit.'
+      $('resultStatus').className='status-text done'
+      $('submitScreenshotBtn').disabled=false
+    }).catch(function(){
+      $('resultStatus').textContent='Could not capture screenshot.'
+      $('resultStatus').className='status-text waiting'
+      $('submitScreenshotBtn').disabled=false
+    })
+  }else{
+    $('resultStatus').textContent='Capture ready. Click Submit.'
+    $('resultStatus').className='status-text done'
+    $('submitScreenshotBtn').disabled=false
+  }
+}
+
+function submitScreenshot(){
+  $('submitScreenshotBtn').disabled=true
+  $('submitScreenshotBtn').innerHTML='<i class="fas fa-spinner fa-spin"></i> Sending...'
+  window.parent.postMessage({
+    type:'typing_screenshot',
+    screenshot:screenshotData||'',
+    result:{wpm:$('wpmDisplay').textContent,accuracy:$('accDisplay').textContent,raw:$('rawWpmDisplay').textContent,time:Math.round(elapsed)}
+  },'*')
+}
+
+function closeResults(){
+  $('resultOverlay').classList.remove('show')
+}
+
+function resetTest(){
+  clearInterval(timer);isRunning=false;isFinished=false
+  curWord=0;curChar=0
+  totalStrokes=0;correctStrokes=0;incorrectStrokes=0;extraStrokes=0
+  prevInputLen=0
+  timeLeft=duration;elapsed=0
+  $('timerDisplay').textContent=duration
+  $('timerFill').style.width='100%'
+  $('wpmDisplay').textContent='0'
+  $('rawWpmDisplay').textContent='0'
+  $('accDisplay').textContent='100'
+  hiddenInput.value='';hiddenInput.disabled=true
+  $('hint').style.display='block'
+  $('resultOverlay').classList.remove('show')
+  $('progSelf').style.width='0%'
+  $('progSelfLabel').textContent='0%'
+  $('progOpp').style.width='0%'
+  $('progOppLabel').textContent='0%'
+  $('oppCursor').style.display='none'
+  screenshotData=null
+  if(passage)buildWords()
+}
+
+// ── Opponent cursor ──
+function renderOpponentCursor(w,c){
+  var el=$('oppCursor')
+  if(c===0){
+    // Place before first char of the word
+    var first=document.getElementById('c_'+w+'_0')
+    if(first){
+      var box=$('wordsBox')
+      var fRect=first.getBoundingClientRect()
+      var bRect=box.getBoundingClientRect()
+      el.style.display='block'
+      el.style.left=(fRect.left-bRect.left-1)+'px'
+      el.style.top=(fRect.top-bRect.top)+'px'
+      el.style.height=(fRect.height)+'px'
+      return
+    }
+  }
+  var target=document.getElementById('c_'+w+'_'+(c-1))
+  if(target){
+    var box=$('wordsBox')
+    var tRect=target.getBoundingClientRect()
+    var bRect=box.getBoundingClientRect()
+    el.style.display='block'
+    el.style.left=(tRect.left-bRect.left+tRect.width)+'px'
+    el.style.top=(tRect.top-bRect.top)+'px'
+    el.style.height=(tRect.height)+'px'
+  }else{
+    var wordEl=document.getElementById('w_'+w)
+    if(wordEl){
+      var box=$('wordsBox')
+      var wRect=wordEl.getBoundingClientRect()
+      var bRect=box.getBoundingClientRect()
+      el.style.display='block'
+      el.style.left=(wRect.left-bRect.left)+'px'
+      el.style.top=(wRect.top-bRect.top)+'px'
+      el.style.height=(wRect.height)+'px'
+    }else{
+      el.style.display='none'
+    }
+  }
+}
+
+// ── Multiplayer postMessage API ──
+function sendProgress(data){window.parent.postMessage({type:'progress',data:data},'*')}
+function sendComplete(data){window.parent.postMessage({type:'complete',data:data},'*')}
+
+var opponentName='Opponent'
+
+window.addEventListener('message',function(e){
+  var msg=e.data||{}
+  if(msg.type==='opponent_progress'){
+    var d=msg.data||{}
+    var pct=d.percent_complete||0
+    $('progOpp').style.width=pct+'%'
+    $('progOppLabel').textContent=pct+'%'
+    if(d.wpm!==undefined)$('oppNameLabel').textContent=(opponentName)+' · '+(d.wpm||0)+' WPM'
+    if(d.word_index!==undefined)renderOpponentCursor(d.word_index,d.char_index||0)
+  }else if(msg.type==='opponent_info'){
+    var opp=msg.opp||{}
+    opponentName=opp.display_name||opp.username||'Opponent'
+    $('oppNameLabel').textContent=opponentName
+    $('oppNameDisplay').textContent=opponentName
+    $('oppRankDisplay').textContent=opp.rank||''
+    if(opp.avatar){
+      $('oppAvatar').innerHTML='<img src="'+opp.avatar+'" alt="">'
+    }else{
+      $('oppAvatar').innerHTML='<i class="fas fa-user"></i>'
+    }
+    $('oppInfo').style.display='flex'
+  }else if(msg.type==='start'){
+    var c=msg.challenge||{}
+    if(c.passage){
+      passage=c.passage
+      duration=c.duration||30
+      challengeTarget=c.target_wpm||35
+      wordCount=c.word_count||passage.split(/\s+/).length
+      timeLeft=duration
+      $('timerDisplay').textContent=duration
+      if(c.opponent_name)opponentName=c.opponent_name
+      startTest()
+    }
+  }
+})
+
+window.parent.postMessage({type:'ready'},'*')
+</script>
+</body>
+</html>

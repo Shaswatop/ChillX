@@ -1,0 +1,253 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Sign In — ChillX</title>
+<link rel="icon" href="/static/LOGO.png">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Black+Ops+One&family=Lilita+One&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;min-height:100%;overflow-x:hidden;overflow-y:auto;font-family:'Poppins',sans-serif;}
+body{
+  background:#f0f2f5;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;
+}
+body::before{
+  content:'';position:absolute;inset:0;
+  background:rgba(240,242,245,0.4);
+  pointer-events:none;
+}
+
+.page-transition{position:fixed;inset:0;z-index:9999;pointer-events:none;background:#f0f2f5;opacity:1;transition:opacity .5s ease;}
+.page-transition.fade-out{opacity:0;}
+.page-transition.fade-in{opacity:1;pointer-events:auto;}
+
+.form-wrap{
+  position:relative;z-index:10;
+  width:100%;max-width:900px;padding:16px;
+  animation:formDrop .6s cubic-bezier(.23,1,.32,1) both;
+}
+@keyframes formDrop{
+  0%{opacity:0;transform:translateY(30px) scale(.95);}
+  100%{opacity:1;transform:translateY(0) scale(1);}
+}
+
+form{
+  width:100%;
+  background:#fff;
+  border:none;
+  border-radius:18px;
+  padding:32px 30px 28px;
+  box-shadow:0 8px 40px rgba(0,0,0,0.08);
+  position:relative;
+}
+
+.logo-container{
+  text-align:center;margin-bottom:18px;
+  animation:logoBounce .8s .2s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes logoBounce{
+  0%{opacity:0;transform:scale(.5);}
+  100%{opacity:1;transform:scale(1);}
+}
+.logo{
+  width:260px;height:auto;
+}
+@keyframes logoFloat{
+  0%,100%{transform:translateY(0);}
+  50%{transform:translateY(-4px);}
+}
+.logo-title{
+  font-family:'Black Ops One',cursive;
+  font-size:1.5rem;
+  color:#041828;
+  margin-top:10px;
+  letter-spacing:1px;
+}
+.logo-subtitle{
+  font-size:.7rem;font-weight:600;
+  color:#0a2a4a;letter-spacing:2px;
+  text-transform:uppercase;
+  margin-top:2px;
+}
+
+.inputGroup{
+  position:relative;margin-bottom:14px;
+  opacity:0;animation:slideUp .5s ease both;
+}
+.inputGroup:nth-child(2){animation-delay:.15s;}
+.inputGroup:nth-child(3){animation-delay:.25s;}
+.inputGroup:nth-child(4){animation-delay:.35s;}
+@keyframes slideUp{
+  0%{opacity:0;transform:translateY(12px);}
+  100%{opacity:1;transform:translateY(0);}
+}
+.input-label{
+  display:block;margin-bottom:5px;
+  font-family:'Poppins',sans-serif;font-size:.7rem;font-weight:700;
+  color:#0a2a4a;letter-spacing:1.5px;text-transform:uppercase;
+}
+.inputWrap{
+  position:relative;overflow:hidden;border-radius:10px;
+  background:#fff;border:1.5px solid rgba(0,0,0,0.1);
+  transition:border-color .3s,box-shadow .3s;
+}
+.inputWrap:focus-within{
+  border-color:#0d3b66;
+  box-shadow:0 0 0 3px rgba(13,59,102,0.2);
+}
+.input-icon{
+  position:absolute;left:12px;top:50%;transform:translateY(-50%);
+  color:#0a2a4a;font-size:.9rem;z-index:2;pointer-events:none;
+}
+input[type=email],input[type=password],input[type=text]{
+  display:block;width:100%;height:48px;
+  padding:0 14px 0 38px;
+  background:transparent;border:none;border-radius:10px;
+  font-family:'Poppins',sans-serif;font-size:.85rem;
+  color:#2a2a3a;outline:none;
+}
+input::placeholder{color:#a08a70;}
+.show-pw{
+  position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  display:flex;align-items:center;gap:4px;
+  cursor:pointer;font-size:.65rem;color:#3a6a7a;font-weight:600;
+  z-index:2;user-select:none;
+}
+.show-pw input{display:none;}
+.show-pw i{font-size:.8rem;}
+
+.btn-wrap{
+  margin-top:18px;
+  opacity:0;animation:slideUp .5s .45s ease both;
+}
+.btn-submit{
+  display:block;width:100%;height:52px;
+  background:linear-gradient(180deg,#4a9ec4,#0d3b66);
+  border:none;border-radius:10px;
+  font-family:'Black Ops One',cursive;font-size:1.05rem;
+  color:#041828;letter-spacing:2px;
+  cursor:pointer;text-transform:uppercase;
+  position:relative;overflow:hidden;
+  transition:all .25s;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,0.4),0 4px 12px rgba(13,59,102,0.4);
+  text-shadow:0 1px 0 rgba(255,255,255,0.4);
+}
+.btn-submit:hover{filter:brightness(1.08);transform:translateY(-2px);}
+.btn-submit:active{transform:translateY(0);}
+.btn-submit::before{
+  content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.4),transparent);
+}
+.btn-submit:hover::before{animation:shine .6s ease;}
+@keyframes shine{0%{left:-100%;}100%{left:100%;}}
+
+.error-msg{
+  background:linear-gradient(180deg,#ffd0d0,#ffb0b0);
+  border:1.5px solid #cc3333;color:#aa1111;
+  padding:9px 14px;border-radius:10px;
+  font-size:.78rem;margin-bottom:14px;text-align:center;
+  font-weight:600;
+  animation:shakeError .5s ease;
+}
+@keyframes shakeError{
+  0%,100%{transform:translateX(0);}
+  20%{transform:translateX(-8px);}
+  40%{transform:translateX(8px);}
+  60%{transform:translateX(-5px);}
+  80%{transform:translateX(5px);}
+}
+
+.switch-link{
+  text-align:center;margin-top:16px;
+  font-size:.78rem;color:#0a2a4a;
+  opacity:0;animation:slideUp .5s .55s ease both;
+}
+.switch-link a{
+  color:#0a2a4a;font-weight:700;text-decoration:none;
+  border-bottom:1.5px solid #0d3b66;
+  padding-bottom:1px;
+}
+.switch-link a:hover{color:#041828;}
+
+@media(max-width:480px){
+  .form-wrap{padding:14px;}
+  form{padding:24px 20px 20px;}
+  .logo{width:90px;}
+  .logo-title{font-size:1.2rem;}
+}
+</style>
+</head>
+<body>
+{% include 'interval_tracker.html' %}
+<div id="app">
+<div class="page-transition" id="pageTransition"></div>
+
+<div class="form-wrap">
+  <form method="post" id="authForm">
+    {% csrf_token %}
+
+    <div class="logo-container">
+      <img src="{% static 'LOGO.png' %}" alt="ChillX" class="logo">
+      <div class="logo-subtitle">Welcome Back</div>
+    </div>
+
+    {% if error %}
+    <div class="error-msg">{{ error }}</div>
+    {% endif %}
+
+    <div class="inputGroup">
+      <label class="input-label">Email</label>
+      <div class="inputWrap">
+        <i class="fas fa-envelope input-icon"></i>
+        <input type="email" name="email" id="loginEmail" maxlength="254" placeholder="your@email.com" required>
+      </div>
+    </div>
+    <div class="inputGroup">
+      <label class="input-label">Password</label>
+      <div class="inputWrap">
+        <i class="fas fa-lock input-icon"></i>
+        <input type="password" name="password" id="loginPassword" placeholder="Enter password" required>
+        <label class="show-pw" for="showPasswordCheck">
+          <input id="showPasswordCheck" type="checkbox">
+          <i class="fas fa-eye"></i>
+        </label>
+      </div>
+    </div>
+    <div class="btn-wrap">
+      <button type="submit" class="btn-submit">SIGN IN</button>
+    </div>
+    <div class="switch-link">
+      New here? <a href="{% url 'signup' %}">Create Account</a>
+    </div>
+  </form>
+</div>
+
+<script>
+(function(){
+  var t=document.getElementById('pageTransition');
+  requestAnimationFrame(function(){t.classList.add('fade-out');});
+  document.getElementById('authForm').addEventListener('submit',function(e){
+    e.preventDefault();
+    t.classList.remove('fade-out');
+    t.classList.add('fade-in');
+    setTimeout(function(){e.target.submit();},500);
+  });
+})();
+
+document.getElementById('showPasswordCheck').addEventListener('change',function(){
+  var pw=document.getElementById('loginPassword');
+  pw.type=this.checked?'text':'password';
+  this.nextElementSibling.className=this.checked?'fas fa-eye-slash':'fas fa-eye';
+});
+</script>
+</div>
+{% include 'invite_poll.html' %}
+{% include 'call_components.html' %}
+{% include 'chathead.html' %}
+</body>
+</html>

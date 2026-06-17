@@ -1,0 +1,502 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Achievements — ChillX</title>
+<link rel="icon" href="/static/LOGO.png">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Black+Ops+One&family=Lilita+One&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script>
+(function(){
+  var anims=['slideLeft','slideRight','slideUp','slideDown','fadeZoom','fadeRotate'];
+  var picked=anims[Math.floor(Math.random()*anims.length)];
+  document.documentElement.style.setProperty('--vt-old',picked+'Out');
+  document.documentElement.style.setProperty('--vt-new',picked+'In');
+})();
+</script>
+<style>
+@view-transition{navigation:auto}
+:root{view-transition-name:page-content;--vt-old:slideLeftOut;--vt-new:slideLeftIn}
+::view-transition-old(page-content){animation:var(--vt-old) .4s ease-in forwards}
+::view-transition-new(page-content){animation:var(--vt-new) .4s ease-out}
+@keyframes slideLeftOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(-40px)}}
+@keyframes slideLeftIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideRightOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(40px)}}
+@keyframes slideRightIn{from{opacity:0;transform:translateX(-40px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideUpOut{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-40px)}}
+@keyframes slideUpIn{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideDownOut{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(40px)}}
+@keyframes slideDownIn{from{opacity:0;transform:translateY(-40px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeZoomOut{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(0.92)}}
+@keyframes fadeZoomIn{from{opacity:0;transform:scale(1.08)}to{opacity:1;transform:scale(1)}}
+@keyframes fadeRotateOut{from{opacity:1;transform:rotate(0) scale(1)}to{opacity:0;transform:rotate(-2deg) scale(0.95)}}
+@keyframes fadeRotateIn{from{opacity:0;transform:rotate(2deg) scale(1.05)}to{opacity:1;transform:rotate(0) scale(1)}}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;min-height:100vh;overflow-x:hidden;font-family:'Poppins',sans-serif;}
+body{
+  background:#f0f2f5;
+  background-attachment:fixed;
+  color:#2a2a3a;
+}
+.page,.top-bar,.achievements-header,.user-status-card,.title-card,.category-section{position:relative;z-index:1;}
+
+.top-bar{
+  position:fixed;top:0;left:0;right:0;height:60px;z-index:100;
+  display:flex;align-items:center;gap:12px;padding:0 20px;
+  background:#fff;
+  border-bottom:1px solid rgba(0,0,0,0.06);
+  box-shadow:0 1px 6px rgba(0,0,0,0.08);
+}
+.top-bar .back-btn{
+  display:flex;align-items:center;justify-content:center;width:38px;height:38px;
+  border-radius:10px;border:1px solid rgba(0,0,0,0.08);cursor:pointer;font-size:1.1rem;
+  background:#f0f2f5;color:#2a2a3a;transition:all .2s;
+}
+.top-bar .back-btn:hover{background:#e2e5e9;transform:scale(1.05);}
+.top-bar h1{
+  font-family:'Lilita One',cursive;font-size:1.4rem;
+  color:#2a2a3a;flex:1;
+}
+.top-logo-link{display:flex;align-items:center;text-decoration:none;}
+.top-logo{height:60px;width:auto;}
+.rank-badge{
+  font-family:'Orbitron',sans-serif;font-size:0.6rem;font-weight:900;
+  letter-spacing:1.5px;padding:4px 10px;border-radius:4px;
+  text-transform:uppercase;background:linear-gradient(135deg,#f59e0b,#ff6b6b);
+  color:#fff;white-space:nowrap;
+  animation:rankGlow 2s ease-in-out infinite;
+}
+@keyframes rankGlow{0%,100%{box-shadow:0 0 8px rgba(245,158,11,0.4);}50%{box-shadow:0 0 16px rgba(245,158,11,0.8);}}
+
+.page{padding:80px 20px 40px;max-width:1400px;margin:0 auto;}
+
+.achievements-header{
+  text-align:center;margin-bottom:30px;padding:30px;
+  background:#fff;
+  border-radius:20px;border:1px solid rgba(0,0,0,0.06);
+  box-shadow:0 2px 12px rgba(0,0,0,0.06);
+}
+.achievements-header h2{
+  font-family:'Lilita One',cursive;font-size:2.2rem;color:#2a2a3a;margin-bottom:8px;
+  display:flex;align-items:center;justify-content:center;gap:12px;
+}
+.achievements-header p{font-size:1.05rem;color:#666;}
+
+.user-status-card{
+  background:#fff;
+  border-radius:20px;padding:30px;
+  margin-bottom:30px;border:1px solid rgba(0,0,0,0.06);
+  box-shadow:0 2px 12px rgba(0,0,0,0.06);color:#2a2a3a;
+}
+.user-info{display:flex;align-items:center;gap:25px;margin-bottom:20px;}
+.user-avatar{
+  width:80px;height:80px;border-radius:50%;background-size:cover;background-position:center;
+  border:3px solid #667eea;display:flex;align-items:center;justify-content:center;
+  font-size:2rem;font-weight:bold;color:#fff;flex-shrink:0;
+  background-color:#4bccf1;
+}
+.user-details h3{font-family:'Lilita One',cursive;font-size:1.6rem;color:#2a2a3a;margin-bottom:10px;}
+.user-stats{display:flex;gap:15px;flex-wrap:wrap;}
+.stat-item{
+  display:flex;flex-direction:column;gap:4px;
+  background:#f0f2f5;padding:10px 15px;border-radius:10px;min-width:90px;
+  border:1px solid rgba(0,0,0,0.06);
+}
+.stat-label{font-size:0.7rem;color:#888;text-transform:uppercase;letter-spacing:1px;}
+.stat-value{font-size:1.1rem;font-weight:bold;color:#2a2a3a;}
+
+.current-title{
+  display:flex;align-items:center;gap:12px;
+  background:#f0f2f5;
+  padding:15px 20px;border-radius:12px;margin-bottom:20px;
+  border:1px solid rgba(0,0,0,0.06);
+}
+.current-title .label{font-size:0.85rem;color:#888;}
+.current-title .name{font-family:'Lilita One',cursive;font-size:1.2rem;color:#2a2a3a;}
+.tier-badge{
+  padding:3px 10px;border-radius:20px;font-size:0.65rem;font-weight:bold;
+  text-transform:uppercase;letter-spacing:1px;color:#fff;
+}
+.tier-beginner{background:#6b7280;}
+.tier-bronze{background:#cd7f32;}
+.tier-silver{background:#c0c0c0;}
+.tier-gold{background:#ffd700;color:#1a1a2a;}
+.tier-platinum{background:#00f5ff;color:#1a1a2a;}
+.tier-diamond{background:#9d00ff;}
+
+.tier-badge-large{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  width:100px;height:100px;border-radius:20px;flex-shrink:0;margin-left:auto;
+  border:2px solid rgba(255,255,255,0.2);position:relative;overflow:hidden;
+  background:rgba(255,255,255,0.9);
+}
+.tier-badge-large::before{
+  content:'';position:absolute;inset:0;opacity:0.15;
+  background:radial-gradient(circle at 30% 30%,rgba(255,255,255,0.4),transparent 70%);
+}
+.tier-badge-large.tier-beginner{background:linear-gradient(135deg,#4b5563,#6b7280);border-color:rgba(107,114,128,0.5);}
+.tier-badge-large.tier-bronze{background:linear-gradient(135deg,#8b5a2b,#cd7f32);border-color:rgba(205,127,50,0.5);box-shadow:0 0 20px rgba(205,127,50,0.3);}
+.tier-badge-large.tier-silver{background:linear-gradient(135deg,#808080,#c0c0c0);border-color:rgba(192,192,192,0.5);box-shadow:0 0 20px rgba(192,192,192,0.3);}
+.tier-badge-large.tier-gold{background:linear-gradient(135deg,#b8860b,#ffd700);border-color:rgba(255,215,0,0.5);box-shadow:0 0 20px rgba(255,215,0,0.4);}
+.tier-badge-large.tier-platinum{background:linear-gradient(135deg,#0099bb,#00f5ff);border-color:rgba(0,245,255,0.5);box-shadow:0 0 20px rgba(0,245,255,0.4);color:#0a1a2a;}
+.tier-badge-large.tier-diamond{background:linear-gradient(135deg,#6b00b3,#9d00ff);border-color:rgba(157,0,255,0.5);box-shadow:0 0 20px rgba(157,0,255,0.4);}
+.tier-badge-icon{font-size:2rem;line-height:1;margin-bottom:2px;}
+.tier-badge-label{font-family:'Lilita One',cursive;font-size:0.85rem;color:#2a2a3a;letter-spacing:0.5px;}
+.tier-badge-sub{font-size:0.55rem;color:#888;text-transform:uppercase;letter-spacing:1.5px;margin-top:-2px;}
+.tier-badge-large.tier-gold .tier-badge-label,.tier-badge-large.tier-platinum .tier-badge-label{color:#2a2a3a;}
+.tier-badge-large.tier-gold .tier-badge-sub,.tier-badge-large.tier-platinum .tier-badge-sub{color:#888;}
+
+.xp-bar-container{margin-top:15px;}
+.xp-bar-header{display:flex;justify-content:space-between;margin-bottom:8px;font-size:0.85rem;color:#2a2a3a;}
+.xp-bar{height:12px;background:#e5e7eb;border-radius:6px;overflow:hidden;}
+.xp-fill{
+  height:100%;background:linear-gradient(90deg,#4a9ebe,#764ba2);
+  border-radius:6px;transition:width .5s;
+}
+.xp-fill::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent);
+  animation:xpShine 2s infinite;
+}
+@keyframes xpShine{0%{transform:translateX(-100%);}100%{transform:translateX(100%);}}
+
+.section-title{
+  font-family:'Lilita One',cursive;font-size:1.8rem;color:#2a2a3a;
+  margin:30px 0 20px;display:flex;align-items:center;gap:12px;
+}
+
+.titles-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;margin-bottom:30px;}
+.title-card{
+  background:#fff;
+  border-radius:15px;padding:20px;
+  border:1px solid rgba(0,0,0,0.06);transition:all .3s;position:relative;
+  overflow:hidden;cursor:pointer;color:#2a2a3a;
+}
+.title-card:hover{transform:translateY(-4px);box-shadow:0 8px 24px rgba(0,0,0,0.1);border-color:rgba(0,0,0,0.12);}
+.title-card .icon{font-size:2.2rem;margin-bottom:12px;}
+.title-card h4{font-family:'Lilita One',cursive;font-size:1.2rem;color:#2a2a3a;margin-bottom:6px;}
+.title-card .tier-badge{margin-bottom:8px;display:inline-block;}
+.title-card p{font-size:0.8rem;color:#888;}
+.badge-equipped{
+  position:absolute;top:12px;right:12px;
+  background:linear-gradient(135deg,#4a9ebe,#764ba2);color:#fff;
+  padding:4px 10px;border-radius:20px;font-size:0.6rem;font-weight:bold;text-transform:uppercase;
+  animation:badgeGlow 2s infinite;
+}
+.badge-unlocked{
+  position:absolute;top:12px;right:12px;
+  background:linear-gradient(135deg,#4ade80,#22c55e);color:#fff;
+  padding:4px 10px;border-radius:20px;font-size:0.6rem;font-weight:bold;text-transform:uppercase;
+}
+.badge-locked{
+  position:absolute;top:12px;right:12px;
+  background:rgba(0,0,0,0.08);color:#9ca3af;
+  padding:4px 10px;border-radius:20px;font-size:0.6rem;font-weight:bold;text-transform:uppercase;
+}
+@keyframes badgeGlow{0%,100%{box-shadow:0 0 8px rgba(74,158,196,0.4);}50%{box-shadow:0 0 16px rgba(74,158,196,0.7);}}
+
+.achievements-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;}
+.achievement-card{
+  background:#fff;
+  border-radius:15px;padding:22px;
+  border:1px solid rgba(0,0,0,0.06);transition:all .3s;position:relative;overflow:hidden;color:#2a2a3a;
+}
+.achievement-card:hover{transform:translateY(-4px);box-shadow:0 8px 24px rgba(0,0,0,0.1);border-color:rgba(0,0,0,0.12);}
+.achievement-card::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,#4a9ebe,#764ba2);
+  transform:scaleX(0);transition:transform .3s;
+}
+.achievement-card:hover::after{transform:scaleX(1);}
+
+.ach-header{display:flex;align-items:flex-start;gap:16px;margin-bottom:16px;}
+.ach-icon{font-size:2.2rem;animation:float 3s infinite;}
+@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
+.ach-info{flex:1;}
+.ach-info h3{font-family:'Lilita One',cursive;font-size:1.2rem;color:#2a2a3a;margin-bottom:8px;}
+.ach-meta{display:flex;gap:8px;flex-wrap:wrap;}
+.ach-category{
+  background:#f0f2f5;padding:3px 10px;border-radius:10px;
+  font-size:0.6rem;color:#888;
+}
+
+.ach-body{margin-bottom:16px;}
+.ach-body p{font-size:0.85rem;color:#555;line-height:1.5;margin-bottom:12px;}
+.progress-bar{height:8px;background:#e5e7eb;border-radius:4px;overflow:hidden;}
+.progress-fill{
+  height:100%;background:linear-gradient(90deg,#4a9ebe,#764ba2);
+  border-radius:4px;transition:width .5s;
+}
+.progress-text{font-size:0.7rem;color:#888;font-weight:bold;margin-top:4px;display:block;}
+.unlocked-badge{
+  background:linear-gradient(135deg,#4ade80,#22c55e);color:#fff;
+  padding:8px 15px;border-radius:8px;font-size:0.75rem;font-weight:bold;text-align:center;
+}
+
+.ach-footer{display:flex;justify-content:space-between;align-items:center;margin-top:16px;}
+.ach-rewards{display:flex;gap:10px;}
+.reward{display:flex;align-items:center;gap:5px;background:#f0f2f5;padding:5px 10px;border-radius:8px;font-size:0.75rem;color:#2a2a3a;}
+.btn-claim{
+  background:linear-gradient(135deg,#4a9ebe,#764ba2);color:#fff;border:none;
+  padding:8px 16px;border-radius:8px;font-family:'Poppins',sans-serif;font-weight:bold;
+  cursor:pointer;transition:all .3s;font-size:0.75rem;text-transform:uppercase;letter-spacing:1px;
+}
+.btn-claim:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 5px 15px rgba(74,158,196,0.5);}
+.btn-claim:disabled{opacity:0.5;cursor:not-allowed;}
+
+/* Game Stats */
+.game-stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;margin-bottom:30px;}
+.game-stat-card{
+  background:#fff;border-radius:15px;padding:18px 20px;
+  border:1px solid rgba(0,0,0,0.06);transition:all .3s;display:flex;align-items:center;gap:16px;
+  color:#2a2a3a;
+}
+.game-stat-card:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(0,0,0,0.08);border-color:rgba(0,0,0,0.1);}
+.gs-icon{font-size:2rem;width:48px;text-align:center;flex-shrink:0;}
+.gs-info{flex:1;min-width:0;}
+.gs-name{font-family:'Lilita One',cursive;font-size:1.1rem;color:#2a2a3a;margin-bottom:8px;}
+.gs-stats-row{display:flex;gap:8px;flex-wrap:wrap;}
+.gs-stat{
+  display:flex;flex-direction:column;align-items:center;gap:1px;
+  background:#f0f2f5;padding:5px 10px;border-radius:8px;min-width:52px;
+}
+.gs-num{font-size:0.9rem;font-weight:700;color:#2a2a3a;line-height:1.2;}
+.gs-lbl{font-size:0.55rem;color:#888;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;}
+.gs-win{color:#22c55e;}
+.gs-lose{color:#ef4444;}
+.gs-death{color:#a855f7;}
+.empty-stats{
+  grid-column:1/-1;text-align:center;padding:40px 20px;
+  background:#fff;border-radius:15px;border:1px solid rgba(0,0,0,0.06);color:#888;
+}
+
+@media(max-width:768px){
+  .page{padding:70px 12px 30px;}
+  .achievements-header h2{font-size:1.6rem;}
+  .user-info{flex-direction:column;text-align:center;}
+  .user-stats{justify-content:center;}
+  .titles-grid,.achievements-grid,.game-stats-grid{grid-template-columns:1fr;}
+  .ach-header{flex-direction:column;text-align:center;}
+  .ach-footer{flex-direction:column;gap:12px;}
+  .ach-rewards{justify-content:center;}
+}
+</style>
+</head>
+<body>
+{% include 'interval_tracker.html' %}
+<div id="app">
+
+<div class="top-bar">
+  <a href="/" class="top-logo-link"><img src="/static/LOGO.png" alt="ChillX" class="top-logo"></a>
+</div>
+
+<div class="page">
+  <div class="achievements-header">
+    <h2><i class="fas fa-award"></i> Achievements</h2>
+    <p>Complete challenges, reach milestones, and unlock exclusive titles</p>
+  </div>
+
+  <!-- User Status Card -->
+  <div class="user-status-card">
+    <div class="user-info">
+      <div class="user-avatar" style="background-image:url('/api/shop/avatar/?user_id={{ request.user.id }}&t={% now "U" %}')">
+        {% if not request.user.avatar_base64 %}{{ request.user.display_name|slice:":1"|upper|default:"C" }}{% endif %}
+      </div>
+      <div class="user-details">
+        <h3>{{ request.user.display_name|default:request.user.username }}</h3>
+        <div class="user-stats">
+          <div class="stat-item">
+            <span class="stat-label">Level</span>
+            <span class="stat-value">{{ user_level }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">XP</span>
+            <span class="stat-value">{{ user_xp }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Tier</span>
+            <span class="stat-value tier-{{ user_tier }}">{{ user_tier|title }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Money</span>
+            <span class="stat-value">Rs {{ user_coins|default:0 }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="tier-badge-large tier-{{ user_tier }}">
+        <div class="tier-badge-icon">{% if user_tier == 'bronze' %}🥉{% elif user_tier == 'silver' %}🥈{% elif user_tier == 'gold' %}🥇{% elif user_tier == 'platinum' %}💎{% elif user_tier == 'diamond' %}👑{% else %}⭐{% endif %}</div>
+        <div class="tier-badge-label">{{ user_tier|title }}</div>
+        <div class="tier-badge-sub">Tier</div>
+      </div>
+    </div>
+    <div class="xp-bar-container">
+      <div class="xp-bar-header">
+        <span>Level {{ user_level }}</span>
+        <span>{{ user_xp_to_next }} XP to Level {{ user_level|add:1 }}</span>
+      </div>
+      <div class="xp-bar">
+        <div class="xp-fill" style="width: {{ user_xp_progress }}%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Stats Section -->
+  <div class="section-title"><i class="fas fa-gamepad"></i> Game Statistics</div>
+  <div class="game-stats-grid">
+    {% for stat in game_stats %}
+    <div class="game-stat-card">
+      <div class="gs-icon">
+        {% if stat.key == 'typing' %}⌨️{% elif stat.key == 'cps' %}🖱️{% elif stat.key == 'quiz' %}🧠{% elif stat.key == 'reaction' %}⚡{% elif stat.key == 'memory' %}🧩{% elif stat.key == 'runner' %}🏃{% elif stat.key == 'tictactoe' %}❌{% elif stat.key == 'aim3d' %}🎯{% elif stat.key == 'fitness' %}💪{% else %}🎮{% endif %}
+      </div>
+      <div class="gs-info">
+        <div class="gs-name">{{ stat.game }}</div>
+        <div class="gs-stats-row">
+          <div class="gs-stat" title="Matches Played">
+            <span class="gs-num">{{ stat.plays }}</span>
+            <span class="gs-lbl">Played</span>
+          </div>
+          <div class="gs-stat" title="Best Score">
+            <span class="gs-num">{{ stat.best_score }}</span>
+            <span class="gs-lbl">Best</span>
+          </div>
+          {% if stat.wins > 0 or stat.losses > 0 %}
+          <div class="gs-stat" title="Arena Wins">
+            <span class="gs-num gs-win">{{ stat.wins }}</span>
+            <span class="gs-lbl">Wins</span>
+          </div>
+          <div class="gs-stat" title="Arena Losses">
+            <span class="gs-num gs-lose">{{ stat.losses }}</span>
+            <span class="gs-lbl">Losses</span>
+          </div>
+          <div class="gs-stat" title="Win Rate">
+            <span class="gs-num">{{ stat.win_rate }}%</span>
+            <span class="gs-lbl">Win Rate</span>
+          </div>
+          {% endif %}
+          {% if stat.deaths > 0 %}
+          <div class="gs-stat" title="Total Deaths">
+            <span class="gs-num gs-death">{{ stat.deaths }}</span>
+            <span class="gs-lbl">Deaths</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="empty-stats">
+      <i class="fas fa-gamepad" style="font-size:2rem;opacity:0.3;margin-bottom:10px;display:block"></i>
+      <p>Play some games to see your stats here!</p>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Titles Section -->
+  <div class="section-title"><i class="fas fa-crown"></i> Available Titles</div>
+  <div class="titles-grid">
+    {% for title in titles %}
+    <div class="title-card" onclick="equipTitle({{ title.id }})">
+      <div class="icon">{{ title.icon }}</div>
+      <h4>{{ title.name }}</h4>
+      <span class="tier-badge tier-{{ title.tier }}">{{ title.tier|title }}</span>
+      <p>Requires {{ title.min_xp }}+ XP</p>
+      {% if title.equipped %}
+      <div class="badge-equipped">EQUIPPED</div>
+      {% elif title.unlocked %}
+      <div class="badge-unlocked">UNLOCKED</div>
+      {% else %}
+      <div class="badge-locked">LOCKED</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Achievements Section -->
+  <div class="section-title"><i class="fas fa-trophy"></i> Achievements</div>
+  <div class="achievements-grid">
+    {% for achievement in achievements %}
+    <div class="achievement-card">
+      <div class="ach-header">
+        <div class="ach-icon">{{ achievement.icon }}</div>
+        <div class="ach-info">
+          <h3>{{ achievement.name }}</h3>
+          <div class="ach-meta">
+            <span class="tier-badge tier-{{ achievement.tier }}">{{ achievement.tier|title }}</span>
+            <span class="ach-category">{{ achievement.category|title }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="ach-body">
+        <p>{{ achievement.description }}</p>
+        {% if not achievement.unlocked %}
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: {{ achievement.user_progress|default:0 }}%"></div>
+        </div>
+        <span class="progress-text">{{ achievement.user_progress|default:0 }}/{{ achievement.max_progress }}</span>
+        {% else %}
+        <div class="unlocked-badge">UNLOCKED</div>
+        {% endif %}
+      </div>
+      <div class="ach-footer">
+        <div class="ach-rewards">
+          <span class="reward"><i class="fas fa-star"></i> {{ achievement.xp_reward }} XP</span>
+          <span class="reward"><i class="fas fa-coins"></i> Rs {{ achievement.coin_reward }}</span>
+        </div>
+        {% if achievement.user_progress >= achievement.max_progress and not achievement.unlocked %}
+        <button class="btn-claim" onclick="claimAchievement({{ achievement.id }})">Claim</button>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+function getCSRFToken(){
+  var c=document.cookie.split(';');
+  for(var i=0;i<c.length;i++){
+    var p=c[i].trim().split('=');
+    if(p[0]==='csrftoken')return p[1];
+  }
+  return '';
+}
+
+async function claimAchievement(id){
+  try{
+    var r=await fetch('/api/achievements/progress/',{
+      method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCSRFToken()},
+      body:JSON.stringify({achievement_id:id,increment:1})
+    });
+    if(r.ok){var d=await r.json();if(d.unlocked){showToast('Achievement unlocked! +'+d.xp_gained+' XP, +Rs '+d.coins_gained);setTimeout(function(){location.reload();},1500);}else{showToast('Progress updated: '+d.progress);}}
+  }catch(e){showToast('Failed to claim achievement');}
+}
+
+async function equipTitle(id){
+  try{
+    var r=await fetch('/api/achievements/equip-title/',{
+      method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCSRFToken()},
+      body:JSON.stringify({title_id:id})
+    });
+    if(r.ok){var d=await r.json();showToast('Title equipped: '+d.title);setTimeout(function(){location.reload();},1000);}
+    else{var e=await r.json();showToast(e.error||'Failed to equip title');}
+  }catch(e){showToast('Failed to equip title');}
+}
+
+function showToast(msg){
+  var t=document.createElement('div');
+  t.style.cssText='position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#667eea,#764ba2);border:1px solid #ffd700;border-radius:10px;padding:12px 24px;color:#fff;font-family:Poppins,sans-serif;font-size:0.85rem;z-index:10000;animation:toastIn .3s ease;white-space:nowrap;';
+  t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(function(){t.style.animation='toastOut .3s ease';setTimeout(function(){t.remove();},300);},2500);
+}
+</script>
+<style>
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(20px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+@keyframes toastOut{from{opacity:1;transform:translateX(-50%) translateY(0);}to{opacity:0;transform:translateX(-50%) translateY(20px);}}
+</style>
+</div>
+{% include 'call_components.html' %}
+{% include 'chathead.html' %}
+</body>
+</html>

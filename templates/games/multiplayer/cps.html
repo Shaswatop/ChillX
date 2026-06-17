@@ -1,0 +1,452 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>CPS Test</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Black+Ops+One&family=Lilita+One&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+:root{--bg:#f0f2f5;--surface:#ffffff;--border:#d1d5db;--accent:#4a9ec4;--text:#1a2332;--dim:#8899aa;--caret:#e2b714;--correct:#27ae60;--incorrect:#e74c3c}
+*{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:'Poppins',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;position:relative}
+body::before{content:'';position:fixed;inset:0;z-index:-1;background:url('/static/BG.png') center/cover no-repeat;filter:blur(12px) brightness(0.9);}
+.game-wrap{width:100%;max-width:400px;padding:16px 18px;background:var(--surface);border:1px solid var(--border);border-radius:16px;text-align:center;position:relative;overflow:hidden;z-index:1;box-shadow:0 4px 24px rgba(0,0,0,0.04)}
+h1{font-size:.8rem;font-weight:600;color:var(--dim);margin-bottom:6px;letter-spacing:2px;text-transform:uppercase}
+.target-bar{display:none;align-items:center;justify-content:center;gap:8px;margin-bottom:6px;padding:4px 10px;background:rgba(74,158,196,0.04);border:1px solid rgba(74,158,196,0.06);border-radius:8px}
+.target-bar.show{display:flex}
+.target-label{font-size:.55rem;color:var(--dim);letter-spacing:1px;text-transform:uppercase}
+.target-value{font-size:.8rem;font-weight:700;color:var(--accent)}
+.cps-display{font-size:2.4rem;font-weight:700;color:var(--accent);margin:4px 0}
+.stats{display:flex;justify-content:center;gap:24px;margin:6px 0}
+.stat{text-align:center}
+.stat-num{font-size:1rem;font-weight:700;color:var(--accent)}
+.stat-label{font-size:.5rem;color:var(--dim);text-transform:uppercase;letter-spacing:1.5px}
+.time-select{display:flex;justify-content:center;gap:4px;margin-bottom:8px}
+.time-btn{padding:4px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--dim);font-size:.6rem;font-weight:500;cursor:pointer;transition:all .25s;font-family:'Poppins',sans-serif}
+.time-btn:hover{color:var(--text);border-color:rgba(74,158,196,0.2)}
+.time-btn.active{background:rgba(74,158,196,0.06);border-color:var(--accent);color:var(--accent)}
+.timer-bar{width:100%;height:3px;background:rgba(0,0,0,0.06);border-radius:3px;overflow:hidden;margin:8px 0}
+.timer-fill{height:100%;background:linear-gradient(90deg,var(--accent),#3a8eb4);width:100%;border-radius:3px;transition:width .1s linear}
+.click-area{width:100%;aspect-ratio:1/1;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:all .3s;cursor:pointer;background:var(--bg);border:1px solid var(--border);max-height:180px;position:relative}
+.click-area:hover{border-color:rgba(74,158,196,0.2)}
+.click-area.active{background:rgba(74,158,196,0.02);border-color:var(--accent);box-shadow:0 0 20px rgba(74,158,196,0.05)}
+.click-text{font-size:1.2rem;font-weight:700;pointer-events:none;color:var(--dim)}
+.click-text.active{color:var(--accent)}
+.click-text.waiting{color:var(--dim);animation:pulseCta 2s ease-in-out infinite}
+@keyframes pulseCta{0%,100%{opacity:0.5}50%{opacity:0.8}}
+.click-hint{font-size:.65rem;color:var(--dim);margin-top:6px;pointer-events:none;opacity:.5}
+.ripple{position:absolute;border-radius:50%;background:rgba(74,158,196,0.1);transform:scale(0);animation:rippleAnim .5s ease-out forwards;pointer-events:none}
+@keyframes rippleAnim{to{transform:scale(4);opacity:0}}
+.overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:1000;animation:overFade .3s ease}
+.overlay::before{content:'';position:fixed;inset:0;z-index:-1;background:url('/static/BG.png') center/cover no-repeat;filter:blur(16px) brightness(0.5);}
+@keyframes overFade{0%{opacity:0}100%{opacity:1}}
+.overlay.show{display:flex}
+.over-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 22px 18px;max-width:320px;width:90%;text-align:center;animation:cardPop .4s cubic-bezier(0.34,1.56,0.64,1);box-shadow:0 16px 60px rgba(0,0,0,0.15);z-index:2}
+@keyframes cardPop{0%{opacity:0;transform:scale(0.85) translateY(20px)}100%{opacity:1;transform:scale(1) translateY(0)}}
+.over-animal{font-size:3rem;margin-bottom:4px;display:block}
+.over-title{font-size:1.2rem;font-weight:700;color:var(--text);margin-bottom:4px}
+.over-sub{font-size:.65rem;color:var(--dim);margin-bottom:8px}
+.over-cps{font-size:1.6rem;font-weight:700;color:var(--accent);margin-bottom:2px}
+.over-clicks{font-size:.6rem;color:var(--dim);margin-bottom:8px}
+.over-result{display:none;padding:6px;border-radius:6px;font-size:.65rem;font-weight:600;margin-bottom:8px}
+.over-result.passed{display:block;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.1);color:#22c55e}
+.over-result.failed{display:block;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.1);color:#f87171}
+.over-actions{display:flex;gap:8px;justify-content:center;margin-top:4px}
+.over-btn{padding:6px 18px;border:1px solid var(--border);border-radius:8px;font-size:.65rem;font-weight:600;cursor:pointer;transition:all .3s;background:var(--bg);color:var(--dim);font-family:'Poppins',sans-serif}
+.over-btn:hover{color:var(--text);border-color:rgba(74,158,196,0.2)}
+.over-btn.primary{background:rgba(34,197,94,0.06);border-color:rgba(34,197,94,0.08);color:#22c55e}
+.over-btn.primary:hover{background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.12)}
+.over-btn.secondary{background:rgba(168,85,247,0.06);border-color:rgba(168,85,247,0.08);color:#a855f7}
+.over-btn.secondary:hover{background:rgba(168,85,247,0.1);border-color:rgba(168,85,247,0.12)}
+.over-ranks{display:flex;justify-content:center;gap:4px;margin-bottom:8px;flex-wrap:wrap}
+.over-rank{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);background:var(--bg);opacity:0.35;transition:all .3s;font-size:1rem}
+.over-rank.active{border-color:var(--accent);opacity:1;transform:scale(1.1);background:rgba(74,158,196,0.06)}
+.over-rank-label{font-size:.42rem;color:var(--dim);margin-top:2px;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap}
+.over-rank-wrap{text-align:center}
+.opp-info{display:flex;align-items:center;justify-content:center;gap:6px;padding:4px 0;margin-bottom:2px}
+.opp-info .o-avatar{width:24px;height:24px;border-radius:50%;overflow:hidden;background:rgba(74,158,196,0.08);display:flex;align-items:center;justify-content:center;border:2px solid rgba(74,158,196,0.15);flex-shrink:0}
+.opp-info .o-avatar img{width:100%;height:100%;object-fit:cover}
+.opp-info .o-avatar i{font-size:10px;color:var(--dim)}
+.opp-info .o-name{font-size:.6rem;font-weight:600;color:var(--text)}
+.opp-info .o-rank{font-size:.5rem;color:var(--dim)}
+.opp-cps-counter{font-size:1.2rem;font-weight:700;color:var(--accent);text-align:center;margin-top:0px;margin-bottom:2px;opacity:.7}
+.progress-row{display:flex;gap:10px;margin-bottom:2px}
+.prog-group{flex:1;display:flex;flex-direction:column;gap:2px}
+.prog-label{font-size:.5rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px;display:flex;justify-content:space-between}
+.prog-bar{height:3px;background:rgba(0,0,0,0.06);border-radius:2px;overflow:hidden}
+.prog-bar-inner{height:100%;border-radius:2px;transition:width .2s ease;width:0%}
+.prog-bar-inner.self{background:var(--caret)}
+.prog-bar-inner.opp{background:var(--accent);opacity:.6}
+@media(max-width:400px){
+  .stats{flex-wrap:wrap;gap:6px}
+  .stat-num{font-size:.85rem}
+  .result-modal{padding:14px;max-width:95%}
+  .result-modal .grid{grid-template-columns:1fr}
+  .words-box{padding:8px 10px;min-height:70px}
+}
+</style>
+</head>
+<body>
+<div class="game-wrap">
+  <div class="opp-info" id="oppInfo" style="display:none">
+    <div class="o-avatar" id="oppAvatar"><i class="fas fa-user"></i></div>
+    <div class="o-name" id="oppNameDisplay">Opponent</div>
+    <div class="o-rank" id="oppRankDisplay"></div>
+  </div>
+  <div class="opp-cps-counter" id="oppCpsCounter">0 CPS</div>
+  <div class="progress-row">
+    <div class="prog-group">
+      <div class="prog-label"><span>You</span><span id="progSelfLabel">0%</span></div>
+      <div class="prog-bar"><div class="prog-bar-inner self" id="progSelf"></div></div>
+    </div>
+    <div class="prog-group">
+      <div class="prog-label"><span id="oppNameLabel">Opponent</span><span id="progOppLabel">0%</span></div>
+      <div class="prog-bar"><div class="prog-bar-inner opp" id="progOpp"></div></div>
+    </div>
+  </div>
+  <h1>🖱️ CPS Test</h1>
+  <div class="target-bar" id="targetBar">
+    <span class="target-label">Target</span>
+    <span class="target-value" id="targetDisplay">0 CPS</span>
+  </div>
+  <div class="cps-display" id="cpsDisplay">0</div>
+  <div class="stats">
+    <div class="stat"><div class="stat-num" id="clicks">0</div><div class="stat-label">Clicks</div></div>
+    <div class="stat"><div class="stat-num" id="cpsTimer">10</div><div class="stat-label">Seconds</div></div>
+  </div>
+  <div class="time-select" id="timeSelect">
+    <button class="time-btn" data-time="1" onclick="setTime(1)">1s</button>
+    <button class="time-btn" data-time="3" onclick="setTime(3)">3s</button>
+    <button class="time-btn active" data-time="10" onclick="setTime(10)">10s</button>
+    <button class="time-btn" data-time="30" onclick="setTime(30)">30s</button>
+    <button class="time-btn" data-time="60" onclick="setTime(60)">60s</button>
+  </div>
+  <div class="timer-bar"><div class="timer-fill" id="timerFill"></div></div>
+  <div class="click-area" id="clickArea" onclick="handleClick(event)">
+    <div class="click-text waiting" id="clickText">Click to start</div>
+    <div class="click-hint">Tap anywhere in the box</div>
+  </div>
+</div>
+
+<div class="overlay" id="resultOverlay">
+  <div class="over-card">
+    <span class="over-animal" id="resultAnimal">🐢</span>
+    <div class="over-title" id="resultTitle">Tortoise</div>
+    <div class="over-sub" id="resultSub">Slow and steady...</div>
+    <div class="over-cps" id="resultCps">0 CPS</div>
+    <div class="over-clicks" id="resultClicks">0 clicks in 10s</div>
+    <div class="over-result" id="resultStatus"></div>
+    <div class="over-ranks" id="rankBar"></div>
+    <div class="over-actions" id="resultActions">
+      <button class="over-btn" onclick="closeResult()">Try Again</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var RANKS=[
+  {min:0,animal:'🪱',name:'Worm',sub:'Crawling... literally.'},
+  {min:1,animal:'🦥',name:'Sloth',sub:'Did you fall asleep?'},
+  {min:2,animal:'🐌',name:'Snail',sub:'Maybe try using more than one finger?'},
+  {min:3.5,animal:'🐢',name:'Tortoise',sub:'Slow and steady... very slow.'},
+  {min:5,animal:'🐇',name:'Rabbit',sub:'Not bad! You have some speed!'},
+  {min:6.5,animal:'🦅',name:'Eagle',sub:'Fast reflexes! Impressive!'},
+  {min:8,animal:'🐆',name:'Cheetah',sub:'Lightning fast! You are a beast!'},
+  {min:9.5,animal:'🚀',name:'Rocket',sub:'Blazing speed! Almost inhuman!'},
+  {min:11,animal:'⚡',name:'God',sub:'Are you even human?! Unbelievable!'}
+]
+
+var isRunning=false,timeLeft=10,clickCount=0,timer=null,selectedTime=10,audioCtx=null
+var challengeTarget=null,challengeId=null,lastCps=null
+var testStart=null,testDuration=null,challengeTargetScore=null
+var isMultiplayer=false
+var opponentName='Opponent'
+
+function getTargetFromChallenge(){
+  var urlParams = new URLSearchParams(window.location.search);
+  var target = parseFloat(urlParams.get('target'));
+  if (isNaN(target) || target <= 0) {
+    return 100; // Default target: 10s @ 10 CPS = 100 clicks
+  }
+  return target;
+}
+
+function init(){
+  var p=new URLSearchParams(window.location.search)
+  if(p.get('time')){var t=parseInt(p.get('time'));if([1,3,10,30,60].includes(t))setTime(t)}
+  if(p.get('target')){challengeTarget=parseFloat(p.get('target'));document.getElementById('targetBar').classList.add('show');document.getElementById('targetDisplay').textContent=challengeTarget+' CPS'}
+  if(p.get('challenge'))challengeId=p.get('challenge')
+}
+
+function setTime(t){
+  // Set selected time and update UI buttons and timer display
+  selectedTime = Number(t) || 10;
+  // If test not running, update visible time and reset timer fill
+  if(!isRunning){
+    timeLeft = selectedTime;
+    try{ document.getElementById('cpsTimer').textContent = timeLeft; }catch(e){}
+    try{ document.getElementById('timerFill').style.width = '100%'; }catch(e){}
+  }
+  // Update active button classes
+  try{
+    var btns = document.querySelectorAll('#timeSelect .time-btn');
+    btns.forEach(function(b){
+      var v = parseInt(b.getAttribute('data-time'));
+      if(v === Number(selectedTime)) b.classList.add('active'); else b.classList.remove('active');
+    });
+  }catch(e){}
+}
+
+function playClick(){
+  if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)()
+  var osc=audioCtx.createOscillator(),gain=audioCtx.createGain()
+  osc.connect(gain);gain.connect(audioCtx.destination)
+  osc.frequency.value=800;osc.type='sine'
+  gain.gain.setValueAtTime(0.15,audioCtx.currentTime)
+  gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.08)
+  osc.start();osc.stop(audioCtx.currentTime+0.08)
+}
+
+function spawnRipple(e){
+  try{
+    var area = document.getElementById('clickArea');
+    if(!area) return;
+    var ripple = document.createElement('div');
+    ripple.className = 'ripple';
+    var rect = area.getBoundingClientRect();
+    var cx = (e && (e.clientX || e.touches && e.touches[0] && e.touches[0].clientX)) || (rect.left + rect.width/2);
+    var cy = (e && (e.clientY || e.touches && e.touches[0] && e.touches[0].clientY)) || (rect.top + rect.height/2);
+    ripple.style.left = (cx - rect.left - 20) + 'px';
+    ripple.style.top = (cy - rect.top - 20) + 'px';
+    area.appendChild(ripple);
+    setTimeout(function(){ try{ ripple.remove(); }catch(x){} }, 600);
+  }catch(err){ console.warn('spawnRipple error', err); }
+}
+
+function updateSelfProgress(){
+  var elapsed = testStart ? (Date.now() - testStart) / 1000 : 0;
+  var cps = elapsed > 0 ? Math.round((clickCount / elapsed) * 10) / 10 : 0;
+  var pct = Math.min(100, (timeLeft / selectedTime) * 100);
+  try {
+    document.getElementById('progSelf').style.width = (100 - pct) + '%';
+    document.getElementById('progSelfLabel').textContent = cps.toFixed(1) + ' CPS';
+  } catch(e) {}
+}
+
+function startTest(){
+  isRunning=true;clickCount=0;timeLeft=selectedTime
+  testStart=Date.now();testDuration=selectedTime
+  challengeTargetScore = getTargetFromChallenge();
+  document.getElementById('clickArea').className='click-area active'
+  document.getElementById('clickText').textContent='CLICK FAST!';document.getElementById('clickText').className='click-text active'
+  document.getElementById('cpsDisplay').textContent='0';document.getElementById('clicks').textContent='0';document.getElementById('cpsTimer').textContent=timeLeft
+  document.getElementById('timerFill').style.width='100%'
+  timer=setInterval(function(){
+    timeLeft--
+    document.getElementById('cpsTimer').textContent=timeLeft
+    document.getElementById('timerFill').style.width=(timeLeft/selectedTime*100)+'%'
+    updateSelfProgress()
+    if(timeLeft<=0)endGame()
+  },1000)
+}
+
+function handleClick(e){
+  if(!isRunning){
+    isRunning=true;clickCount=0;timeLeft=selectedTime
+    testStart=Date.now();testDuration=selectedTime
+    challengeTargetScore = getTargetFromChallenge();
+    document.getElementById('clickArea').className='click-area active'
+    document.getElementById('clickText').textContent='CLICK FAST!';document.getElementById('clickText').className='click-text active'
+    document.getElementById('cpsDisplay').textContent='0';document.getElementById('clicks').textContent='0';document.getElementById('cpsTimer').textContent=timeLeft
+    document.getElementById('timerFill').style.width='100%'
+    timer=setInterval(function(){
+      timeLeft--
+      document.getElementById('cpsTimer').textContent=timeLeft
+      document.getElementById('timerFill').style.width=(timeLeft/selectedTime*100)+'%'
+      updateSelfProgress()
+      if(timeLeft<=0)endGame()
+    },1000)
+    // count the first click that starts the test
+    clickCount++
+    playClick();spawnRipple(e)
+    // Robust DOM update and debug logging
+    try {
+      var clicksEl = document.getElementById('clicks');
+      if (clicksEl) { clicksEl.textContent = clickCount; clicksEl.innerText = clickCount; }
+    } catch(ex) { console.warn('Failed to update clicks element', ex); }
+    var elapsed = (Date.now() - testStart) / 1000;
+    var cps = elapsed > 0 ? (clickCount / elapsed) : clickCount;
+    try {
+      var cpsEl = document.getElementById('cpsDisplay');
+      if (cpsEl) { cpsEl.textContent = cps.toFixed(1); cpsEl.innerText = cps.toFixed(1); }
+    } catch(ex) { console.warn('Failed to update cpsDisplay', ex); }
+    updateSelfProgress()
+    console.log('CPS click', {clickCount: clickCount, elapsed: elapsed, cps: cps});
+    var scoreTarget = challengeTargetScore || 1;
+    sendProgress({cps: cps, clicks: clickCount, current_score: clickCount, target_score: scoreTarget, time_remaining: Math.max(0, testDuration - elapsed), percent_complete: Math.min(100, (clickCount / Math.max(1, scoreTarget)) * 100)});
+    return
+  }
+  clickCount++
+  playClick();spawnRipple(e)
+  // Robust DOM update and debug logging for subsequent clicks
+  try {
+    var clicksEl2 = document.getElementById('clicks');
+    if (clicksEl2) { clicksEl2.textContent = clickCount; clicksEl2.innerText = clickCount; }
+  } catch(ex) { console.warn('Failed to update clicks element', ex); }
+  var elapsed = (Date.now() - testStart) / 1000;
+  var cps = elapsed > 0 ? (clickCount / elapsed) : clickCount;
+  try {
+    var cpsEl2 = document.getElementById('cpsDisplay');
+    if (cpsEl2) { cpsEl2.textContent = cps.toFixed(1); cpsEl2.innerText = cps.toFixed(1); }
+  } catch(ex) { console.warn('Failed to update cpsDisplay', ex); }
+  updateSelfProgress()
+  console.log('CPS click', {clickCount: clickCount, elapsed: elapsed, cps: cps});
+  var scoreTarget = challengeTargetScore || 1;
+  sendProgress({cps: cps, clicks: clickCount, current_score: clickCount, target_score: scoreTarget, time_remaining: Math.max(0, testDuration - elapsed), percent_complete: Math.min(100, (clickCount / Math.max(1, scoreTarget)) * 100)});
+}
+
+function endGame(){
+  isRunning=false;clearInterval(timer)
+  var finalElapsed = testStart ? Math.max(1, (Date.now() - testStart) / 1000) : selectedTime;
+  lastCps = Math.round((clickCount / finalElapsed) * 10) / 10;
+  document.getElementById('cpsDisplay').textContent = lastCps.toFixed(1)
+  document.getElementById('clickText').textContent=lastCps.toFixed(1)+' CPS';document.getElementById('clickText').className='click-text'
+  document.getElementById('clickArea').className='click-area'
+  updateSelfProgress()
+  showResult(lastCps)
+  sendProgress({cps: lastCps, clicks: clickCount, current_score: clickCount, target_score: challengeTargetScore||clickCount, time_remaining: 0, percent_complete: 100});
+  sendComplete({cps: lastCps, clicks: clickCount, duration: testDuration, current_score: clickCount, target_score: challengeTargetScore||clickCount});
+}
+
+function showResult(cps){
+  var rank=RANKS[0]
+  for(var i=RANKS.length-1;i>=0;i--){if(cps>=RANKS[i].min){rank=RANKS[i];break}}
+  document.getElementById('resultAnimal').textContent=rank.animal
+  document.getElementById('resultTitle').textContent=rank.name
+  document.getElementById('resultSub').textContent=rank.sub
+  document.getElementById('resultCps').textContent=cps.toFixed(1)+' CPS'
+  document.getElementById('resultClicks').textContent=clickCount+' clicks in '+selectedTime+'s'
+  document.getElementById('resultStatus').className='over-result'
+  var bar=document.getElementById('rankBar');bar.innerHTML=''
+  for(var i=0;i<RANKS.length;i++){
+    var w=document.createElement('div');w.className='over-rank-wrap'
+    var c=document.createElement('div');c.className='over-rank'+(RANKS[i]===rank?' active':'')
+    c.textContent=RANKS[i].animal
+    var l=document.createElement('div');l.className='over-rank-label'
+    l.textContent=RANKS[i].name
+    w.appendChild(c);w.appendChild(l);bar.appendChild(w)
+  }
+  // Actions
+  var acts=document.getElementById('resultActions')
+  acts.innerHTML='<button class="over-btn" onclick="closeResult()">Try Again</button>'
+  if(challengeId){
+    var passed=cps>=challengeTarget
+    var btn=document.createElement('button')
+    btn.className='over-btn primary'
+    btn.textContent=passed?'✓ Submit Result':'Submit Anyway'
+    btn.onclick=function(){submitResult(cps)}
+    acts.appendChild(btn)
+  }
+  document.getElementById('resultOverlay').classList.add('show')
+}
+
+function submitResult(cps){
+  var passed=cps>=challengeTarget
+  document.getElementById('resultStatus').textContent=passed?'Challenge Passed! Well done!':'Failed — '+cps.toFixed(1)+'/'+challengeTarget+' CPS'
+  document.getElementById('resultStatus').className='over-result '+(passed?'passed':'failed')
+  document.getElementById('resultActions').innerHTML='<button class="over-btn" onclick="closeResult()">Try Again</button>'
+  if(passed){
+    var backBtn=document.createElement('button')
+    backBtn.className='over-btn secondary'
+    backBtn.textContent='← Back to Challenges'
+    backBtn.onclick=function(){window.location.href='/challenges/'}
+    document.getElementById('resultActions').appendChild(backBtn)
+  }
+  // Send result to server
+  var xhr=new XMLHttpRequest()
+  xhr.open('POST','/challenges/verify-cps/',true)
+  xhr.setRequestHeader('Content-Type','application/x-www-form-urlencoded')
+  xhr.setRequestHeader('X-CSRFToken',getCSRF())
+   xhr.onload=function(){
+     if(xhr.status===200){
+       var d=JSON.parse(xhr.responseText)
+       if(d.passed&&d.status==='completed'){
+         document.getElementById('resultStatus').textContent='✓ Completed! +'+d.xp+' XP, Rs '+d.coins
+         document.getElementById('resultStatus').className='over-result passed'
+         document.getElementById('resultActions').innerHTML=''
+         setTimeout(function(){
+           if(window.opener&&!window.opener.closed)window.opener.location.reload()
+           window.close()
+         },2000)
+       }
+     }
+   }
+  xhr.send('challenge_id='+challengeId+'&score='+cps.toFixed(1)+'&target='+challengeTarget+'&clicks='+clickCount+'&time='+selectedTime)
+}
+
+function getCSRF(){
+  var name='csrftoken',m=document.cookie.match('(^|;)\\s*'+name+'\\s*=\\s*([^;]+)')
+  return m?m.pop():''
+}
+
+function closeResult(){
+  document.getElementById('resultOverlay').classList.remove('show')
+  resetGame()
+}
+
+function resetGame(){
+  isRunning=false;clearInterval(timer);timeLeft=selectedTime;clickCount=0;testStart=null;testDuration=null
+  document.getElementById('cpsDisplay').textContent='0';document.getElementById('clicks').textContent='0';document.getElementById('cpsTimer').textContent=selectedTime
+  document.getElementById('timerFill').style.width='100%'
+  document.getElementById('clickText').textContent='Click to start';document.getElementById('clickText').className='click-text waiting'
+  document.getElementById('clickArea').className='click-area'
+  document.getElementById('resultStatus').className='over-result'
+}
+
+// ── Multiplayer postMessage API ──
+function sendProgress(data){
+  try {
+    console.log('CPS iframe sendProgress', data);
+  } catch(e) {}
+  window.parent.postMessage({type:'progress', data:data}, '*');
+}
+function sendComplete(data){
+  try { console.log('CPS iframe sendComplete', data); } catch(e) {}
+  window.parent.postMessage({type:'complete', data:data}, '*');
+}
+window.addEventListener('message', function(e){
+  var msg = e.data || {};
+  if(msg.type === 'opponent_progress'){
+    var d = msg.data || {};
+    var pct = Math.min(100, (d.percent_complete || (d.cps ? (d.cps / 20 * 100) : 0)));
+    document.getElementById('progOpp').style.width = pct + '%';
+    document.getElementById('progOppLabel').textContent = (d.cps ? d.cps.toFixed(1) : '0') + ' CPS';
+    document.getElementById('oppCpsCounter').textContent = (d.cps ? d.cps.toFixed(1) : '0') + ' CPS';
+  } else if(msg.type === 'opponent_info'){
+    var opp = msg.opp || {};
+    opponentName = opp.display_name || opp.username || 'Opponent';
+    document.getElementById('oppNameLabel').textContent = opponentName;
+    document.getElementById('oppNameDisplay').textContent = opponentName;
+    document.getElementById('oppRankDisplay').textContent = opp.rank || '';
+    if(opp.avatar){
+      document.getElementById('oppAvatar').innerHTML = '<img src="' + opp.avatar + '" alt="">';
+    }else{
+      document.getElementById('oppAvatar').innerHTML = '<i class="fas fa-user"></i>';
+    }
+    document.getElementById('oppInfo').style.display = 'flex';
+  } else if(msg.type === 'start'){
+    var c = msg.challenge || {};
+    isMultiplayer = true;
+    if(c.time_limit){setTime(c.time_limit);challengeTargetScore=c.target_score||c.time_limit*(c.target_cps||10);}
+    startTest();
+  }
+});
+window.parent.postMessage({type:'ready'}, '*');
+
+init()
+</script>
+
+</body>
+</html>

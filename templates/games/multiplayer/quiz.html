@@ -1,0 +1,821 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>Quiz</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Black+Ops+One&family=Lilita+One&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;background:#f4f7fb;color:#172033;font-family:'Poppins',sans-serif;overflow:hidden;touch-action:none}
+body{display:flex;align-items:center;justify-content:center;position:relative}
+body::before{content:'';position:fixed;inset:0;z-index:-1;background:radial-gradient(circle at 20% 10%,rgba(37,99,235,.12),transparent 34%),radial-gradient(circle at 80% 0%,rgba(14,165,233,.10),transparent 30%),#f4f7fb;}
+.stage{position:relative;width:100%;max-width:440px;height:100%;max-height:680px;display:flex;flex-direction:column;padding:14px 12px 80px}
+.top-hud{display:flex;justify-content:space-between;align-items:center;width:100%;padding:0 4px;margin-bottom:8px}
+.title{font-family:'Black Ops One',cursive;font-size:1rem;color:#172033;letter-spacing:2px}
+.score-hud{font-family:'Black Ops One',cursive;font-size:.85rem;color:#2563eb;background:#fff;border:1px solid rgba(37,99,235,.12);padding:4px 12px;border-radius:999px;box-shadow:0 8px 24px rgba(37,99,235,.08)}
+.picker{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;justify-content:center}
+.picker{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;justify-content:center;transition:all .25s ease}
+.picker.locked{display:none}
+.picker button{background:#fff;border:1px solid rgba(37,99,235,.14);color:#334155;padding:8px 14px;border-radius:999px;font-size:.7rem;cursor:pointer;font-family:Poppins;font-weight:600;transition:all .2s;box-shadow:0 6px 16px rgba(15,23,42,.04)}
+.picker button.active,.picker button:hover{background:#2563eb;color:#fff;border-color:#2563eb;transform:translateY(-1px)}
+.picker button:disabled{opacity:0.45;cursor:not-allowed;transform:none}
+.quiz-area{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;position:relative;min-height:360px}
+.quiz-card{width:100%;background:rgba(255,255,255,.96);border:1px solid rgba(37,99,235,.10);border-radius:16px;padding:16px 14px;display:none;flex-direction:column;gap:10px;box-shadow:0 18px 50px rgba(15,23,42,.08)}
+.quiz-card.active{display:flex}
+.q-number{font-size:.65rem;color:#64748b;font-weight:700;letter-spacing:1.2px;text-transform:uppercase}
+.q-text{font-size:.9rem;font-weight:700;color:#172033;line-height:1.5;min-height:40px}
+.options{display:flex;flex-direction:column;gap:8px}
+.opt-btn{width:100%;padding:10px 14px;border-radius:10px;border:1px solid rgba(37,99,235,.12);background:#f8fbff;color:#172033;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .2s;text-align:left;font-family:Poppins;box-shadow:0 6px 14px rgba(15,23,42,.04)}
+.opt-btn:hover{background:#eef6ff;border-color:rgba(37,99,235,.35);transform:translateY(-1px)}
+.opt-btn.correct{background:rgba(34,197,94,.13);border-color:#22c55e;color:#15803d}
+.opt-btn.wrong{background:rgba(239,68,68,.10);border-color:#ef4444;color:#dc2626}
+.opt-btn:disabled{cursor:not-allowed;opacity:.75;transform:none}
+.opt-btn.reveal-correct{background:rgba(34,197,94,.12);border-color:#22c55e}
+.next-btn{padding:10px 24px;border:none;border-radius:10px;font-size:.7rem;font-weight:700;cursor:pointer;font-family:'Black Ops One',cursive;background:linear-gradient(135deg,#2563eb,#0ea5e9);border:1px solid rgba(37,99,235,.18);color:#fff;letter-spacing:2px;box-shadow:0 10px 22px rgba(37,99,235,.18);display:none;align-self:center;margin-top:4px}
+.next-btn:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.results-card{width:100%;background:rgba(255,255,255,.96);border:1px solid rgba(37,99,235,.10);border-radius:16px;padding:22px 18px;display:none;flex-direction:column;align-items:center;gap:8px;text-align:center;box-shadow:0 18px 50px rgba(15,23,42,.08)}
+.results-card.active{display:flex}
+.results-score{font-family:'Black Ops One',cursive;font-size:2.2rem;color:#2563eb}
+.popup-overlay{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;animation:fadeIn .2s ease;}
+.popup-overlay.open{display:flex;}
+.popup-box{background:#fff;border:1px solid rgba(37,99,235,.10);border-radius:16px;padding:20px 22px 18px;width:90%;max-width:320px;box-shadow:0 24px 70px rgba(15,23,42,.16);text-align:center;animation:popUp .25s cubic-bezier(0.34,1.56,0.64,1);}
+.popup-icon{width:44px;height:44px;border-radius:50%;background:rgba(37,99,235,.10);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:1.1rem;color:#2563eb;}
+.popup-title{font-size:.9rem;font-weight:700;color:#172033;margin-bottom:6px;}
+.popup-msg{font-size:.75rem;color:#64748b;line-height:1.5;margin-bottom:16px;}
+.popup-actions{display:flex;gap:10px;justify-content:center;}
+.popup-btn{padding:9px 24px;border-radius:12px;cursor:pointer;font-size:.85rem;font-weight:600;transition:all .2s;border:none;font-family:inherit;}
+.popup-btn.cancel{background:#f1f5f9;color:#475569;}
+.popup-btn.cancel:hover{background:#e2e8f0;color:#0f172a;}
+.popup-btn.confirm{background:linear-gradient(135deg,#2563eb,#0ea5e9);color:#fff;box-shadow:0 8px 20px rgba(37,99,235,.22);}
+.popup-btn.confirm:hover{transform:translateY(-1px);box-shadow:0 12px 28px rgba(37,99,235,.28);}
+.popup-btn.danger{background:linear-gradient(135deg,#ff4757,#ff6b81);color:#fff;box-shadow:0 4px 15px rgba(255,71,87,0.25);}
+.popup-btn.danger:hover{transform:translateY(-1px);box-shadow:0 6px 25px rgba(255,71,87,0.35);}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+@keyframes popUp{from{opacity:0;transform:scale(.85) translateY(20px);}to{opacity:1;transform:scale(1) translateY(0);}}
+.results-label{font-size:.85rem;color:#64748b}
+.results-detail{font-size:.75rem;color:#64748b}
+.start-screen{width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:28px 16px;text-align:center}
+.start-screen.hidden{display:none}
+.start-icon{font-size:2.8rem;color:#2563eb;margin-bottom:8px}
+.start-title{font-family:'Black Ops One',cursive;font-size:1.2rem;color:#172033;letter-spacing:2px}
+.start-desc{font-size:.7rem;color:#64748b;max-width:320px;line-height:1.6}
+.start-btn{padding:10px 30px;border:none;border-radius:10px;font-size:.85rem;font-weight:700;cursor:pointer;font-family:'Black Ops One',cursive;background:linear-gradient(135deg,#2563eb,#0ea5e9);border:1px solid rgba(37,99,235,.18);color:#fff;letter-spacing:2px;box-shadow:0 12px 26px rgba(37,99,235,.18)}
+.start-btn:hover{filter:brightness(1.1);transform:translateY(-2px)}
+.start-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+.loading-dots{display:inline-flex;gap:4px}
+.loading-dots span{width:8px;height:8px;border-radius:50%;background:#2563eb;animation:bounce 1.4s ease-in-out infinite}
+.loading-dots span:nth-child(2){animation-delay:0.16s}
+.loading-dots span:nth-child(3){animation-delay:0.32s}
+@keyframes bounce{0%,80%,100%{transform:scale(0)}40%{transform:scale(1)}}
+.exit-btn{position:fixed;top:10px;right:14px;z-index:50;width:34px;height:34px;border-radius:50%;background:#fff;border:1px solid rgba(37,99,235,.12);color:#2563eb;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;font-size:.7rem;text-decoration:none;box-shadow:0 8px 22px rgba(15,23,42,.08)}
+.exit-btn:hover{background:#eff6ff;color:#1d4ed8}
+.progress-bar{width:100%;height:10px;background:rgba(37,99,235,.10);border-radius:999px;overflow:hidden;margin-bottom:8px}
+.progress-fill{height:100%;background:linear-gradient(90deg,#2563eb,#06b6d4);border-radius:999px;transition:width .35s ease;width:0%}
+.progress-text{font-size:.68rem;color:#64748b;font-weight:700;letter-spacing:.6px;text-align:center;margin-top:-2px;margin-bottom:12px}
+.explanation-text{font-size:.75rem;color:#64748b;font-style:italic;padding:8px 0;display:none}
+.explanation-text.show{display:block}
+.retry-btn{padding:12px 28px;border:none;border-radius:12px;font-size:.8rem;font-weight:700;cursor:pointer;font-family:'Black Ops One',cursive;background:linear-gradient(135deg,#2563eb,#0ea5e9);border:1px solid rgba(37,99,235,.18);color:#fff;letter-spacing:2px;box-shadow:0 10px 22px rgba(37,99,235,.18)}
+.retry-btn:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.reveal-area{width:100%;display:none;flex-direction:column;align-items:center;gap:16px;margin-top:12px}
+.sab{padding:14px 32px;border:none;border-radius:12px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:'Black Ops One',cursive;background:linear-gradient(135deg,#2563eb,#0ea5e9);border:1px solid rgba(37,99,235,.18);color:#fff;box-shadow:0 10px 22px rgba(37,99,235,.16);transition:all .2s;letter-spacing:1px}
+.sab:hover{filter:brightness(1.1);transform:translateY(-2px)}
+.sab.hidden{display:none}
+.ab{width:100%;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.20);border-radius:12px;padding:20px 16px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px}
+.at{font-size:.65rem;color:#15803d;text-transform:uppercase;letter-spacing:2px}
+.atxt{font-size:1.2rem;font-weight:700;color:#16a34a;font-family:'Black Ops One',cursive;letter-spacing:1px}
+.eb{display:flex;gap:10px;justify-content:center;width:100%}
+.eval-btn{padding:10px 20px;border:none;border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:Poppins;transition:all .2s;flex:1;max-width:160px}
+.eval-btn:disabled{opacity:0.4;cursor:not-allowed;transform:none}
+.eval-correct{background:rgba(74,222,128,0.15);color:#4ade80;border:1px solid rgba(74,222,128,0.3)}
+.eval-correct:hover:not(:disabled){background:rgba(74,222,128,0.25)}
+.eval-wrong{background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3)}
+.eval-wrong:hover:not(:disabled){background:rgba(239,68,68,0.25)}
+.guess-row{display:flex;gap:8px;width:100%;align-items:center}
+.guess-input{flex:1;padding:12px 14px;border-radius:10px;border:1px solid rgba(37,99,235,.14);background:#fff;color:#172033;font-size:.85rem;font-family:Poppins;outline:none}
+.guess-input:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.08)}
+.guess-input::placeholder{color:#94a3b8}
+.guess-btn{padding:12px 16px;border:none;border-radius:10px;font-size:.8rem;font-weight:700;cursor:pointer;font-family:'Black Ops One',cursive;background:linear-gradient(135deg,#2563eb,#0ea5e9);border:1px solid rgba(37,99,235,.18);color:#fff;transition:all .2s;min-width:50px}
+.guess-btn:hover{filter:brightness(1.1)}
+.guess-btn:disabled{opacity:0.4;cursor:not-allowed}
+.guess-result{width:100%;padding:14px 16px;border-radius:10px;text-align:center;display:none;flex-direction:column;gap:4px}
+.guess-result.show{display:flex}
+.guess-result.ok{background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.15)}
+.guess-result.nok{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.15)}
+.guess-feedback{font-size:.9rem;font-weight:600}
+.guess-feedback.ok{color:#4ade80}
+.guess-feedback.nok{color:#ef4444}
+.guess-answer-reveal{font-size:.85rem;color:rgba(214,232,245,0.7);font-weight:500;margin-top:4px}
+.taunt-text{font-size:.8rem;color:#4a9ec4;font-style:italic;font-weight:500;padding:6px 0;display:none;text-align:center}
+.taunt-text.show{display:block}
+.taunt-toggle{display:flex;align-items:center;gap:6px;font-size:.65rem;color:rgba(214,232,245,0.5);cursor:pointer;user-select:none;margin-left:auto;padding:0 4px;font-family:Poppins}
+.taunt-toggle input{display:none}
+.taunt-slider{width:30px;height:16px;background:rgba(255,255,255,0.08);border-radius:10px;position:relative;transition:all .3s;border:1px solid rgba(255,255,255,0.05)}
+.taunt-slider:before{content:'';position:absolute;width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.15);top:1px;left:2px;transition:all .3s}
+.taunt-toggle input:checked+.taunt-slider{background:#4a9ec4;border-color:#4a9ec4}
+.taunt-toggle input:checked+.taunt-slider:before{background:#1a1a2e;transform:translateX(13px)}
+.taunt-toggle.active{color:#4a9ec4}
+.taunt-popup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);background:linear-gradient(135deg,#1a1a2e,#16213e);border:2px solid #4a9ec4;border-radius:20px;padding:30px 40px;text-align:center;z-index:999;box-shadow:0 0 60px rgba(74,158,196,0.2);transition:transform .4s cubic-bezier(.34,1.56,.64,1),opacity .3s;opacity:0;pointer-events:none;max-width:90vw}
+.taunt-popup.show{transform:translate(-50%,-50%) scale(1);opacity:1;pointer-events:auto}
+.taunt-popup-icon{font-size:3rem;margin-bottom:10px}
+.taunt-popup-text{font-size:1.1rem;color:#4a9ec4;font-weight:600;line-height:1.6}
+.taunt-popup-sub{font-size:.75rem;color:rgba(214,232,245,0.4);margin-top:8px}
+.taunt-popup-btn{background:#4a9ec4;color:#1a1a2e;border:none;border-radius:10px;padding:10px 30px;font-family:Poppins;font-weight:600;font-size:.85rem;cursor:pointer;margin-top:16px;transition:all .2s}
+.taunt-popup-btn:hover{transform:scale(1.05)}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:998;display:none}
+.overlay.show{display:block}
+.guess-or{color:rgba(214,232,245,0.2);font-size:.65rem;letter-spacing:2px;text-transform:uppercase}
+.sab-link{background:none;border:none;color:rgba(214,232,245,0.35);font-size:.75rem;cursor:pointer;font-family:Poppins;text-decoration:underline;padding:4px;transition:all .2s}
+.sab-link:hover{color:rgba(214,232,245,0.6)}
+  .opp-info{display:flex;align-items:center;justify-content:center;gap:6px;padding:4px 0;margin-bottom:2px}
+  .opp-info .o-avatar{width:24px;height:24px;border-radius:50%;overflow:hidden;background:rgba(37,99,235,0.08);display:flex;align-items:center;justify-content:center;border:2px solid rgba(37,99,235,0.15);flex-shrink:0}
+  .opp-info .o-avatar img{width:100%;height:100%;object-fit:cover}
+  .opp-info .o-avatar i{font-size:10px;color:#64748b}
+  .opp-info .o-name{font-size:.6rem;font-weight:600;color:#172033}
+  .opp-info .o-rank{font-size:.5rem;color:#64748b}
+  .progress-row{display:flex;gap:10px;margin-bottom:2px}
+  .prog-label{font-size:.5rem;color:#64748b;text-transform:uppercase;letter-spacing:1px;display:flex;justify-content:space-between}
+  .prog-bar{height:3px;background:rgba(37,99,235,0.08);border-radius:2px;overflow:hidden}
+  .prog-bar-inner{height:100%;border-radius:2px;transition:width .2s ease;width:0%}
+  .prog-bar-inner.self{background:#e2b714}
+  .prog-bar-inner.opp{background:#2563eb;opacity:.6}
+.streak{font-family:'Black Ops One',cursive;font-size:.85rem;color:#64748b;background:#fff;border:1px solid rgba(37,99,235,.12);padding:6px 10px;border-radius:999px;box-shadow:0 8px 24px rgba(37,99,235,.08);min-width:40px;text-align:center;transition:all .3s;display:none}
+.streak.show{display:block}
+.streak.fire{color:#f59e0b;border-color:rgba(245,158,11,.3);box-shadow:0 8px 24px rgba(245,158,11,.12)}
+.quiz-card.shake{animation:shake .4s ease}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+@media(max-width:400px){
+  .stats{flex-wrap:wrap;gap:6px}
+  .stat-num{font-size:.85rem}
+  .result-modal{padding:14px;max-width:95%}
+  .result-modal .grid{grid-template-columns:1fr}
+  .words-box{padding:8px 10px;min-height:70px}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="opp-info" id="oppInfo" style="display:none">
+    <div class="o-avatar" id="oppAvatar"><i class="fas fa-user"></i></div>
+    <div class="o-name" id="oppNameDisplay">Opponent</div>
+    <div class="o-rank" id="oppRankDisplay"></div>
+  </div>
+  <div class="progress-row">
+    <div class="prog-group">
+      <div class="prog-label"><span>You</span><span id="progSelfLabel">0%</span></div>
+      <div class="prog-bar"><div class="prog-bar-inner self" id="progSelf"></div></div>
+    </div>
+    <div class="prog-group">
+      <div class="prog-label"><span id="oppNameLabel">Opponent</span><span id="progOppLabel">0%</span></div>
+      <div class="prog-bar"><div class="prog-bar-inner opp" id="progOpp"></div></div>
+    </div>
+  </div>
+  <div class="top-hud">
+    <div class="title"><i class="fas fa-question-circle"></i>AI QUIZ</div>
+    <div class="streak" id="streakDisplay"></div>
+    <div class="score-hud" id="scoreHud">0 / 0</div>
+    <label class="taunt-toggle" id="tauntToggle">
+      <input type="checkbox" id="tauntToggleInput">
+      <span class="taunt-slider"></span>
+    </label>
+  </div>
+
+  <div class="picker" id="topicPicker">
+    <button data-topic="mixed" class="active">Mixed</button>
+    <button data-topic="gk">General Knowledge</button>
+    <button data-topic="tech">Tech & AI</button>
+    <button data-topic="riddles">Riddles</button>
+    <button data-topic="nepal">Nepal</button>
+    <button data-topic="nepali_riddles">गाउँखाने कथा</button>
+  </div>
+
+  <div class="quiz-area" id="quizArea">
+    <div class="start-screen" id="startScreen">
+      <div class="start-icon"><i class="fas fa-lightbulb"></i></div>
+      <div class="start-title">BRAIN TRAINING</div>
+      <div class="start-desc">AI-generated quiz questions on every topic. Pick a category or go mixed. Each correct answer earns you points.</div>
+      <button class="start-btn" id="startBtn">START QUIZ</button>
+    </div>
+
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+    <div class="quiz-card" id="quizCard">
+      <div class="q-number" id="qNumber">Question 1 / 10</div>
+      <div class="q-text" id="qText">Loading...</div>
+      <div class="options" id="optionsContainer"></div>
+      <div class="explanation-text" id="explanationText"></div>
+      <div class="taunt-text" id="tauntText"></div>
+      <div class="reveal-area" id="revealArea">
+        <div class="guess-row" id="guessRow">
+          <input type="text" class="guess-input" id="guessInput" placeholder="Guess in English..." autocomplete="off" autocapitalize="off">
+          <button class="guess-btn" id="guessBtn">➡</button>
+        </div>
+        <div class="guess-result" id="guessResult">
+          <div class="guess-feedback" id="guessFeedback"></div>
+          <div class="guess-answer-reveal" id="guessAnswerReveal"></div>
+        </div>
+        <div class="guess-or" id="guessOr">— or —</div>
+        <button class="sab" id="showAnswerBtn">🤔 Show Answer</button>
+        <div class="ab" id="answerBox" style="display:none">
+          <div class="at">📢 ANSWER</div>
+          <div class="atxt" id="answerText"></div>
+          <div class="eb">
+            <button class="eval-btn eval-correct" id="correctBtn">✅ Correct</button>
+            <button class="eval-btn eval-wrong" id="incorrectBtn">❌ Incorrect</button>
+          </div>
+        </div>
+      </div>
+      <button class="next-btn" id="nextBtn">NEXT</button>
+    </div>
+
+    <div class="results-card" id="resultsCard">
+      <div class="results-score" id="resultsScore">0/10</div>
+      <div class="results-label">YOUR SCORE</div>
+      <div class="results-detail" id="resultsDetail">Nice try! Keep quizzing.</div>
+      <button class="retry-btn" id="retryBtn"><i class="fas fa-redo"></i> PLAY AGAIN</button>
+    </div>
+  </div>
+</div>
+
+<div id="challengeResult" style="display:none;margin-top:12px;padding:12px;border-radius:10px;font-size:.8rem;font-weight:500;background:#1a1a2e;border:1px solid rgba(74,158,196,.2);color:rgba(214,232,245,0.8)"></div>
+
+<div class="overlay" id="popupOverlay"></div>
+<div class="taunt-popup" id="tauntPopup">
+  <div class="taunt-popup-icon">😈</div>
+  <div class="taunt-popup-text">You will regret that!<br>THIS WAY IT'S MUCH FUN NA? 🔥</div>
+  <div class="taunt-popup-sub">Roasting mode: ACTIVATED</div>
+  <button class="taunt-popup-btn" id="popupCloseBtn">BRING IT ON 🎯</button>
+</div>
+
+<script>
+var questions=[]
+var currentQ=0
+var score=0
+var total=0
+var answered=false
+var loading=false
+var streak=0
+var maxStreak=0
+var audioCtx=null
+var isMultiplayer=false
+var opponentName='Opponent'
+var streakEl=document.getElementById('streakDisplay')
+
+var topicPicker=document.getElementById('topicPicker')
+var startScreen=document.getElementById('startScreen')
+var quizCard=document.getElementById('quizCard')
+var resultsCard=document.getElementById('resultsCard')
+var qNumber=document.getElementById('qNumber')
+var qText=document.getElementById('qText')
+var optionsContainer=document.getElementById('optionsContainer')
+var nextBtn=document.getElementById('nextBtn')
+var progressFill=document.getElementById('progressFill')
+var scoreHud=document.getElementById('scoreHud')
+var explanationText=document.getElementById('explanationText')
+var tauntText=document.getElementById('tauntText')
+var startBtn=document.getElementById('startBtn')
+var retryBtn=document.getElementById('retryBtn')
+var resultsScore=document.getElementById('resultsScore')
+var resultsDetail=document.getElementById('resultsDetail')
+var isRevealMode=false
+var timerInterval=null
+var currentTopic=''
+var revealArea=document.getElementById('revealArea')
+var showAnswerBtn=document.getElementById('showAnswerBtn')
+var answerBox=document.getElementById('answerBox')
+var answerText=document.getElementById('answerText')
+var correctBtn=document.getElementById('correctBtn')
+var incorrectBtn=document.getElementById('incorrectBtn')
+var guessRow=document.getElementById('guessRow')
+var guessInput=document.getElementById('guessInput')
+var guessBtn=document.getElementById('guessBtn')
+var guessResult=document.getElementById('guessResult')
+var guessFeedback=document.getElementById('guessFeedback')
+var guessAnswerReveal=document.getElementById('guessAnswerReveal')
+var guessOr=document.getElementById('guessOr')
+
+function getTopic(){
+  var active=topicPicker.querySelector('.active')
+  return active?active.dataset.topic:'mixed'
+}
+
+function updateSelfProgress(){
+  var pct=Math.min(100,Math.round((currentQ+1)/(total||10)*100))
+  document.getElementById('progSelf').style.width=pct+'%'
+  document.getElementById('progSelfLabel').textContent=pct+'%'
+}
+
+function playSound(freq,duration){
+  try{
+    if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)()
+    var osc=audioCtx.createOscillator()
+    var gain=audioCtx.createGain()
+    osc.connect(gain)
+    gain.connect(audioCtx.destination)
+    osc.frequency.value=freq
+    osc.type='sine'
+    gain.gain.setValueAtTime(0.15,audioCtx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+duration)
+    osc.start()
+    osc.stop(audioCtx.currentTime+duration)
+  }catch(e){}
+}
+
+function celebrateStreak(){
+  if(streak<3)return
+  var colors=['#2563eb','#f59e0b','#10b981','#ef4444','#8b5cf6','#ec4899']
+  for(var i=0;i<30;i++){
+    var p=document.createElement('div')
+    p.style.cssText='position:fixed;width:'+(4+Math.random()*6)+'px;height:'+(4+Math.random()*6)+'px;background:'+colors[Math.floor(Math.random()*colors.length)]+';border-radius:2px;pointer-events:none;z-index:9999;left:'+(window.innerWidth/2)+'px;top:'+(window.innerHeight/2)+'px'
+    document.body.appendChild(p)
+    var angle=Math.random()*Math.PI*2
+    var vel=100+Math.random()*200
+    var dx=Math.cos(angle)*vel
+    var dy=Math.sin(angle)*vel-150
+    var start=performance.now()
+    ;(function anim(now){
+      var t=(now-start)/1000
+      if(t>1.2){p.remove();return}
+      var x=window.innerWidth/2+dx*t
+      var y=window.innerHeight/2+dy*t+0.5*600*t*t
+      var rot=t*720
+      p.style.transform='translate('+(x-window.innerWidth/2)+'px,'+(y-window.innerHeight/2)+'px) rotate('+rot+'deg)'
+      p.style.opacity=1-t/1.2
+      requestAnimationFrame(anim)
+    })(start)
+  }
+}
+
+function updateStreak(){
+  if(!streakEl)return
+  if(streak>=2){
+    streakEl.textContent='🔥 '+streak
+    streakEl.classList.add('show','fire')
+    celebrateStreak()
+  }else{
+    streakEl.textContent=''
+    streakEl.classList.remove('show','fire')
+  }
+}
+
+topicPicker.querySelectorAll('button').forEach(function(b){
+  b.addEventListener('click',function(){
+    if(loading)return
+    topicPicker.querySelectorAll('button').forEach(function(x){x.classList.remove('active')})
+    b.classList.add('active')
+  })
+})
+
+function shuffleArray(a){
+  for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}
+  return a
+}
+
+function loadQuestions(){
+  loading=true
+  startBtn.disabled=true
+  startBtn.innerHTML='<span class="loading-dots"><span></span><span></span><span></span></span>'
+  currentTopic=getTopic()
+  isRevealMode=currentTopic==='nepali_riddles'||currentTopic==='riddles'
+  fetch('/quiz/generate-questions/?topic='+currentTopic+'&count=10')
+    .then(function(r){return r.json()})
+    .then(function(data){
+      if(data.error){showAlert(data.error);loading=false;startBtn.disabled=false;startBtn.textContent='START QUIZ';return}
+      questions=data.questions||[]
+      window.currentQuizQuestions = questions.map(function(q){return q.question})
+      var seenKey='qz_seen_'+currentTopic
+      var seen=JSON.parse(localStorage.getItem(seenKey)||'[]')
+      if(seen.length>0){
+        var before=questions.length
+        questions=questions.filter(function(q){return seen.indexOf(q.question)===-1})
+        if(questions.length<3&&before>=3){localStorage.removeItem(seenKey);questions=data.questions||[]}
+      }
+      if(questions.length<3){loadQuestions();return}
+      loading=false
+      currentQ=0;score=0;total=questions.length;answered=false
+      startScreen.classList.add('hidden')
+      quizCard.classList.add('active')
+      topicPicker.classList.add('locked')
+      updateSelfProgress()
+      showQuestion()
+    })
+    .catch(function(e){
+      loading=false
+      startBtn.disabled=false
+      startBtn.textContent='START QUIZ'
+      showAlert('Failed to load questions. Try again.')
+    })
+}
+
+function showQuestion(){
+  if(currentQ>=questions.length){
+    showResults()
+    return
+  }
+  if(isRevealMode){showRevealQuestion();return}
+  showMCQQuestion()
+}
+
+function showMCQQuestion(){
+  var q=questions[currentQ]
+  qNumber.textContent='Question '+(currentQ+1)+' / '+questions.length
+  qText.textContent=q.question
+  progressFill.style.width=((currentQ/questions.length)*100)+'%'
+  scoreHud.textContent=score+' / '+currentQ
+  updateSelfProgress()
+  answered=false
+  explanationText.classList.remove('show')
+  explanationText.textContent=''
+  tauntText.classList.remove('show')
+  tauntText.textContent=''
+  nextBtn.style.display='none'
+  revealArea.style.display='none'
+  optionsContainer.style.display='flex'
+
+  var opts=shuffleArray([].concat(q.options))
+  optionsContainer.innerHTML=''
+  opts.forEach(function(opt){
+    var btn=document.createElement('button')
+    btn.className='opt-btn'
+    btn.textContent=opt
+    btn.addEventListener('click',function(){selectOption(btn,opt,q)})
+    optionsContainer.appendChild(btn)
+  })
+}
+
+function selectOption(btn,selected,q){
+  if(answered)return
+  answered=true
+  clearInterval(timerInterval)
+  var correct=q.answer
+  var allBtns=optionsContainer.querySelectorAll('.opt-btn')
+  allBtns.forEach(function(b){b.disabled=true})
+
+  if(selected===correct){
+    btn.classList.add('correct')
+    score++
+    streak++
+    if(streak>maxStreak)maxStreak=streak
+    updateStreak()
+    scoreHud.textContent=score+' / '+(currentQ+1)
+    playSound(880,0.12)
+    sendProgress({score: score, target: total || 10, percent_complete: Math.min(100, Math.round(score / (total || 10) * 100))});
+    if(tauntToggleInput.checked&&q.taunt_correct){tauntText.textContent='😂 '+q.taunt_correct;tauntText.classList.add('show')}else{tauntText.classList.remove('show')}
+  }else{
+    btn.classList.add('wrong')
+    quizCard.classList.remove('shake')
+    void quizCard.offsetWidth
+    quizCard.classList.add('shake')
+    streak=0
+    updateStreak()
+    playSound(220,0.2)
+    allBtns.forEach(function(b){
+      if(b.textContent===correct)b.classList.add('reveal-correct')
+    })
+    if(tauntToggleInput.checked&&q.taunt_wrong){tauntText.textContent='😭 '+q.taunt_wrong;tauntText.classList.add('show')}else{tauntText.classList.remove('show')}
+  }
+  explanationText.textContent=q.explanation
+  explanationText.classList.add('show')
+  updateSelfProgress()
+  setTimeout(function(){ advanceQuiz() }, 1500);
+}
+
+function advanceQuiz(){
+  if(!isRevealMode&&answered){
+    var seenKey='qz_seen_'+currentTopic
+    var seen=JSON.parse(localStorage.getItem(seenKey)||'[]')
+    seen.push(questions[currentQ].question)
+    localStorage.setItem(seenKey,JSON.stringify(seen))
+  }
+  currentQ++
+  if(currentQ>=questions.length){showResults()}
+  else{showQuestion()}
+}
+
+function showRevealQuestion(){
+  var q=questions[currentQ]
+  var label=currentTopic==='nepali_riddles'?'गाउँखाने कथा':'Riddle'
+  qNumber.textContent=label+' '+(currentQ+1)+' / '+questions.length
+  qText.textContent=q.question
+  progressFill.style.width=((currentQ/questions.length)*100)+'%'
+  scoreHud.textContent='🎯 FUN'
+  tauntText.classList.remove('show')
+  tauntText.textContent=''
+  answered=false
+  nextBtn.style.display='none'
+  optionsContainer.style.display='none'
+  explanationText.style.display='none'
+  revealArea.style.display='flex'
+  guessRow.style.display='flex'
+  guessInput.value=''
+  guessInput.disabled=false
+  guessBtn.disabled=false
+  guessInput.focus()
+  guessResult.classList.remove('show','ok','nok')
+  guessResult.style.display='none'
+  guessOr.style.display='block'
+  showAnswerBtn.classList.remove('hidden')
+  showAnswerBtn.style.display='block'
+  answerBox.style.display='none'
+  correctBtn.style.display=''
+  incorrectBtn.style.display=''
+  correctBtn.disabled=false
+  incorrectBtn.disabled=false
+}
+
+function handleGuess(){
+  if(answered)return
+  var q=questions[currentQ]
+  var input=guessInput.value.trim().toLowerCase()
+  if(!input){guessInput.focus();return}
+  var target=(q.answer_en||q.answer).toLowerCase().trim()
+  var matched=input===target||target.indexOf(input)>-1||input.indexOf(target)>-1
+  if(!matched&&target.indexOf(' ')>-1){
+    var inputWords=input.split(/\s+/)
+    var targetWords=target.split(/\s+/)
+    matched=inputWords.some(function(w){return targetWords.indexOf(w)>-1})
+  }
+  answered=true
+  guessInput.disabled=true
+  guessBtn.disabled=true
+  guessRow.style.display='none'
+  guessOr.style.display='none'
+  showAnswerBtn.style.display='none'
+  guessResult.style.display='flex'
+  guessResult.className='guess-result show'
+  if(matched){
+    guessResult.classList.add('ok')
+    guessFeedback.style.display='none'
+    guessAnswerReveal.textContent='Answer: '+q.answer+(q.answer_en?' ('+q.answer_en+')':'')
+    if(tauntToggleInput.checked&&q.taunt_correct){tauntText.textContent='😂 '+q.taunt_correct;tauntText.classList.add('show')}else{tauntText.classList.remove('show')}
+  }else{
+    guessResult.classList.add('nok')
+    guessFeedback.style.display='none'
+    guessAnswerReveal.textContent='The answer was: '+q.answer+(q.answer_en?' ('+q.answer_en+')':'')
+    if(tauntToggleInput.checked&&q.taunt_wrong){tauntText.textContent='😭 '+q.taunt_wrong;tauntText.classList.add('show')}else{tauntText.classList.remove('show')}
+  }
+  setTimeout(advanceQuiz, 1500);
+}
+
+guessBtn.addEventListener('click',handleGuess)
+guessInput.addEventListener('keydown',function(e){if(e.key==='Enter')handleGuess()})
+document.addEventListener('keydown',function(e){
+  if(answered||loading||isRevealMode)return
+  var key=parseInt(e.key)
+  if(key>=1&&key<=4){
+    var btns=optionsContainer.querySelectorAll('.opt-btn')
+    if(btns[key-1]&&!btns[key-1].disabled){
+      btns[key-1].click()
+    }
+  }
+})
+
+showAnswerBtn.addEventListener('click',function(){
+  var q=questions[currentQ]
+  guessRow.style.display='none'
+  guessOr.style.display='none'
+  showAnswerBtn.classList.add('hidden')
+  showAnswerBtn.style.display='none'
+  answerBox.style.display='flex'
+  answerBox.style.flexDirection='column'
+  answerText.textContent=q.answer+(q.answer_en?' ('+q.answer_en+')':'')
+  correctBtn.style.display='none'
+  incorrectBtn.style.display='none'
+  setTimeout(advanceQuiz, 1500);
+  if(tauntToggleInput.checked&&q.taunt_wrong){tauntText.textContent='😏 '+q.taunt_wrong;tauntText.classList.add('show')}else if(tauntToggleInput.checked&&q.taunt_correct){tauntText.textContent='😏 '+q.taunt_correct;tauntText.classList.add('show')}
+})
+
+function handleSelfEval(isCorrect){
+  if(answered)return
+  answered=true
+  var seenKey='qz_seen_'+currentTopic
+  var seen=JSON.parse(localStorage.getItem(seenKey)||'[]')
+  seen.push(questions[currentQ].question)
+  localStorage.setItem(seenKey,JSON.stringify(seen))
+  correctBtn.disabled=true
+  incorrectBtn.disabled=true
+  if(!isRevealMode){if(isCorrect){score++} scoreHud.textContent=score+' / '+(currentQ+1); sendProgress({score: score, target: total || 10, percent_complete: Math.min(100, Math.round((currentQ+1) / (total || 10) * 100)), is_correct: isCorrect}); updateSelfProgress()}
+  setTimeout(advanceQuiz, 1500);
+}
+
+correctBtn.addEventListener('click',function(){handleSelfEval(true)})
+incorrectBtn.addEventListener('click',function(){handleSelfEval(false)})
+
+nextBtn.addEventListener('click',advanceQuiz)
+
+function showResults(){
+  quizCard.classList.remove('active')
+  resultsCard.classList.add('active')
+  var pct=Math.round((score/questions.length)*100)
+  if(isRevealMode){
+    resultsScore.textContent='🎉'
+    progressFill.style.width='100%'
+    scoreHud.textContent='🎯 FUN'
+    resultsDetail.textContent='Hope you enjoyed the riddles! Try another topic for a scored quiz.'
+  }else{
+    resultsScore.textContent=score+'/'+questions.length
+    progressFill.style.width='100%'
+    scoreHud.textContent=score+' / '+questions.length
+    var msg=''
+    if(pct>=90)msg='Quiz Master! Absolute legend!'
+    else if(pct>=70)msg='Great job! You really know your stuff.'
+    else if(pct>=50)msg='Not bad! Room to improve though.'
+    else if(pct>=30)msg='Tough round! Try a different topic.'
+    else msg='Oof. Time to hit the books!'
+    resultsDetail.textContent=msg
+  }
+  sendComplete({score: score, total: total || 10});
+}
+
+retryBtn.addEventListener('click',function(){
+  resultsCard.classList.remove('active')
+  startScreen.classList.remove('hidden')
+  quizCard.classList.remove('active')
+  progressFill.style.width='0%'
+  scoreHud.textContent='0 / 0'
+  revealArea.style.display='none'
+  optionsContainer.style.display='flex'
+  showAnswerBtn.classList.remove('hidden')
+  showAnswerBtn.style.display='block'
+  answerBox.style.display='none'
+  guessResult.style.display='none'
+  guessRow.style.display='flex'
+  guessInput.value=''
+  guessInput.disabled=false
+  guessBtn.disabled=false
+  guessOr.style.display='block'
+})
+
+startBtn.addEventListener('click',loadQuestions)
+window.addEventListener('beforeunload',function(){window.currentQuizQuestions=null})
+
+// Taunt toggle popup
+document.getElementById('tauntToggleInput').addEventListener('change',function(){
+  if(this.checked){
+    document.getElementById('tauntPopup').classList.add('show')
+    document.getElementById('popupOverlay').classList.add('show')
+  }
+})
+document.getElementById('popupCloseBtn').addEventListener('click',function(){
+  document.getElementById('tauntPopup').classList.remove('show')
+  document.getElementById('popupOverlay').classList.remove('show')
+})
+document.getElementById('popupOverlay').addEventListener('click',function(){
+  document.getElementById('tauntPopup').classList.remove('show')
+  document.getElementById('popupOverlay').classList.remove('show')
+})
+
+// ── Challenge auto-submit ──
+var challengeId=null, challengeTarget=null
+var p=new URLSearchParams(window.location.search)
+if(p.get('target'))challengeTarget=parseFloat(p.get('target'))
+if(p.get('challenge'))challengeId=p.get('challenge')
+
+function getCSRF(){var m=document.cookie.match(/csrftoken=([^;]+)/);return m?m[1]:''}
+
+function showAlert(msg){
+  var div=document.createElement('div')
+  div.style.position='fixed'
+  div.style.top='20px'
+  div.style.left='50%'
+  div.style.transform='translateX(-50%)'
+  div.style.background='#ff4757'
+  div.style.color='#fff'
+  div.style.padding='12px 24px'
+  div.style.borderRadius='8px'
+  div.style.zIndex='9999'
+  div.style.fontFamily='Poppins'
+  div.style.fontSize='.9rem'
+  div.textContent=msg
+  document.body.appendChild(div)
+  setTimeout(function(){div.remove()},3000)
+}
+
+function submitResult(){
+  if(!challengeId)return
+  var xhr=new XMLHttpRequest()
+  xhr.open('POST','/challenges/verify-quiz/',true)
+  xhr.setRequestHeader('Content-Type','application/x-www-form-urlencoded')
+  xhr.setRequestHeader('X-CSRFToken',getCSRF())
+  xhr.onload=function(){
+    try{
+      var r=JSON.parse(xhr.responseText)
+      var div=document.getElementById('challengeResult')
+      if(div){
+        div.style.display='block'
+        if(r.passed){
+          div.style.background='rgba(34,197,94,0.1)';div.style.border='1px solid rgba(34,197,94,0.2)'
+          div.style.color='#4ade80';div.textContent='Challenge passed! +'+r.xp+'XP, Rs '+r.coins
+          setTimeout(function(){if(window.opener&&!window.opener.closed)window.opener.location.reload();window.close()},2000)
+        } else {
+          div.style.background='rgba(239,68,68,0.1)';div.style.border='1px solid rgba(239,68,68,0.2)'
+          div.style.color='#f87171';div.textContent='Challenge failed — need '+challengeTarget+' correct'
+        }
+      }
+    }catch(e){}
+  }
+  xhr.send('challenge_id='+challengeId+'&score='+score+'&target='+challengeTarget+'&total='+total)
+}
+
+// Auto-submit on game end
+if(challengeId)setTimeout(submitResult,500)
+
+// ── Multiplayer postMessage API ──
+function sendProgress(data){
+  window.parent.postMessage({type:'progress', data:data}, '*');
+}
+function sendComplete(data){
+  window.parent.postMessage({type:'complete', data:data}, '*');
+}
+window.addEventListener('message', function(e){
+  var msg = e.data || {};
+  if(msg.type === 'opponent_progress'){
+    var d = msg.data || {};
+    document.getElementById('progOpp').style.width = (d.percent_complete || 0) + '%';
+    document.getElementById('progOppLabel').textContent = (d.percent_complete || 0) + '%';
+  } else if(msg.type === 'opponent_info'){
+    var opp = msg.opp || {};
+    opponentName = opp.display_name || opp.username || 'Opponent';
+    document.getElementById('oppNameLabel').textContent = opponentName;
+    document.getElementById('oppNameDisplay').textContent = opponentName;
+    document.getElementById('oppRankDisplay').textContent = opp.rank || '';
+    if(opp.avatar){
+      document.getElementById('oppAvatar').innerHTML = '<img src="' + opp.avatar + '" alt="">';
+    }else{
+      document.getElementById('oppAvatar').innerHTML = '<i class="fas fa-user"></i>';
+    }
+    document.getElementById('oppInfo').style.display = 'flex';
+  } else if(msg.type === 'start'){
+    var c = msg.challenge || {};
+    isMultiplayer = true;
+    if(c.questions && c.questions.length > 0){
+      questions = c.questions.map(function(q){
+        return {
+          question: q.q || q.question,
+          options: q.opts || q.options || [],
+          answer: q.opts ? q.opts[q.ans] : (q.options ? q.options[q.ans] : q.answer)
+        };
+      });
+      currentTopic = c.topic || 'mixed';
+      currentQ = 0;
+      score = 0;
+      total = questions.length;
+      answered = false;
+      startScreen.classList.add('hidden');
+      quizCard.classList.add('active');
+      topicPicker.classList.add('locked');
+      // Mark the topic in the picker
+      topicPicker.querySelectorAll('button').forEach(function(b){
+        b.classList.toggle('active', b.dataset.topic === currentTopic);
+      });
+      showQuestion();
+    } else {
+      loadQuestions();
+    }
+  }
+});
+window.parent.postMessage({type:'ready'}, '*');
+</script>
+<div class="popup-overlay" id="popupOverlay" onclick="if(event.target===this)closePopup()">
+  <div class="popup-box" id="popupBox">
+    <div class="popup-icon" id="popupIcon"><i class="fas fa-exclamation-triangle"></i></div>
+    <div class="popup-title" id="popupTitle">Are you sure?</div>
+    <div class="popup-msg" id="popupMsg"></div>
+    <div class="popup-actions" id="popupActions">
+      <button class="popup-btn cancel" onclick="closePopup()">Cancel</button>
+      <button class="popup-btn confirm" id="popupConfirmBtn" onclick="confirmPopup()">Confirm</button>
+    </div>
+  </div>
+</div>
+<script>
+let popupResolve=null;
+function showPopup(title,msg,icon,confirmLabel,confirmClass){
+  return new Promise(function(resolve){
+    popupResolve=resolve;
+    document.getElementById('popupTitle').textContent=title;
+    document.getElementById('popupMsg').textContent=msg;
+    document.getElementById('popupIcon').innerHTML='<i class="fas fa-'+icon+'"></i>';
+    var btn=document.getElementById('popupConfirmBtn');
+    btn.textContent=confirmLabel||'Confirm';
+    btn.className='popup-btn '+(confirmClass||'confirm');
+    document.getElementById('popupOverlay').classList.add('open');
+  });
+}
+function closePopup(){
+  document.getElementById('popupOverlay').classList.remove('open');
+  if(popupResolve){popupResolve(false);popupResolve=null;}
+}
+function confirmPopup(){
+  document.getElementById('popupOverlay').classList.remove('open');
+  if(popupResolve){popupResolve(true);popupResolve=null;}
+}
+function showConfirm(msg,confirmLabel,confirmClass){
+  return showPopup('Are you sure?',msg,'exclamation-triangle',confirmLabel||'Delete',confirmClass||'danger');
+}
+function showAlert(msg){
+  return showPopup('Notice',msg,'info-circle','OK','confirm');
+}
+</script>
+</body>

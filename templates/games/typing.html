@@ -1,0 +1,412 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>Typing Test</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Black+Ops+One&family=Source+Code+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+:root{--bg:#0a1929;--surface:#0d3b66;--border:#1d4d6b;--accent:#4a9ec4;--text:#d6e8f5;--dim:#6b8fa0;--correct:#d1d0c5;--incorrect:#ca4754;--extra:#7e2a33;--caret:#e2b714}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;background:url('/static/BG.png') center/cover no-repeat var(--bg);color:var(--text);font-family:'Poppins',sans-serif;overflow:hidden}
+body::before{content:'';position:fixed;inset:0;z-index:-1;background:url('/static/BG.png') center/cover no-repeat;filter:blur(12px) brightness(0.7)}
+body{display:flex;align-items:center;justify-content:center;flex-direction:column;padding:20px;margin-top:56px}
+.chillx-header{position:fixed;top:0;left:0;right:0;z-index:10000;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:var(--surface);border-bottom:2px solid var(--border);box-shadow:0 4px 16px rgba(0,0,0,0.3);transition:transform 0.3s ease;}
+.chillx-header.hidden{transform:translateY(-100%)}
+.chillx-header .left{display:flex;align-items:center;gap:10px}
+.chillx-back{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--bg);border:1.5px solid var(--border);color:var(--text);text-decoration:none;font-size:.78rem;transition:all .25s;cursor:pointer}
+.chillx-back:hover{background:var(--border);color:#fff}
+.chillx-brand{display:flex;align-items:center;gap:8px;font-family:'Black Ops One',cursive;font-size:.95rem;color:var(--text)}
+.chillx-brand img{width:28px;height:28px;border-radius:50%;background:var(--bg);border:2px solid var(--border);padding:2px}
+.chillx-header .right{display:flex;align-items:center;gap:6px}
+.chillx-pill{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:var(--accent);border:1.5px solid var(--border);border-radius:14px;color:#fff;font-family:'Black Ops One',cursive;font-size:.72rem}
+.chillx-pill i{font-size:.65rem}
+.chillx-toggle{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--bg);border:1.5px solid var(--border);color:var(--text);cursor:pointer;font-size:.78rem;transition:all .25s;text-decoration:none}
+.chillx-toggle:hover{background:var(--border);color:#fff}
+.game-wrap{width:100%;max-width:860px}
+.stats{display:flex;justify-content:center;gap:32px;margin-bottom:10px}
+.stat{text-align:center}
+.stat-num{font-size:1.6rem;font-weight:600;color:var(--text);font-family:'Source Code Pro',monospace;line-height:1.2}
+.stat-label{font-size:.55rem;color:var(--dim);text-transform:uppercase;letter-spacing:1.5px}
+.timer-bar{width:100%;height:3px;background:var(--surface);border-radius:2px;margin-bottom:16px;overflow:hidden}
+.timer-fill{height:100%;background:var(--caret);width:100%;transition:width .1s linear}
+.words-wrap{position:relative;margin:8px 0}
+.words-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px 24px;min-height:160px;max-height:240px;overflow:hidden;cursor:text}
+.words-display{display:flex;flex-wrap:wrap;gap:4px 8px;line-height:1.6;font-family:'Source Code Pro',monospace;font-size:1.2rem;font-weight:500;color:var(--dim);align-content:flex-start}
+.words-display .word{display:flex;padding:0;margin:0}
+.words-display .char{display:inline-block;position:relative;padding:0 0.5px;border-radius:1px}
+.words-display .char.correct{color:var(--correct)}
+.words-display .char.incorrect{color:var(--incorrect);background:rgba(202,71,84,0.15)}
+.words-display .char.extra{color:var(--extra);background:rgba(126,42,51,0.2)}
+.words-display .char.current::after{content:'';position:absolute;top:1px;bottom:1px;left:0;width:2.5px;background:var(--caret);animation:caretBlink 1s step-end infinite;border-radius:1.5px;box-shadow:0 0 6px var(--caret)}
+@keyframes caretBlink{0%,100%{opacity:1}50%{opacity:0}}
+.words-display .word.done-correct .char{color:var(--correct)}
+.words-display .word.done-incorrect .char{color:var(--incorrect);background:rgba(202,71,84,0.1)}
+.hint{text-align:center;font-size:.65rem;color:var(--dim);padding:8px 0}
+.btn{padding:12px 36px;border:none;border-radius:10px;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s;font-family:'Poppins',sans-serif}
+.btn-start{background:linear-gradient(180deg,var(--accent),var(--surface));color:#fff;border:1px solid var(--border)}
+.btn-start:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.btn-restart{background:var(--surface);color:var(--dim);border:1px solid var(--border)}
+.btn-restart:hover{background:var(--border);color:var(--text)}
+.results{display:none;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;margin-top:16px}
+.results.show{display:block}
+.results-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-top:12px}
+.res-item{text-align:center;padding:8px;background:var(--bg);border-radius:8px}
+.res-num{font-size:1.6rem;font-weight:700;color:var(--accent);font-family:'Source Code Pro',monospace}
+.res-label{font-size:.6rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px}
+#hiddenInput{position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0}
+@media(max-width:400px){
+  .stats{flex-wrap:wrap;gap:6px}
+  .stat-num{font-size:.85rem}
+  .result-modal{padding:14px;max-width:95%}
+  .result-modal .grid{grid-template-columns:1fr}
+  .words-box{padding:8px 10px;min-height:70px}
+}
+@media(pointer:coarse){
+  #hiddenInput{position:static;width:100%;height:44px;margin-top:8px;padding:10px 14px;border-radius:10px;border:2px solid var(--border);background:var(--bg);color:var(--text);font-size:1rem;font-family:'Poppins',monospace;outline:none;resize:none;display:block;opacity:1;pointer-events:auto}
+  #hiddenInput:focus{border-color:var(--accent)}
+  .words-box{min-height:100px}
+}
+</style>
+</head>
+<body>
+<div class="chillx-header" id="chillxHeader">
+  <div class="left">
+    <a href="{% url 'dashboard' %}" class="chillx-back" title="Back to Dashboard"><i class="fas fa-arrow-left"></i></a>
+    <div class="chillx-brand"><img src="{% static 'LOGO.png' %}" alt="ChillX"><span>CHILLX · TYPING</span></div>
+  </div>
+  <div class="right">
+    <span class="chillx-pill"><i class="fas fa-keyboard"></i> TYPING</span>
+    <button class="chillx-toggle" id="hideHeaderBtn" title="Hide header (H)"><i class="fas fa-eye-slash"></i></button>
+    <a href="{% url 'dashboard' %}" class="chillx-toggle" title="Exit (Esc)"><i class="fas fa-times"></i></a>
+  </div>
+</div>
+
+<div class="game-wrap">
+  <div class="stats">
+    <div class="stat"><div class="stat-num" id="wpmDisplay">0</div><div class="stat-label">WPM</div></div>
+    <div class="stat"><div class="stat-num" id="rawWpmDisplay">0</div><div class="stat-label">RAW</div></div>
+    <div class="stat"><div class="stat-num" id="accDisplay">100</div><div class="stat-label">ACC %</div></div>
+    <div class="stat"><div class="stat-num" id="timerDisplay">30</div><div class="stat-label">TIME</div></div>
+  </div>
+  <div class="timer-bar"><div class="timer-fill" id="timerFill"></div></div>
+  <div class="words-wrap">
+    <div class="words-box" id="wordsBox" onclick="focusInput()">
+      <div class="words-display" id="wordsDisplay"></div>
+    </div>
+    <div class="hint" id="hint">Press Start to begin</div>
+  </div>
+  <div style="text-align:center"><button class="btn btn-start" id="startBtn">Start</button></div>
+  <div class="results" id="results">
+    <div class="results-grid">
+      <div class="res-item"><div class="res-num" id="resWpm">0</div><div class="res-label">WPM</div></div>
+      <div class="res-item"><div class="res-num" id="resAcc">0%</div><div class="res-label">ACCURACY</div></div>
+      <div class="res-item"><div class="res-num" id="resRaw">0</div><div class="res-label">RAW</div></div>
+      <div class="res-item"><div class="res-num" id="resTime">0s</div><div class="res-label">TIME</div></div>
+    </div>
+    <button class="btn btn-restart" onclick="resetTest()" style="margin-top:12px">Try Again</button>
+  </div>
+  <div id="challengeResult" style="display:none;margin-top:12px;padding:12px;border-radius:10px;font-size:.8rem;font-weight:500;background:var(--surface);border:1px solid var(--border);color:var(--text)"></div>
+</div>
+
+<textarea id="hiddenInput" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+
+<script>
+var PASSAGES=[
+  "the sun was setting behind the mountains casting long shadows across the valley a cool breeze carried the scent of pine and wildflowers through the air birds chirped their evening songs as they settled into their nests for the night",
+  "in the heart of the digital age technology continues to reshape our world at an unprecedented pace from artificial intelligence to quantum computing innovations are opening doors that were once thought impossible the future belongs to those who can adapt and learn",
+  "she walked through the ancient forest where towering oaks stood like silent guardians sunlight filtered through the dense canopy creating patterns of light and shadow on the mossy ground a deer appeared silently between the trees its eyes curious yet cautious",
+  "the city streets were alive with energy as people hurried past colorful market stalls the aroma of freshly baked bread mixed with the scent of rain on warm pavement street musicians played cheerful melodies while children laughed and danced in the square",
+  "deep beneath the ocean waves lay a hidden world of wonder coral reefs painted in vibrant colors stretched as far as the eye could see schools of shimmering fish darted through ancient underwater caves their scales catching rays of filtered sunlight",
+]
+
+var duration=30,timeLeft=30,isRunning=false,isFinished=false,timer=null,startTime=0,elapsed=0
+var passage='',words=[],wordCount=0,curWord=0,curChar=0
+var totalStrokes=0,correctStrokes=0,incorrectStrokes=0,extraStrokes=0,prevInputLen=0
+
+var wordsDisplay=document.getElementById('wordsDisplay')
+var hiddenInput=document.getElementById('hiddenInput')
+
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function pickPassage(){return shuffle([].concat(PASSAGES))[0]}
+
+function buildWords(){
+  wordsDisplay.innerHTML=''
+  words=passage.split(/\s+/).filter(function(w){return w.length>0})
+  wordCount=words.length
+  words.forEach(function(w,wi){
+    var wordDiv=document.createElement('div')
+    wordDiv.className='word'
+    wordDiv.id='w_'+wi
+    for(var ci=0;ci<w.length;ci++){
+      var ch=document.createElement('span')
+      ch.className='char'
+      if(wi===0&&ci===0)ch.className+=' current'
+      ch.textContent=w[ci]
+      ch.id='c_'+wi+'_'+ci
+      wordDiv.appendChild(ch)
+    }
+    wordsDisplay.appendChild(wordDiv)
+  })
+}
+
+function focusInput(){if(isRunning&&!isFinished)hiddenInput.focus()}
+
+document.addEventListener('keydown',function(e){
+  if(isRunning&&!isFinished&&document.activeElement!==hiddenInput&&!e.ctrlKey&&!e.metaKey&&!e.altKey){
+    hiddenInput.focus()
+  }
+})
+
+function moveCursor(w,c){
+  var prev=document.querySelector('.char.current')
+  if(prev)prev.classList.remove('current')
+  var next=document.getElementById('c_'+w+'_'+c)
+  if(next)next.classList.add('current')
+}
+
+function markChar(w,c,cls){
+  var el=document.getElementById('c_'+w+'_'+c)
+  if(el)el.className='char '+cls
+}
+
+function markExtra(w,c,ch){
+  var parent=document.getElementById('w_'+w)
+  if(!parent)return
+  var existing=document.getElementById('e_'+w+'_'+c)
+  if(!existing){
+    var el=document.createElement('span')
+    el.className='char extra'
+    el.textContent=ch||'*'
+    el.id='e_'+w+'_'+c
+    parent.appendChild(el)
+  }
+}
+
+function typeChar(ch){
+  if(curWord>=wordCount||isFinished)return
+  var exp=words[curWord]
+  if(curChar<exp.length){
+    if(ch===exp[curChar]){
+      markChar(curWord,curChar,'correct')
+      correctStrokes++
+    }else{
+      markChar(curWord,curChar,'incorrect')
+      incorrectStrokes++
+    }
+  }else{
+    markExtra(curWord,curChar,ch)
+    extraStrokes++
+  }
+  totalStrokes++
+  curChar++
+  moveCursor(curWord,curChar)
+  updateStats()
+}
+
+function submitWord(typed){
+  var exp=words[curWord]
+  var wordEl=document.getElementById('w_'+curWord)
+  if(wordEl){
+    var allOk=true
+    for(var ci=0;ci<Math.max(typed.length,exp.length);ci++){
+      if(ci<exp.length&&ci<typed.length&&typed[ci]===exp[ci]){
+        markChar(curWord,ci,'correct')
+      }else if(ci<exp.length){
+        markChar(curWord,ci,'incorrect')
+        allOk=false
+      }else{
+        markExtra(curWord,ci,typed[ci])
+      }
+    }
+    wordEl.className='word '+(allOk?'done-correct':'done-incorrect')
+  }
+  curWord++;curChar=0;prevInputLen=0
+  if(curWord>=wordCount){endTest();return}
+  moveCursor(curWord,0)
+  updateStats()
+}
+
+hiddenInput.addEventListener('input',function(){
+  if(!isRunning||isFinished)return
+  if(curWord>=wordCount){endTest();return}
+  var val=this.value
+  if(val.endsWith(' ')){
+    var typed=val.trim()
+    this.value=''
+    submitWord(typed)
+    return
+  }
+  var newLen=val.length
+  if(newLen>prevInputLen){
+    var added=val.substring(prevInputLen,newLen)
+    for(var i=0;i<added.length;i++){
+      typeChar(added[i])
+      if(curWord>=wordCount||isFinished)return
+    }
+  }else if(newLen<prevInputLen){
+    var diff=prevInputLen-newLen
+    for(var i=0;i<diff;i++){
+      curChar=Math.max(0,curChar-1)
+      var el=document.getElementById('c_'+curWord+'_'+curChar)
+      if(el)el.className='char'
+      var ex=document.getElementById('e_'+curWord+'_'+curChar)
+      if(ex)ex.remove()
+    }
+    moveCursor(curWord,curChar)
+  }
+  prevInputLen=newLen
+})
+
+function updateStats(){
+  elapsed=(Date.now()-startTime)/1000
+  var mins=elapsed/60||0.001
+  var netWpm=Math.round((correctStrokes/5)/mins)
+  var rawWpm=Math.round((totalStrokes/5)/mins)
+  var acc=correctStrokes+incorrectStrokes>0?Math.round(correctStrokes/(correctStrokes+incorrectStrokes)*100):100
+  document.getElementById('wpmDisplay').textContent=netWpm
+  document.getElementById('rawWpmDisplay').textContent=rawWpm
+  document.getElementById('accDisplay').textContent=acc
+}
+
+function startTest(){
+  passage=pickPassage()
+  if(!passage||isRunning)return
+  resetTest()
+  isRunning=true;isFinished=false;timeLeft=duration
+  document.getElementById('startBtn').style.display='none'
+  document.getElementById('results').classList.remove('show')
+  document.getElementById('hint').textContent='Start typing...'
+  buildWords()
+  moveCursor(0,0)
+  document.getElementById('timerFill').style.width='100%'
+  document.getElementById('timerDisplay').textContent=timeLeft
+  prevInputLen=0;startTime=Date.now()
+  hiddenInput.value='';hiddenInput.disabled=false
+  hiddenInput.focus()
+  timer=setInterval(function(){
+    timeLeft--
+    document.getElementById('timerDisplay').textContent=timeLeft
+    document.getElementById('timerFill').style.width=(timeLeft/duration*100)+'%'
+    updateStats()
+    if(timeLeft<=0)endTest()
+  },1000)
+}
+
+function endTest(){
+  if(isFinished)return
+  isRunning=false;isFinished=true;clearInterval(timer)
+  hiddenInput.blur();hiddenInput.disabled=true
+  elapsed=Math.max(elapsed,(Date.now()-startTime)/1000)
+  var wpmVal=Math.round((correctStrokes/5)/(elapsed/60||0.001))
+  var accVal=correctStrokes+incorrectStrokes>0?Math.round(correctStrokes/(correctStrokes+incorrectStrokes)*100):100
+  var rawVal=Math.round((totalStrokes/5)/(elapsed/60||0.001))
+  document.getElementById('resWpm').textContent=wpmVal
+  document.getElementById('resAcc').textContent=accVal+'%'
+  document.getElementById('resRaw').textContent=rawVal
+  document.getElementById('resTime').textContent=Math.round(elapsed)+'s'
+  document.getElementById('results').classList.add('show')
+  document.getElementById('startBtn').textContent='Restart'
+  document.getElementById('startBtn').style.display='inline-block'
+  document.getElementById('startBtn').onclick=resetTest
+  document.getElementById('hint').textContent='Test complete!'
+  if(challengeId)setTimeout(submitResult,500)
+}
+
+function resetTest(){
+  clearInterval(timer);isRunning=false;isFinished=false
+  curWord=0;curChar=0;totalStrokes=0;correctStrokes=0;incorrectStrokes=0;extraStrokes=0;prevInputLen=0
+  timeLeft=duration;elapsed=0
+  document.getElementById('timerDisplay').textContent=duration
+  document.getElementById('timerFill').style.width='100%'
+  document.getElementById('wpmDisplay').textContent='0'
+  document.getElementById('rawWpmDisplay').textContent='0'
+  document.getElementById('accDisplay').textContent='100'
+  hiddenInput.value='';hiddenInput.disabled=true
+  document.getElementById('startBtn').textContent='Start'
+  document.getElementById('startBtn').style.display='inline-block'
+  document.getElementById('startBtn').onclick=startTest
+  document.getElementById('results').classList.remove('show')
+  document.getElementById('hint').textContent='Press Start to begin'
+  document.getElementById('wordsDisplay').innerHTML='<span style="color:var(--dim);font-size:1rem;margin:auto">Press Start to begin</span>'
+}
+
+// ── Tab to start ──
+document.addEventListener('keydown',function(e){
+  if(e.key==='Tab'){e.preventDefault();if(!isRunning)startTest()}
+})
+
+// ── Challenge support ──
+var challengeId=null,challengeTarget=null
+var p=new URLSearchParams(window.location.search)
+if(p.get('target'))challengeTarget=parseFloat(p.get('target'))
+if(p.get('challenge'))challengeId=p.get('challenge')
+
+function getCSRF(){var m=document.cookie.match(/csrftoken=([^;]+)/);return m?m[1]:''}
+
+function submitResult(){
+  if(!challengeId)return
+  var wpmVal=Math.round((correctStrokes/5)/(elapsed/60||0.001))
+  var accVal=correctStrokes+incorrectStrokes>0?Math.round(correctStrokes/(correctStrokes+incorrectStrokes)*100):100
+  var xhr=new XMLHttpRequest()
+  xhr.open('POST','/challenges/verify-typing/',true)
+  xhr.setRequestHeader('Content-Type','application/x-www-form-urlencoded')
+  xhr.setRequestHeader('X-CSRFToken',getCSRF())
+  xhr.onload=function(){
+    try{
+      var r=JSON.parse(xhr.responseText)
+      var div=document.getElementById('challengeResult')
+      div.style.display='block'
+      if(r.passed){
+        div.style.background='rgba(74,222,128,0.1)';div.style.border='1px solid rgba(74,222,128,0.2)'
+        div.style.color='#4ade80';div.textContent='Challenge passed! +'+r.xp+'XP, Rs '+r.coins
+        setTimeout(function(){if(window.opener&&!window.opener.closed)window.opener.location.reload();window.close()},2000)
+      }else{
+        div.style.background='rgba(248,113,113,0.1)';div.style.border='1px solid rgba(248,113,113,0.2)'
+        div.style.color='#f87171';div.textContent='Challenge failed — need '+challengeTarget+' WPM'
+      }
+    }catch(e){}
+  }
+  xhr.send('challenge_id='+challengeId+'&score='+wpmVal+'&target='+challengeTarget+'&accuracy='+accVal+'&words='+curWord)
+}
+
+if(challengeId)setTimeout(submitResult,500)
+document.getElementById('wordsDisplay').innerHTML='<span style="color:var(--dim);font-size:1rem;margin:auto">Press Start to begin</span>'
+// ── Keyboard Sound FX (Web Audio API) ──
+var soundCtx=null;
+function initAudio(){if(!soundCtx)soundCtx=new(window.AudioContext||window.webkitAudioContext)()}
+function playTick(freq,dur,vol){
+  try{initAudio();var o=soundCtx.createOscillator(),g=soundCtx.createGain();o.type='sine';o.frequency.value=freq;g.gain.setValueAtTime(vol||0.12,soundCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,soundCtx.currentTime+(dur||0.05));o.connect(g);g.connect(soundCtx.destination);o.start();o.stop(soundCtx.currentTime+(dur||0.05))}catch(e){}
+}
+function playCorrect(){playTick(880,0.06,0.18)}
+function playIncorrect(){playTick(200,0.1,0.20)}
+function playBackspace(){playTick(440,0.04,0.10)}
+function playComplete(){
+  try{initAudio();[523.25,659.25,783.99].forEach(function(f,i){setTimeout(function(){playTick(f,0.12,0.10)},i*100)})}catch(e){}
+}
+function playStart(){playTick(660,0.08,0.10);setTimeout(function(){playTick(880,0.1,0.10)},100)}
+
+// wrap typeChar for correct/incorrect sounds
+var _tc=typeChar;typeChar=function(ch){
+  _tc(ch);
+  if(!isFinished&&curWord<wordCount){
+    var exp=words[curWord],idx=curChar-1;
+    if(idx>=0&&idx<exp.length&&ch===exp[idx])playCorrect();else if(idx>=0)playIncorrect()
+  }
+}
+// wrap endTest for completion sound
+var _et=endTest;endTest=function(){if(!isFinished){playComplete();_et()}}
+// wrap startTest for start chime
+var _st=startTest;startTest=function(){playStart();_st()}
+document.getElementById('startBtn').onclick=startTest
+// backspace via keydown (independent of input handler)
+document.addEventListener('keydown',function(e){
+  if(e.key==='Backspace'&&isRunning&&!isFinished)playBackspace()
+})
+
+(function(){var h=document.getElementById('chillxHeader'),b=document.getElementById('hideHeaderBtn');if(!h||!b)return;b.addEventListener('click',function(){h.classList.toggle('hidden');b.innerHTML=h.classList.contains('hidden')?'<i class="fas fa-eye"></i>':'<i class="fas fa-eye-slash"></i>';});})();
+</script>
+</body>
+</html>

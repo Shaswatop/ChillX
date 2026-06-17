@@ -1,0 +1,298 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Your Interests — ChillX</title>
+<link rel="icon" href="/static/LOGO.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Black+Ops+One&family=Lilita+One&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  background:#f0f2f5;
+  font-family:'Poppins',sans-serif;
+  min-height:100vh;padding:20px;
+  position:relative;
+}
+body::before{
+  content:'';position:absolute;inset:0;
+  background:rgba(240,242,245,0.4);
+  pointer-events:none;
+}
+.page-transition{position:fixed;inset:0;z-index:9999;pointer-events:none;background:#f0f2f5;opacity:1;transition:opacity .5s ease;}
+.page-transition.fade-out{opacity:0;}
+.page-transition.fade-in{opacity:1;pointer-events:auto;}
+
+.wrap{
+  width:100%;max-width:900px;margin:0 auto;position:relative;z-index:10;
+  animation:dropIn .6s cubic-bezier(.23,1,.32,1) both;
+}
+@keyframes dropIn{
+  0%{opacity:0;transform:translateY(30px) scale(.97);}
+  100%{opacity:1;transform:translateY(0) scale(1);}
+}
+
+.card{
+  background:#fff;
+  border:none;
+  border-radius:20px;
+  padding:32px 30px 26px;
+  margin-top:24px;
+  box-shadow:0 8px 40px rgba(0,0,0,0.06);
+}
+
+.header{text-align:center;margin-bottom:22px;}
+.header-logo{
+  width:250px;height:auto;
+  margin-bottom:10px;
+}
+@keyframes logoFloat{
+  0%,100%{transform:translateY(0);}
+  50%{transform:translateY(-3px);}
+}
+.header h1{
+  font-family:'Black Ops One',cursive;
+  font-size:1.5rem;
+  color:#041828;letter-spacing:1px;
+  text-shadow:0 1px 0 rgba(255,255,255,0.5);
+}
+.header p{
+  font-size:.8rem;color:#3a6a7a;margin-top:4px;
+  font-weight:500;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
+  gap:12px;
+}
+
+.item{
+  position:relative;cursor:pointer;border-radius:12px;
+  padding:14px 8px;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  background:#fff;
+  border:2px solid #e8d8a8;
+  transition:transform .12s ease-out,box-shadow .3s ease,border-color .3s ease,background .3s ease;
+  user-select:none;
+  opacity:0;transform:translateY(12px) scale(.95);
+  will-change:transform;
+}
+.item.visible{opacity:1;transform:translateY(0) scale(1);}
+
+.item:hover{
+  border-color:#0d3b66;
+  background:#e0edf5;
+  transform:translateY(-2px);
+}
+
+.item.selected{
+  border-color:#0a2a4a;
+  background:linear-gradient(180deg,#d6e8f5,#bedbf0);
+  box-shadow:0 0 0 2px rgba(13,59,102,0.3),0 6px 18px rgba(13,59,102,0.3);
+}
+
+.item .icon-wrap{
+  width:42px;height:42px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.3rem;
+  background:#faf3d8;
+  color:#0a2a4a;
+  transition:all .3s;
+}
+.item.selected .icon-wrap{
+  background:linear-gradient(180deg,#4a9ec4,#0d3b66);
+  color:#041828;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.4);
+}
+
+.item .check{
+  position:absolute;top:6px;right:6px;
+  width:18px;height:18px;border-radius:6px;
+  border:1.5px solid #d8c898;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .3s;background:#fff;
+}
+.item.selected .check{
+  border-color:#0a2a4a;
+  background:linear-gradient(180deg,#4a9ec4,#0d3b66);
+}
+.item .check::after{
+  content:'';width:4px;height:7px;
+  border:solid #041828;border-width:0 2px 2px 0;
+  transform:rotate(45deg) scale(0);
+  transition:transform .2s;margin-top:-1px;
+}
+.item.selected .check::after{transform:rotate(45deg) scale(1);}
+
+.item .label{
+  font-size:.72rem;color:#0a2a4a;
+  font-family:'Poppins',sans-serif;font-weight:700;
+  letter-spacing:.3px;text-align:center;
+  transition:color .3s;
+}
+.item.selected .label{color:#041828;}
+
+.footer{
+  margin-top:20px;display:flex;align-items:center;justify-content:space-between;
+  opacity:0;animation:itemIn .5s .7s ease both;
+}
+@keyframes itemIn{
+  0%{opacity:0;transform:translateY(12px);}
+  100%{opacity:1;transform:translateY(0);}
+}
+.footer .count{
+  font-size:.78rem;color:#3a6a7a;font-weight:600;
+}
+.footer .count span{
+  color:#041828;font-weight:800;font-size:.95rem;
+}
+.btn{
+  padding:0 2em;height:44px;border:2px solid #0a2a4a;border-radius:10px;
+  background:linear-gradient(180deg,#4a9ec4,#0d3b66);
+  color:#041828;font-size:.85rem;
+  font-family:'Black Ops One',cursive;letter-spacing:2px;
+  cursor:pointer;text-transform:uppercase;
+  transition:all .25s;
+  text-shadow:0 1px 0 rgba(255,255,255,0.4);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,0.4),0 4px 12px rgba(13,59,102,0.4);
+}
+.btn:hover{filter:brightness(1.08);transform:translateY(-2px);}
+.btn:disabled{
+  opacity:0.4;cursor:not-allowed;transform:none;box-shadow:none;filter:grayscale(0.4);
+}
+
+.skip{
+  position:fixed;bottom:18px;right:18px;z-index:10;
+  color:#3a6a7a;font-size:.75rem;text-decoration:none;
+  font-family:'Poppins',sans-serif;font-weight:600;letter-spacing:1px;
+  padding:6px 14px;border-radius:8px;
+  background:rgba(0,0,0,0.06);
+  transition:all .3s;
+}
+.skip:hover{color:#0a2a4a;background:rgba(0,0,0,0.12);}
+
+@media(max-width:480px){
+  .card{padding:20px 16px 16px;}
+  .grid{grid-template-columns:repeat(2,1fr);gap:8px;}
+  .item{padding:10px 6px;}
+  .item .icon-wrap{width:36px;height:36px;font-size:1.1rem;}
+  .item .label{font-size:.65rem;}
+  .header h1{font-size:1.2rem;}
+}
+</style>
+</head>
+<body>
+{% include 'interval_tracker.html' %}
+<div id="app">
+<div class="page-transition" id="pageTransition"></div>
+
+<div class="wrap">
+  <div class="card">
+    <div class="header">
+      <img src="{% static 'LOGO.png' %}" alt="ChillX" class="header-logo">
+      <h1>PICK YOUR INTERESTS</h1>
+      <p>Choose the challenges you want to play</p>
+    </div>
+
+    <form method="post" id="onboardForm">
+      {% csrf_token %}
+      <div class="grid" id="categoryGrid">
+        {% for cat in categories %}
+        <div class="item" data-value="{{ cat.id }}" onclick="toggle(this)">
+          <div class="check"></div>
+          <div class="icon-wrap"><i class="{{ cat.icon }}"></i></div>
+          <div class="label">{{ cat.name }}</div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="footer">
+        <div class="count"><span id="selectedCount">0</span> / {{ categories|length }} selected</div>
+        <button class="btn" type="submit" id="submitBtn" disabled>CONTINUE</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<a href="{% url 'dashboard' %}" class="skip">Skip →</a>
+
+<script>
+(function(){
+    var items = document.querySelectorAll('.item');
+    items.forEach(function(el, i){
+        setTimeout(function(){
+            el.classList.add('visible');
+        }, 80 + i * 50);
+    });
+})();
+
+document.querySelectorAll('.item').forEach(function(el){
+    el.addEventListener('mousemove', function(e){
+        if(!this.classList.contains('visible')) return;
+        var r = this.getBoundingClientRect();
+        var x = e.clientX - r.left;
+        var y = e.clientY - r.top;
+        var cx = r.width / 2;
+        var cy = r.height / 2;
+        var rotX = ((y - cy) / cy) * -18;
+        var rotY = ((x - cx) / cx) * 18;
+        this.style.transform = 'perspective(600px) rotateX('+rotX+'deg) rotateY('+rotY+'deg) scale3d(1.06,1.06,1.06)';
+    });
+    el.addEventListener('mouseleave', function(){
+        this.style.transform = '';
+    });
+});
+
+var selected = new Set();
+
+function toggle(el) {
+    var val = el.getAttribute('data-value');
+    if (selected.has(val)) {
+        selected.delete(val);
+        el.classList.remove('selected');
+    } else {
+        selected.add(val);
+        el.classList.add('selected');
+    }
+    updateUI();
+}
+
+function updateUI() {
+    var count = selected.size;
+    document.getElementById('selectedCount').textContent = count;
+    document.getElementById('submitBtn').disabled = count === 0;
+}
+
+document.getElementById('onboardForm').addEventListener('submit', function(e) {
+    if (selected.size === 0) {
+        e.preventDefault();
+        return;
+    }
+    e.preventDefault();
+    selected.forEach(function(v) {
+        var inp = document.createElement('input');
+        inp.type = 'hidden';
+        inp.name = 'categories';
+        inp.value = v;
+        this.appendChild(inp);
+    }, this);
+    var pt=document.getElementById('pageTransition');
+    pt.classList.remove('fade-out');
+    pt.classList.add('fade-in');
+    setTimeout(function(){e.target.submit();},500);
+});
+
+(function(){
+  var t=document.getElementById('pageTransition');
+  requestAnimationFrame(function(){t.classList.add('fade-out');});
+})();
+</script>
+</div>
+{% include 'invite_poll.html' %}
+{% include 'call_components.html' %}
+{% include 'chathead.html' %}
+</body>
+</html>

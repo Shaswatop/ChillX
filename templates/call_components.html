@@ -1,0 +1,59 @@
+<link rel="stylesheet" href="/static/style.css">
+
+<!-- CALL OVERLAY -->
+<div class="call-overlay" id="callOverlay">
+  <div class="call-container" id="callContainer">
+    <div class="call-header">
+      <div class="call-user-info">
+        <div class="call-avatar" id="callAvatar"></div>
+        <div class="call-name" id="callName">User</div>
+        <div class="call-status" id="callStatus">Connecting...</div>
+      </div>
+      <div class="call-duration" id="callDuration">00:00</div>
+    </div>
+    <div class="call-videos">
+      <video class="call-video-remote" id="remoteVideo" autoplay playsinline></video>
+      <video class="call-video-local" id="localVideo" autoplay playsinline muted></video>
+    </div>
+    <div class="call-controls">
+      <button class="call-control-btn" id="callToggleMic" onclick="callToggleMic()" title="Mute microphone">
+        <i class="fas fa-microphone"></i>
+      </button>
+      <button class="call-control-btn" id="callToggleCam" onclick="callToggleCam()" title="Toggle camera">
+        <i class="fas fa-video"></i>
+      </button>
+      <button class="call-control-btn" id="callToggleScreen" onclick="callToggleScreen()" title="Share screen">
+        <i class="fas fa-desktop"></i>
+      </button>
+      <button class="call-control-btn" id="callTogglePip" onclick="callTogglePip()" title="Picture-in-Picture">
+        <i class="fas fa-compress"></i>
+      </button>
+      <button class="call-control-btn call-end-btn" onclick="endCall()" title="End call">
+        <i class="fas fa-phone-slash"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- INCOMING CALL POPUP -->
+<div class="call-incoming" id="callIncoming">
+  <div class="call-incoming-box">
+    <div class="call-incoming-avatar" id="incomingAvatar"></div>
+    <div class="call-incoming-name" id="incomingName">User</div>
+    <div class="call-incoming-label" id="incomingLabel">Incoming voice call...</div>
+    <div class="call-incoming-actions">
+      <button class="call-incoming-btn decline" onclick="declineCall()"><i class="fas fa-phone-slash"></i> Decline</button>
+      <button class="call-incoming-btn accept" onclick="acceptCall()"><i class="fas fa-phone"></i> Accept</button>
+    </div>
+  </div>
+</div>
+
+<!-- FLOATING PIP BUBBLE -->
+<div class="call-pip" id="callPip">
+  <video id="pipVideo" autoplay playsinline></video>
+  <button class="call-pip-expand" onclick="expandCall()" title="Expand"><i class="fas fa-expand"></i></button>
+  <button class="call-pip-close" onclick="endCall()" title="End call"><i class="fas fa-phone-slash"></i></button>
+</div>
+
+<script>window.callUserId={{ user.id|default:0 }};</script>
+<script src="/static/script.js"></script>

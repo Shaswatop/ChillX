@@ -1,0 +1,278 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>Reaction Test</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Black+Ops+One&family=Lilita+One&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a1929;color:#e8e0d0;font-family:'Poppins',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;user-select:none;position:relative}
+body::before{content:'';position:fixed;inset:0;z-index:-1;background:url('/static/BG.png') center/cover no-repeat;filter:blur(12px) brightness(0.7);}
+.game-wrap{width:100%;max-width:520px;margin-top:56px;padding:32px 28px;background:#0d3b66;border:1px solid #1d4d6b;border-radius:24px;text-align:center;position:relative;overflow:hidden;z-index:1}
+.game-wrap::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(ellipse at 20% 0,rgba(74,158,196,0.03) 0%,transparent 50%),radial-gradient(ellipse at 80% 100%,rgba(74,158,196,0.02) 0%,transparent 50%);pointer-events:none;z-index:0}
+.game-wrap>*{position:relative;z-index:1}
+h1{font-family:'Cinzel',serif;font-size:1.1rem;font-weight:700;color:rgba(255,255,255,0.2);margin-bottom:12px;letter-spacing:2px;text-transform:uppercase}
+.target-bar{display:none;align-items:center;justify-content:center;gap:10px;margin-bottom:12px;padding:6px 14px;background:rgba(74,158,196,0.04);border:1px solid rgba(74,158,196,0.06);border-radius:10px}
+.target-bar.show{display:flex}
+.target-label{font-size:.65rem;color:rgba(74,158,196,0.35);letter-spacing:1px;text-transform:uppercase}
+.target-value{font-size:.95rem;font-weight:700;color:#4a9ec4}
+.best-display{font-size:3.5rem;font-weight:700;color:#4a9ec4;margin:8px 0;text-shadow:0 0 20px rgba(74,158,196,0.3)}
+.best-unit{font-size:.7rem;color:rgba(74,158,196,0.25);font-weight:400}
+.stats{display:flex;justify-content:center;gap:40px;margin:12px 0}
+.stat{text-align:center}
+.stat-num{font-size:1.4rem;font-weight:700;color:#4a9ec4}
+.stat-label{font-size:.6rem;color:rgba(74,158,196,0.3);text-transform:uppercase;letter-spacing:1.5px}
+.progress-dots{display:flex;justify-content:center;gap:6px;margin:14px 0}
+.dot{width:8px;height:8px;border-radius:50%;background:rgba(74,158,196,0.08);transition:all .3s}
+.dot.done{background:rgba(34,197,94,0.3);box-shadow:0 0 6px rgba(34,197,94,0.15)}
+.dot.fail{background:rgba(239,68,68,0.3);box-shadow:0 0 6px rgba(239,68,68,0.15)}
+.click-area{width:100%;aspect-ratio:2/1;border-radius:18px;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:all .3s;cursor:pointer;background:rgba(40,35,50,0.18);border:1px solid rgba(74,158,196,0.15);position:relative}
+.click-area::before{content:'';position:absolute;inset:-1px;border-radius:19px;background:linear-gradient(135deg,rgba(74,158,196,0.04),rgba(74,158,196,0.02));z-index:-1;opacity:1;transition:opacity .4s}
+.click-area.waiting{background:rgba(239,68,68,0.06);border-color:rgba(239,68,68,0.1)}
+.click-area.ready{background:rgba(34,197,94,0.06);border-color:rgba(34,197,94,0.1);box-shadow:0 0 30px rgba(34,197,94,0.05)}
+.click-area.too-soon{background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.15)}
+.click-text{font-size:1.1rem;font-weight:600;pointer-events:none;color:rgba(74,158,196,0.4)}
+.click-text.ready{color:#22c55e;font-size:1.3rem}
+.click-text.too-soon{color:#f87171}
+.click-text.idle{color:rgba(74,158,196,0.5);animation:pulseCta 2s ease-in-out infinite}
+@keyframes pulseCta{0%,100%{opacity:0.5}50%{opacity:0.8}}
+.click-hint{font-size:.65rem;color:rgba(74,158,196,0.25);margin-top:6px;pointer-events:none}
+.overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.8);z-index:1000;animation:overFade .3s ease}
+@keyframes overFade{0%{opacity:0}100%{opacity:1}}
+.overlay.show{display:flex}
+.over-card{background:#0d3b66;border:1px solid #1d4d6b;border-radius:20px;padding:30px 34px 26px;max-width:380px;width:90%;text-align:center;animation:cardPop .4s cubic-bezier(0.34,1.56,0.64,1);box-shadow:0 16px 60px rgba(0,0,0,0.6);z-index:2}
+@keyframes cardPop{0%{opacity:0;transform:scale(0.85) translateY(20px)}100%{opacity:1;transform:scale(1) translateY(0)}}
+.over-icon{font-size:3rem;margin-bottom:4px;display:block}
+.over-title{font-size:1.4rem;font-weight:700;color:#f0e8d0;margin-bottom:4px}
+.over-sub{font-size:.8rem;color:rgba(74,158,196,0.3);margin-bottom:10px}
+.over-avg{font-size:2rem;font-weight:700;color:#4a9ec4;margin-bottom:2px}
+.over-best{font-size:.7rem;color:rgba(74,158,196,0.15);margin-bottom:10px}
+.over-result{display:none;padding:8px;border-radius:8px;font-size:.75rem;font-weight:600;margin-bottom:10px}
+.over-result.passed{display:block;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.1);color:#22c55e}
+.over-result.failed{display:block;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.1);color:#f87171}
+.over-actions{display:flex;gap:8px;justify-content:center;margin-top:4px}
+.over-btn{padding:9px 24px;border:1px solid rgba(74,158,196,0.08);border-radius:10px;font-size:.75rem;font-weight:600;cursor:pointer;transition:all .3s;background:linear-gradient(180deg,#4a9ec4,#0d3b66);color:#4a9ec4;font-family:'Inter',sans-serif}
+.over-btn:hover{background:linear-gradient(180deg,#5ab0d6,#0d3b66);border-color:rgba(74,158,196,0.12)}
+.over-btn.primary{background:rgba(34,197,94,0.06);border-color:rgba(34,197,94,0.08);color:#22c55e}
+.over-btn.primary:hover{background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.12)}
+.over-btn.secondary{background:rgba(168,85,247,0.06);border-color:rgba(168,85,247,0.08);color:#a855f7}
+.over-btn.secondary:hover{background:rgba(168,85,247,0.1);border-color:rgba(168,85,247,0.12)}
+
+@media(max-width:400px){
+  .stats{flex-wrap:wrap;gap:6px}
+  .stat-num{font-size:.85rem}
+  .result-modal{padding:14px;max-width:95%}
+  .result-modal .grid{grid-template-columns:1fr}
+  .words-box{padding:8px 10px;min-height:70px}
+}
+</style>
+<style>
+.chillx-header{position:fixed;top:0;left:0;right:0;z-index:10000;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:#0d3b66;border-bottom:2px solid #1d4d6b;box-shadow:0 4px 16px rgba(0,0,0,0.3);transition:transform 0.3s ease;}
+.chillx-header.hidden{transform:translateY(-100%);}
+.chillx-header .left{display:flex;align-items:center;gap:10px;}
+.chillx-back{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#fff;border:1.5px solid #0a2a4a;color:#0a2a4a;text-decoration:none;font-size:.78rem;transition:all .25s;cursor:pointer;}
+.chillx-back:hover{background:#d6e8f5;color:#2a2a3a;transform:scale(1.05);}
+.chillx-brand{display:flex;align-items:center;gap:8px;font-family:'Black Ops One',cursive;font-size:.95rem;color:#2a2a3a;text-shadow:0 1px 0 rgba(255,255,255,0.4);}
+.chillx-brand img{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#d6e8f5,#bedbf0);border:2px solid #0d3b66;padding:2px;}
+.chillx-header .right{display:flex;align-items:center;gap:6px;}
+.chillx-pill{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:linear-gradient(180deg,#4a9ec4,#0d3b66);border:1.5px solid #0a2a4a;border-radius:14px;color:#2a2a3a;font-family:'Black Ops One',cursive;font-size:.72rem;box-shadow:inset 0 1px 0 rgba(255,255,255,0.4);}
+.chillx-pill i{font-size:.65rem;}
+.chillx-toggle{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#fff;border:1.5px solid #0a2a4a;color:#0a2a4a;cursor:pointer;font-size:.78rem;transition:all .25s;text-decoration:none;}
+.chillx-toggle:hover{background:#d6e8f5;color:#2a2a3a;}
+</style>
+</head>
+<body>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<div class="chillx-header" id="chillxHeader">
+  <div class="left">
+    <a href="{% url 'dashboard' %}" class="chillx-back" title="Back to Dashboard"><i class="fas fa-arrow-left"></i></a>
+    <div class="chillx-brand"><img src="{% static 'LOGO.png' %}" alt="ChillX"><span>CHILLX · REACTION</span></div>
+  </div>
+  <div class="right">
+    <span class="chillx-pill"><i class="fas fa-bolt"></i> REACTION</span>
+    <button class="chillx-toggle" id="hideHeaderBtn" title="Hide header (H)"><i class="fas fa-eye-slash"></i></button>
+    <a href="{% url 'dashboard' %}" class="chillx-toggle" title="Exit (Esc)"><i class="fas fa-times"></i></a>
+  </div>
+</div>
+
+<div class="game-wrap">
+  <h1>🎯 Reaction Time</h1>
+  <div class="target-bar" id="targetBar">
+    <span class="target-label">Target</span>
+    <span class="target-value" id="targetDisplay">≤250 ms</span>
+  </div>
+  <div class="best-display" id="avgDisplay">—</div>
+  <div class="stats">
+    <div class="stat"><div class="stat-num" id="bestTime">—</div><div class="stat-label">Best (ms)</div></div>
+    <div class="stat"><div class="stat-num" id="attempts">0/5</div><div class="stat-label">Attempts</div></div>
+  </div>
+  <div class="progress-dots" id="dots"></div>
+  <div class="click-area" id="clickArea" onclick="handleClick()">
+    <div class="click-text idle" id="clickText">Click to start</div>
+    <div class="click-hint">Wait for green, then click fast</div>
+  </div>
+</div>
+
+<div class="overlay" id="resultOverlay">
+  <div class="over-card">
+    <span class="over-icon" id="resultIcon">⚡</span>
+    <div class="over-title" id="resultTitle">Results</div>
+    <div class="over-sub" id="resultSub">Your reaction test is complete</div>
+    <div class="over-avg" id="resultAvg">— ms</div>
+    <div class="over-best" id="resultBest">Best: — ms · 5 attempts</div>
+    <div class="over-result" id="resultStatus"></div>
+    <div class="over-actions" id="resultActions">
+      <button class="over-btn" onclick="closeResult()">Try Again</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var state='idle',timeout=null
+var times=[],count=0,lastTime=0,maxAttempts=5
+var challengeTarget=null,challengeId=null
+
+function init(){
+  for(var i=0;i<maxAttempts;i++){
+    var d=document.createElement('div');d.className='dot';d.id='dot_'+i
+    document.getElementById('dots').appendChild(d)
+  }
+  var p=new URLSearchParams(window.location.search)
+  if(p.get('target')){challengeTarget=parseInt(p.get('target'));document.getElementById('targetBar').classList.add('show');document.getElementById('targetDisplay').textContent='\u2264'+challengeTarget+' ms'}
+  if(p.get('challenge'))challengeId=p.get('challenge')
+}
+
+function handleClick(){
+  if(state==='idle'){
+    state='waiting'
+    document.getElementById('clickArea').className='click-area waiting'
+    document.getElementById('clickText').textContent='Wait for green...';document.getElementById('clickText').className='click-text'
+    var delay=1000+Math.random()*4000
+    timeout=setTimeout(function(){
+      state='ready'
+      document.getElementById('clickArea').className='click-area ready'
+      document.getElementById('clickText').textContent='CLICK NOW!';document.getElementById('clickText').className='click-text ready'
+      lastTime=performance.now()
+    },delay)
+  } else if(state==='waiting'){
+    clearTimeout(timeout)
+    state='idle'
+    document.getElementById('clickArea').className='click-area too-soon'
+    document.getElementById('clickText').textContent='Too soon! Click to retry';document.getElementById('clickText').className='click-text too-soon'
+    if(count<maxAttempts){document.getElementById('dot_'+count).className='dot fail'}
+    count++
+    updateStats()
+    setTimeout(function(){document.getElementById('clickArea').className='click-area';document.getElementById('clickText').textContent='Click to start';document.getElementById('clickText').className='click-text idle'},600)
+    if(count>=maxAttempts)showResult()
+  } else if(state==='ready'){
+    var elapsed=Math.round(performance.now()-lastTime)
+    times.push(elapsed);count++
+    if(count<=maxAttempts){document.getElementById('dot_'+(count-1)).className='dot done'}
+    updateStats()
+    // Flash result
+    document.getElementById('clickText').textContent=elapsed+' ms';document.getElementById('clickText').className='click-text'
+    state='idle'
+    document.getElementById('clickArea').className='click-area'
+    setTimeout(function(){if(state==='idle'){document.getElementById('clickText').textContent='Click to start';document.getElementById('clickText').className='click-text idle';document.getElementById('clickArea').className='click-area'}},800)
+    if(count>=maxAttempts)showResult()
+  }
+}
+
+function updateStats(){
+  var best=times.length?Math.min(...times):'—'
+  document.getElementById('bestTime').textContent=best
+  document.getElementById('attempts').textContent=count+'/'+maxAttempts
+  if(times.length){
+    var avg=Math.round(times.reduce(function(a,b){return a+b},0)/times.length)
+    document.getElementById('avgDisplay').innerHTML=avg+' <span class="best-unit">ms</span>'
+  }
+}
+
+function showResult(){
+  var avg=times.length?Math.round(times.reduce(function(a,b){return a+b},0)/times.length):0
+  var best=times.length?Math.min(...times):0
+  document.getElementById('resultAvg').textContent=avg+' ms avg'
+  document.getElementById('resultBest').textContent='Best: '+best+' ms \u00b7 '+times.length+' attempts'
+  document.getElementById('resultTitle').textContent=avg<=200?'Godlike Reflexes!':avg<=300?'Great Reflexes!':avg<=400?'Decent!':'Keep Practicing'
+  document.getElementById('resultIcon').textContent=avg<=200?'⚡':avg<=300?'🔥':avg<=400?'👍':'💪'
+  document.getElementById('resultSub').textContent=avg<=200?'Are you even human?!':avg<=300?'You are fast!':avg<=400?'Not bad at all!':'You can improve!'
+  document.getElementById('resultStatus').className='over-result'
+  var acts=document.getElementById('resultActions')
+  acts.innerHTML='<button class="over-btn" onclick="closeResult()">Try Again</button>'
+  if(challengeId){
+    var passed=avg<=challengeTarget
+    var btn=document.createElement('button')
+    btn.className='over-btn primary'
+    btn.textContent=passed?'\u2713 Submit Result':'Submit Anyway'
+    btn.onclick=function(){submitResult(avg,best)}
+    acts.appendChild(btn)
+  }
+  document.getElementById('resultOverlay').classList.add('show')
+}
+
+function submitResult(avg,best){
+  var passed=avg<=challengeTarget
+  document.getElementById('resultStatus').textContent=passed?'Challenge Passed! Well done!':'Failed \u2014 '+avg+'/'+challengeTarget+' ms'
+  document.getElementById('resultStatus').className='over-result '+(passed?'passed':'failed')
+  document.getElementById('resultActions').innerHTML='<button class="over-btn" onclick="closeResult()">Try Again</button>'
+  if(passed){
+    var backBtn=document.createElement('button')
+    backBtn.className='over-btn secondary'
+    backBtn.textContent='\u2190 Back to Challenges'
+    backBtn.onclick=function(){window.location.href='/challenges/'}
+    document.getElementById('resultActions').appendChild(backBtn)
+  }
+  var xhr=new XMLHttpRequest()
+  xhr.open('POST','/challenges/verify-reaction/',true)
+  xhr.setRequestHeader('Content-Type','application/x-www-form-urlencoded')
+  xhr.setRequestHeader('X-CSRFToken',getCSRF())
+   xhr.onload=function(){
+     if(xhr.status===200){
+       var d=JSON.parse(xhr.responseText)
+       if(d.passed&&d.status==='completed'){
+         document.getElementById('resultStatus').textContent='\u2713 Completed! +'+d.xp+' XP, Rs '+d.coins
+         document.getElementById('resultStatus').className='over-result passed'
+         document.getElementById('resultActions').innerHTML=''
+         setTimeout(function(){
+           if(window.opener&&!window.opener.closed)window.opener.location.reload()
+           window.close()
+         },2000)
+       }
+     }
+   }
+  xhr.send('challenge_id='+challengeId+'&avg='+avg+'&best='+best+'&target='+challengeTarget+'&attempts='+count)
+}
+
+function getCSRF(){
+  var name='csrftoken',m=document.cookie.match('(^|;)\\s*'+name+'\\s*=\\s*([^;]+)')
+  return m?m.pop():''
+}
+
+function closeResult(){
+  document.getElementById('resultOverlay').classList.remove('show')
+  resetGame()
+}
+
+function resetGame(){
+  clearTimeout(timeout);state='idle';times=[];count=0
+  document.getElementById('bestTime').textContent='—';document.getElementById('attempts').textContent='0/'+maxAttempts
+  document.getElementById('avgDisplay').innerHTML='—'
+  document.getElementById('clickText').textContent='Click to start';document.getElementById('clickText').className='click-text idle'
+  document.getElementById('clickArea').className='click-area'
+  document.getElementById('resultStatus').className='over-result'
+  for(var i=0;i<maxAttempts;i++){
+    document.getElementById('dot_'+i).className='dot'
+  }
+}
+
+init()
+</script>
+
+
+
+<script>(function(){var h=document.getElementById('chillxHeader'),b=document.getElementById('hideHeaderBtn');if(!h||!b)return;b.addEventListener('click',function(){h.classList.toggle('hidden');b.innerHTML=h.classList.contains('hidden')?'<i class="fas fa-eye"></i>':'<i class="fas fa-eye-slash"></i>';});})();</script>
+</body>
+</html>

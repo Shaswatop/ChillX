@@ -1,0 +1,662 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>Fitness Studio — ChillX</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Black+Ops+One&family=Lilita+One&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;background:#0a1929;color:#e0e0e0;font-family:'Poppins',sans-serif;overflow:hidden;touch-action:none}
+body{display:flex;align-items:center;justify-content:center;position:relative}
+body::before{content:'';position:fixed;inset:0;z-index:0;background:url('/static/BG.png') center/cover no-repeat;filter:blur(12px) brightness(0.7);pointer-events:none}
+body>*{position:relative;z-index:1}
+.challenge-bar{position:fixed;top:0;left:0;right:0;z-index:999;display:none;align-items:center;justify-content:space-between;padding:6px 18px;background:linear-gradient(180deg,#0d3b66,#0d3b66);border-bottom:2px solid #4a9ec4;font-size:.6rem;color:#d6e8f5}
+.challenge-bar .target{font-weight:700;color:#4a9ec4;font-family:'Black Ops One',cursive;letter-spacing:1px}
+.exit-btn{position:fixed;top:10px;right:14px;z-index:50;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;font-size:.7rem}
+.exit-btn:hover{background:rgba(0,0,0,0.6);color:rgba(255,255,255,0.8)}
+.stage{position:relative;width:100%;max-width:480px;height:calc(100vh - 72px);max-height:780px;margin-top:72px;display:flex;flex-direction:column;align-items:center;padding:12px 12px 12px}
+.top-hud{display:flex;justify-content:space-between;align-items:center;width:100%;padding:0 4px;margin-bottom:6px}
+.exercise-name{font-family:'Black Ops One',cursive;font-size:1.3rem;color:#d6e8f5;letter-spacing:3px;text-shadow:0 2px 8px rgba(0,0,0,0.4)}
+.exercise-name .icon{color:#4a9ec4;margin-right:6px}
+.stopwatch{font-family:'Black Ops One',cursive;font-size:1.4rem;color:#4a9ec4;background:rgba(0,0,0,0.4);padding:4px 12px;border-radius:8px;border:1px solid rgba(74,158,196,0.2);letter-spacing:2px;min-width:80px;text-align:center}
+.body-part-picker{display:flex;gap:6px;width:100%;justify-content:center;margin-bottom:6px;flex-wrap:wrap}
+.bp-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 14px;border-radius:12px;border:2px solid #1d4d6b;background:#0d3b66;cursor:pointer;transition:all .25s;font-family:'Poppins',sans-serif;min-width:60px;flex:0 0 auto}
+.bp-btn i{font-size:1.2rem;transition:all .25s}
+.bp-btn span{font-size:.55rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:#fff}
+.bp-btn:hover{background:#1d4d6b;transform:translateY(-2px)}
+.bp-btn.active{border-color:var(--bp-color);background:var(--bp-bg);box-shadow:0 4px 20px var(--bp-glow)}
+.bp-btn.active i{color:#fff}
+.bp-btn.active span{color:#fff}
+.exercise-picker{display:flex;gap:5px;width:100%;justify-content:center;margin-bottom:6px;flex-wrap:wrap;min-height:28px;transition:all .3s}
+.ex-picker-btn{padding:4px 12px;border-radius:6px;border:1px solid #1d4d6b;background:#0d3b66;color:#fff;font-size:.55rem;font-weight:500;cursor:pointer;transition:all .2s;font-family:'Poppins',sans-serif;letter-spacing:.3px}
+.ex-picker-btn:hover{background:#1d4d6b;color:#fff}
+.ex-picker-btn.active{background:var(--bp-bg);border-color:var(--bp-color);color:#fff}
+.avatar-area{flex:1;display:flex;align-items:center;justify-content:center;width:100%;position:relative;min-height:300px}
+.avatar-area::before{content:'';position:absolute;bottom:20px;left:50%;transform:translateX(-50%);width:200px;height:24px;background:radial-gradient(ellipse,rgba(74,158,196,0.12) 0%,transparent 70%);border-radius:50%}
+.guide-text{font-size:.7rem;color:rgba(214,232,245,0.5);letter-spacing:1px;text-align:center;margin:2px 0 4px}
+.figure-container{width:88%;height:88%;max-width:300px;max-height:360px;position:relative;display:flex;align-items:center;justify-content:center}
+.figure-container img{position:absolute;width:100%;height:100%;object-fit:contain;display:none;filter:drop-shadow(0 0 12px rgba(74,158,196,0.12));transition:opacity .3s}
+.figure-container img.active{display:block}
+.loading-spinner{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:36px;height:36px;border:3px solid rgba(74,158,196,0.1);border-top-color:#4a9ec4;border-radius:50%;animation:spin .8s linear infinite;z-index:2;display:none}
+@keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+.info-bar{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:0 4px;margin-bottom:6px}
+.target-pill{font-family:'Black Ops One',cursive;font-size:.8rem;color:#d6e8f5;background:#0d3b66;padding:6px 14px;border-radius:8px;border:1px solid #1d4d6b;letter-spacing:1.5px}
+.target-pill .num{color:#4a9ec4;font-size:1rem;margin-left:4px}
+.rep-counter{font-family:'Black Ops One',cursive;font-size:2.2rem;color:#fff;letter-spacing:3px;text-shadow:0 0 12px rgba(74,158,196,0.3);display:none;text-align:center;margin:4px 0}
+.rep-counter.complete{color:#4ade80;animation:pulse 0.6s ease-in-out infinite alternate}
+@keyframes pulse{0%{transform:scale(1)}100%{transform:scale(1.06)}}
+.distance-input-wrap{display:none;align-items:center;gap:4px;background:rgba(13,59,102,0.5);padding:4px 12px;border-radius:8px;border:1px solid rgba(74,158,196,0.3)}
+.distance-input-wrap input{width:56px;background:transparent;border:none;color:#4a9ec4;font-family:'Black Ops One',cursive;font-size:1.1rem;text-align:center;outline:none;border-bottom:2px solid rgba(74,158,196,0.3)}
+.distance-input-wrap span{color:#d6e8f5;font-family:'Black Ops One',cursive;font-size:.75rem}
+.action-bar{display:flex;gap:6px;width:100%;justify-content:center;align-items:center;flex-wrap:wrap}
+.btn{padding:10px 24px;border:none;border-radius:10px;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .2s;font-family:'Black Ops One',cursive;background:linear-gradient(180deg,#4a9ec4,#0d3b66);border:2px solid #0a2a4a;color:#fff;letter-spacing:2px;box-shadow:0 4px 12px rgba(0,0,0,0.3);text-transform:uppercase;min-width:100px}
+.btn:hover{filter:brightness(1.1);transform:translateY(-1px);box-shadow:0 6px 16px rgba(0,0,0,0.4)}
+.btn:active{transform:scale(0.97)}
+.btn:disabled{opacity:0.4;cursor:not-allowed;transform:none}
+.btn-secondary{background:linear-gradient(180deg,#4a9ec4,#0d3b66);border-color:#0a2a4a}
+.btn-rep{background:linear-gradient(180deg,#4a9ec4,#0d3b66);border-color:#0a2a4a;min-width:120px;font-size:.9rem}
+.result-overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center}
+.result-modal{background:linear-gradient(160deg,#0d3b66,#0a1929);border:1px solid rgba(74,158,196,0.3);border-radius:20px;padding:28px 32px;text-align:center;max-width:320px;width:90%;box-shadow:0 12px 48px rgba(0,0,0,0.5);position:relative}
+.result-close{position:absolute;top:10px;right:12px;width:28px;height:28px;border-radius:50%;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.3);color:rgba(255,255,255,0.4);cursor:pointer;font-size:.65rem;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.result-close:hover{background:rgba(0,0,0,0.5);color:rgba(255,255,255,0.8)}
+.result-emoji{font-size:3rem;margin-bottom:6px;line-height:1}
+.result-title{font-family:'Black Ops One',cursive;font-size:1.1rem;letter-spacing:2px;margin-bottom:4px}
+.result-title.pass{color:#4a9ec4}
+.result-title.fail{color:#f87171}
+.result-ai{font-size:.75rem;color:rgba(255,255,255,0.6);margin-bottom:10px;min-height:20px}
+.result-stats{font-family:'Black Ops One',cursive;font-size:.85rem;color:#4a9ec4;letter-spacing:1px;margin-bottom:6px}
+.result-rewards{font-size:.8rem;color:#4a9ec4;margin-bottom:8px;padding:6px 12px;background:rgba(74,158,196,0.1);border-radius:8px;display:inline-block}
+.result-actions{display:flex;gap:8px;justify-content:center;margin-top:10px}
+.result-btn{padding:8px 20px;border:none;border-radius:10px;font-family:'Black Ops One',cursive;font-size:.65rem;cursor:pointer;transition:all .2s;letter-spacing:1px}
+.result-btn-share{background:linear-gradient(180deg,#4a9ec4,#0d3b66);border:1px solid rgba(74,158,196,0.3);color:#fff}
+.result-btn-share:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.result-btn-done{background:linear-gradient(180deg,#4a9ec4,#0d3b66);border:1px solid #0a2a4a;color:#fff}
+.result-btn-done:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.beep-indicator{position:absolute;top:16px;right:8px;z-index:10;width:32px;height:32px;border-radius:50%;background:rgba(74,222,128,0.12);border:2px solid rgba(74,222,128,0.3);display:none;align-items:center;justify-content:center;color:#4ade80;font-size:.65rem}
+.beep-indicator.on{background:rgba(74,222,128,0.45);box-shadow:0 0 20px rgba(74,222,128,0.5)}
+@media(max-height:700px){
+  .stage{padding:8px 10px 10px}
+  .top-hud{margin-bottom:4px}
+  .avatar-area{min-height:220px}
+  .figure-container{max-width:240px;max-height:280px}
+  .bp-btn{padding:6px 10px;min-width:48px}
+  .bp-btn i{font-size:1rem}
+  .exercise-name{font-size:1.1rem}
+  .stopwatch{font-size:1.2rem}
+}
+.chillx-header{position:fixed;top:0;left:0;right:0;z-index:10000;height:68px;display:flex;align-items:center;justify-content:space-between;padding:0 16px 0 6px;background:#0d3b66;border-bottom:2px solid #1d4d6b;box-shadow:0 4px 16px rgba(0,0,0,0.3);transition:transform 0.3s ease;}
+.chillx-header.hidden{transform:translateY(-100%);}
+.chillx-header .left{display:flex;align-items:center;gap:10px;}
+.chillx-back{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#fff;border:1.5px solid #0a2a4a;color:#0a2a4a;text-decoration:none;font-size:.78rem;transition:all .25s;cursor:pointer;}
+.chillx-back:hover{background:#d6e8f5;color:#2a2a3a;transform:scale(1.05);}
+.chillx-brand{display:flex;align-items:center;gap:8px;font-family:'Black Ops One',cursive;font-size:.95rem;color:#2a2a3a;text-shadow:0 1px 0 rgba(255,255,255,0.4);cursor:pointer;text-decoration:none;}
+.chillx-brand img{width:200px;height:100px;border-radius:8px;}
+.chillx-header .right{display:flex;align-items:center;gap:6px;}
+.chillx-header .center{position:absolute;left:50%;transform:translateX(-50%);font-family:'Black Ops One',cursive;font-size:1.8rem;background:linear-gradient(90deg,#4a9ec4,#d6e8f5,#4a9ec4);background-size:200% auto;color:transparent;-webkit-background-clip:text;background-clip:text;animation:shimmer 3s ease-in-out infinite;letter-spacing:4px;}
+@keyframes shimmer{0%,100%{background-position:0% center}50%{background-position:200% center}}
+.chillx-pill{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:linear-gradient(180deg,#4a9ec4,#0d3b66);border:1.5px solid #0a2a4a;border-radius:14px;color:#2a2a3a;font-family:'Black Ops One',cursive;font-size:.72rem;box-shadow:inset 0 1px 0 rgba(255,255,255,0.4);}
+
+.ex-transition{animation:exFadeIn .35s cubic-bezier(0.34,1.56,0.64,1) both;}
+@keyframes exFadeIn{0%{opacity:0;transform:translateY(10px) scale(0.97)}100%{opacity:1;transform:translateY(0) scale(1)}}
+.fig-transition{animation:figFadeIn .4s ease-out both;}
+@keyframes figFadeIn{0%{opacity:0;transform:scale(0.92)}100%{opacity:1;transform:scale(1)}}
+.chillx-pill i{font-size:.65rem;}
+.chillx-toggle{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#fff;border:1.5px solid #0a2a4a;color:#0a2a4a;cursor:pointer;font-size:.78rem;transition:all .25s;text-decoration:none;}
+.chillx-toggle:hover{background:#d6e8f5;color:#2a2a3a;}
+@media(max-width:400px){
+  .stats{flex-wrap:wrap;gap:6px}
+  .stat-num{font-size:.85rem}
+  .result-modal{padding:14px;max-width:95%}
+  .result-modal .grid{grid-template-columns:1fr}
+  .words-box{padding:8px 10px;min-height:70px}
+}
+</style>
+</head>
+<body>
+<div class="chillx-header" id="chillxHeader">
+  <div class="left">
+    <a href="{% url 'dashboard' %}" class="chillx-brand"><img src="{% static 'LOGO.png' %}" alt="ChillX"></a>
+  </div>
+  <div class="center">FITNESS</div>
+  <div class="right">
+  </div>
+</div>
+
+<div class="challenge-bar" id="challengeBar">
+  <span>🏋️ TARGET: <span class="target" id="targetBar">20</span> <span id="unitBar">reps</span></span>
+  <span style="font-size:.5rem;opacity:0.6" id="exerciseBar">PUSHUPS</span>
+</div>
+
+<div class="stage">
+  <div class="top-hud">
+    <div class="exercise-name" id="exerciseName">
+      <i class="icon" id="exerciseIcon"></i><span id="exerciseLabel">Pushups</span>
+    </div>
+    <div class="stopwatch" id="stopwatch">00:00</div>
+  </div>
+
+  <div class="body-part-picker" id="bodyPartPicker"></div>
+  <div class="exercise-picker" id="exercisePicker"></div>
+
+  <div class="avatar-area" id="avatarArea">
+    <div class="beep-indicator" id="beepIndicator"><i class="fas fa-volume-high"></i></div>
+    <div class="figure-container" id="figureContainer">
+      <div class="loading-spinner" id="loadingSpinner"></div>
+      <img class="figure-img figure-pushups" data-src="{% static 'fitness/pushups.gif' %}" alt="Pushups" onerror="this.src='https://fitnessprogramer.com/wp-content/uploads/2021/02/Push-Up.gif';this.onerror=function(){imgFallback(this,'fa-hand-fist')}">
+      <img class="figure-img figure-squats" data-src="{% static 'fitness/squats.gif' %}" alt="Squats" onerror="this.src='https://fitnessprogramer.com/wp-content/uploads/2021/02/Bodyweight-Squat.gif';this.onerror=function(){imgFallback(this,'fa-person')}">
+      <img class="figure-img figure-plank" data-src="{% static 'fitness/plank.gif' %}" alt="Plank" onerror="this.src='https://fitnessprogramer.com/wp-content/uploads/2021/02/Plank.gif';this.onerror=function(){imgFallback(this,'fa-bars')}">
+      <img class="figure-img figure-burpees" data-src="{% static 'fitness/burpees.gif' %}" alt="Burpees" onerror="this.src='https://fitnessprogramer.com/wp-content/uploads/2021/02/Burpees.gif';this.onerror=function(){imgFallback(this,'fa-person-running')}">
+      <img class="figure-img figure-lunges" data-src="{% static 'fitness/lunges.gif' %}" alt="Lunges" onerror="this.src='https://fitnessprogramer.com/wp-content/uploads/2021/02/Forward-Lunge.gif';this.onerror=function(){imgFallback(this,'fa-person-walking')}">
+      <img class="figure-img figure-jumping_jacks" data-src="{% static 'fitness/jumping_jacks.gif' %}" alt="Jumping Jacks" onerror="this.src='https://fitnessprogramer.com/wp-content/uploads/2021/02/Jumping-Jack.gif';this.onerror=function(){imgFallback(this,'fa-person')}">
+      <img class="figure-img figure-sit_ups" data-src="{% static 'fitness/sit_ups.gif' %}" alt="Sit Ups" onerror="this.src='https://fitnessprogramer.com/wp-content/uploads/2021/02/Sit-Up.gif';this.onerror=function(){imgFallback(this,'fa-bed')}">
+      <img class="figure-img figure-high_knees" data-src="{% static 'fitness/high_knees.gif' %}" alt="High Knees" onerror="this.src='https://fitnessprogramer.com/wp-content/uploads/2021/02/High-Knee-Skip.gif';this.onerror=function(){imgFallback(this,'fa-person-running')}">
+      <img class="figure-img figure-mountain_climbers" data-src="{% static 'fitness/mountain_climbers.gif' %}" alt="Mountain Climbers" onerror="this.src='https://fitnessprogramer.com/wp-content/uploads/2021/02/Mountain-Climber.gif';this.onerror=function(){imgFallback(this,'fa-mountain')}">
+      <img class="figure-img figure-wall_sit" data-src="{% static 'fitness/wall_sit.gif' %}" alt="Wall Sit" onerror="this.src='https://fitnessprogramer.com/wp-content/uploads/2021/02/Wall-Sit.gif';this.onerror=function(){imgFallback(this,'fa-person')}">
+      <img class="figure-img figure-running" data-src="{% static 'fitness/running.gif' %}" alt="Running" onerror="this.src='https://i.pinimg.com/originals/6f/1e/2f/6f1e2f0e8c5b3e2f6d1a9c8d4f7b2e0a.gif';this.onerror=function(){imgFallback(this,'fa-person-running')}">
+      <img class="figure-img figure-decline_pushups" data-src="{% static 'fitness/decline_pushups.gif' %}" alt="Decline Push-ups" onerror="this.src='https://fitnessprogramer.com/wp-content/uploads/2021/02/Decline-Push-Up.gif';this.onerror=function(){imgFallback(this,'fa-hand-fist')}">
+      <img class="figure-img figure-knee_pushups" data-src="{% static 'fitness/knee_pushups.gif' %}" alt="Knee Push-ups" onerror="this.src='https://fitnessprogramer.com/wp-content/uploads/2021/02/Knee-Push-Up.gif';this.onerror=function(){imgFallback(this,'fa-hand-fist')}">
+      <img class="figure-img figure-incline_pushups" data-src="{% static 'fitness/incline_pushups.gif' %}" alt="Incline Push-ups" onerror="this.src='https://fitnessprogramer.com/wp-content/uploads/2021/02/Incline-Push-Up.gif';this.onerror=function(){imgFallback(this,'fa-hand-fist')}">
+      <img class="figure-img figure-crunches" data-src="{% static 'fitness/crunches.gif' %}" alt="Crunches" onerror="this.src='https://fitnessprogramer.com/wp-content/uploads/2021/02/Crunch.gif';this.onerror=function(){imgFallback(this,'fa-bed')}">
+      <img class="figure-img figure-dead_bug" data-src="{% static 'fitness/dead_bug.gif' %}" alt="Dead Bug" onerror="this.src='https://fitnessprogramer.com/wp-content/uploads/2021/02/Dead-Bug.gif';this.onerror=function(){imgFallback(this,'fa-person')}">
+      <img class="figure-img figure-bird_dog" data-src="{% static 'fitness/bird_dog.gif' %}" alt="Bird Dog" onerror="this.src='https://fitnessprogramer.com/wp-content/uploads/2021/02/Bird-Dog.gif';this.onerror=function(){imgFallback(this,'fa-person')}">
+      <img class="figure-img figure-heel_touches" data-src="{% static 'fitness/heel_touches.gif' %}" alt="Heel Touches" onerror='this.src="https://fitnessprogramer.com/wp-content/uploads/2021/02/Heel-Touch.gif";this.onerror=function(){imgFallback(this,"fa-person")}'>
+      <img class="figure-img figure-reverse_lunges" data-src="{% static 'fitness/reverse_lunges.gif' %}" alt="Reverse Lunges" onerror="this.src='https://fitnessprogramer.com/wp-content/uploads/2021/02/Reverse-Lunge.gif';this.onerror=function(){imgFallback(this,'fa-person-walking')}">
+    </div>
+  </div>
+
+  <div class="info-bar">
+    <div class="target-pill" id="targetPill">TARGET <span class="num" id="targetNum">20</span> <span id="targetUnit">REPS</span></div>
+    <div class="distance-input-wrap" id="distanceWrap">
+      <input type="number" id="distanceInput" min="0" step="0.1" value="0" inputmode="decimal" />
+      <span>km</span>
+    </div>
+  </div>
+  <div class="guide-text" id="guideText">Choose a body part</div>
+  <div class="rep-counter" id="repCounter">0 / 20</div>
+
+  <div class="action-bar">
+    <button class="btn" id="startBtn">START</button>
+    <button class="btn" id="doneBtn" style="display:none">✓ DONE</button>
+  </div>
+</div>
+</div>
+
+<div id="resultOverlay" class="result-overlay" style="display:none">
+  <div class="result-modal" id="resultModal">
+    <button class="result-close" onclick="closeResult()"><i class="fas fa-times"></i></button>
+    <div class="result-emoji" id="resultEmoji">🔥</div>
+    <div class="result-title" id="resultTitle">CRUSHED IT</div>
+    <div class="result-ai" id="resultAi">Analyzing...</div>
+    <div class="result-stats" id="resultStats">0 / 0</div>
+    <div class="result-rewards" id="resultRewards" style="display:none"></div>
+    <div class="result-actions">
+      <button class="result-btn result-btn-share" onclick="shareWorkout()"><i class="fas fa-share"></i> Share</button>
+      <button class="result-btn result-btn-done" onclick="closeResult()">Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// === BODY PARTS & EXERCISE DATA ===
+var BODY_PARTS={
+  chest:{label:'Chest',icon:'fa-dumbbell',color:'#ef4444'},
+  legs:{label:'Legs',icon:'fa-person-walking',color:'#22c55e'},
+  abs:{label:'Abs',icon:'fa-fire',color:'#fbbf24'},
+  arms:{label:'Arms',icon:'fa-hand-peace',color:'#8b5cf6'},
+  fullbody:{label:'Full Body',icon:'fa-person-running',color:'#a855f7'},
+}
+
+var BODY_PART_EXERCISES={
+  chest:['pushups','decline_pushups','knee_pushups','incline_pushups'],
+  legs:['squats','lunges','calf_raises','running','wall_sit','reverse_lunges'],
+  abs:['sit_ups','plank','mountain_climbers','high_knees','crunches','dead_bug','bird_dog','heel_touches'],
+  arms:['pushups','decline_pushups','knee_pushups','incline_pushups'],
+  fullbody:['burpees','jumping_jacks'],
+}
+
+var EXERCISES={
+  pushups:{label:'Pushups',icon:'fa-hand-fist',pace:1800,mode:'reps',animSpeed:1.6,tip:'Keep your back straight, lower chest to floor'},
+  squats:{label:'Squats',icon:'fa-person',pace:2000,mode:'reps',animSpeed:1.8,tip:'Knees behind toes, hips back, chest up'},
+  burpees:{label:'Burpees',icon:'fa-person-running',pace:2500,mode:'reps',animSpeed:2.4,tip:'Squat, plank, pushup, jump. Full body.'},
+  lunges:{label:'Lunges',icon:'fa-person-walking',pace:2000,mode:'reps',animSpeed:2.2,tip:'Step forward, drop back knee, drive up'},
+  jumping_jacks:{label:'Jumping Jacks',icon:'fa-person',pace:1200,mode:'reps',animSpeed:1,tip:'Arms and legs out together'},
+  sit_ups:{label:'Sit-ups',icon:'fa-bed',pace:2000,mode:'reps',animSpeed:2,tip:'Knees bent, sit all the way up'},
+  high_knees:{label:'High Knees',icon:'fa-person-running',pace:1000,mode:'reps',animSpeed:0.9,tip:'Knees up to waist, run in place'},
+  mountain_climbers:{label:'Mountain Climbers',icon:'fa-mountain',pace:800,mode:'reps',animSpeed:0.7,tip:'Plank, drive knees to chest alternating'},
+  plank:{label:'Plank',icon:'fa-bars',pace:0,mode:'time',animSpeed:0.6,tip:'Forearms down, body straight, no sagging'},
+  wall_sit:{label:'Wall Sit',icon:'fa-person',pace:0,mode:'time',animSpeed:0.5,tip:'Back against wall, thighs parallel to floor'},
+  running:{label:'Running',icon:'fa-person-running',pace:0,mode:'distance',animSpeed:0.5,tip:'Steady pace, log your distance'},
+  decline_pushups:{label:'Decline Push-ups',icon:'fa-hand-fist',pace:1800,mode:'reps',animSpeed:1.6,tip:'Feet elevated, hands on floor, lower chest down'},
+  knee_pushups:{label:'Knee Push-ups',icon:'fa-hand-fist',pace:1800,mode:'reps',animSpeed:1.6,tip:'Knees on floor, upper body same as pushup'},
+  incline_pushups:{label:'Incline Push-ups',icon:'fa-hand-fist',pace:1800,mode:'reps',animSpeed:1.6,tip:'Hands on bench, feet on floor, easier angle'},
+  crunches:{label:'Crunches',icon:'fa-bed',pace:1600,mode:'reps',animSpeed:1.5,tip:'Shoulders off floor, squeeze abs at top'},
+  dead_bug:{label:'Dead Bug',icon:'fa-person',pace:2000,mode:'reps',animSpeed:1.8,tip:'Opposite arm and leg extend, keep back flat'},
+  bird_dog:{label:'Bird Dog',icon:'fa-person',pace:2200,mode:'reps',animSpeed:2,tip:'Extend opposite arm and leg, balance on other two'},
+  heel_touches:{label:'Heel Touches',icon:'fa-person',pace:1200,mode:'reps',animSpeed:1,tip:'Reach hands to heels alternating, core engaged'},
+  reverse_lunges:{label:'Reverse Lunges',icon:'fa-person-walking',pace:2000,mode:'reps',animSpeed:2.2,tip:'Step back, drop back knee, drive forward'},
+  calf_raises:{label:'Calf Raises',icon:'fa-person',pace:1500,mode:'reps',animSpeed:1.4,tip:'Up on toes, slow back down'},
+}
+
+// ── ADD YOUR OWN GIFS ──
+// Drop your GIFs in /static/fitness/{exercise_key}.gif
+// The app will load them automatically. External URLs are fallbacks.
+
+// === ENGINE ===
+var url=new URL(location.href)
+var challengeId=url.searchParams.get('challenge')||''
+var challengeTarget=parseFloat(url.searchParams.get('target'))||0
+var challengeExercise=(url.searchParams.get('exercise')||'').toLowerCase().replace(/-/g,'_')
+var challengeMode=url.searchParams.get('mode')||'reps'
+
+var currentBodyPart='chest'
+var currentExercise=challengeExercise&&EXERCISES[challengeExercise]?challengeExercise:BODY_PART_EXERCISES['chest'][0]
+var currentMode=challengeMode==='time'||challengeMode==='distance'?challengeMode:EXERCISES[currentExercise].mode
+var target=challengeTarget||(currentMode==='reps'?20:currentMode==='time'?30:1)
+var repCount=0
+var lastActual=0
+var running=false
+var started=false
+var startTime=0
+var elapsedMs=0
+var timerInterval=null
+var beepInterval=null
+var autoRepInterval=null
+var audioCtx=null
+
+var imgCache={}
+var imgLoadAttempts={}
+
+function imgFallback(img,icon){
+  var src=img.getAttribute('src')
+  if(imgLoadAttempts[src]>=2)return
+  imgLoadAttempts[src]=(imgLoadAttempts[src]||0)+1
+  img.style.display='none'
+  var parent=img.parentElement
+  var fallback=parent.querySelector('.img-fallback')
+  if(!fallback){
+    fallback=document.createElement('div')
+    fallback.className='img-fallback'
+    fallback.style.cssText='position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:4rem;color:rgba(74,158,196,0.2)'
+    parent.appendChild(fallback)
+  }
+  fallback.innerHTML='<i class="fas '+icon+'"></i>'
+  fallback.style.display='flex'
+  setTimeout(function(){img.src=src;imgLoadAttempts[src]=0},3000)
+}
+function loadFigureImg(imgEl){
+  var src=imgEl.getAttribute('data-src')
+  if(!src)return
+  imgEl.removeAttribute('data-src')
+  imgEl.src=src
+}
+function preloadImg(src){
+  if(imgCache[src])return imgCache[src]
+  imgCache[src]=new Promise(function(resolve,reject){
+    var img=new Image()
+    img.onload=resolve
+    img.onerror=reject
+    img.src=src
+  })
+  return imgCache[src]
+}
+
+function initAudio(){
+  if(audioCtx)return
+  try{audioCtx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}
+}
+function beep(freq,dur,type,vol){
+  if(!audioCtx)return
+  var o=audioCtx.createOscillator(),g=audioCtx.createGain()
+  o.type=type||'square';o.frequency.value=freq
+  g.gain.value=vol||0.08
+  o.connect(g);g.connect(audioCtx.destination)
+  o.start()
+  g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur)
+  o.stop(audioCtx.currentTime+dur)
+}
+function sfxCount(){beep(900,0.04,'sine',0.06);setTimeout(function(){beep(1200,0.05,'sine',0.05)},25)}
+function sfxComplete(){beep(880,0.1,'sine',0.1);setTimeout(function(){beep(1100,0.1,'sine',0.1)},100);setTimeout(function(){beep(1320,0.18,'sine',0.1)},200)}
+function sfxFail(){beep(220,0.15,'sawtooth',0.07);setTimeout(function(){beep(140,0.2,'sawtooth',0.07)},150)}
+
+function startBeep(cycleMs){
+  if(beepInterval)clearInterval(beepInterval)
+  if(!cycleMs)return
+  beepInterval=setInterval(function(){
+    beep(880,0.04,'sine',0.1)
+    document.getElementById('beepIndicator').classList.add('on')
+    setTimeout(function(){document.getElementById('beepIndicator').classList.remove('on')},120)
+  },cycleMs)
+  beep(880,0.04,'sine',0.1)
+  document.getElementById('beepIndicator').classList.add('on')
+  setTimeout(function(){document.getElementById('beepIndicator').classList.remove('on')},120)
+}
+function stopBeep(){if(beepInterval){clearInterval(beepInterval);beepInterval=null}}
+
+// === UI RENDER ===
+function renderBodyParts(){
+  var picker=document.getElementById('bodyPartPicker')
+  picker.innerHTML=''
+  Object.keys(BODY_PARTS).forEach(function(key){
+    var bp=BODY_PARTS[key]
+    var btn=document.createElement('button')
+    btn.className='bp-btn'+(key===currentBodyPart?' active':'')
+    btn.style.setProperty('--bp-color',bp.color)
+    btn.style.setProperty('--bp-bg',key===currentBodyPart?'#1d4d6b':'transparent')
+    btn.style.setProperty('--bp-glow','#1d4d6b')
+    btn.innerHTML='<i class="fas '+bp.icon+'" style="color:#fff"></i><span>'+bp.label+'</span>'
+    btn.onclick=function(){if(!running)selectBodyPart(key)}
+    picker.appendChild(btn)
+  })
+}
+
+function selectBodyPart(key){
+  currentBodyPart=key
+  renderBodyParts()
+  renderExercises()
+  var exercises=BODY_PART_EXERCISES[key]
+  if(exercises&&exercises.length>0){
+    updateExercise(exercises[0])
+  }
+}
+
+function renderExercises(){
+  var picker=document.getElementById('exercisePicker')
+  picker.innerHTML=''
+  var exercises=BODY_PART_EXERCISES[currentBodyPart]||[]
+  if(exercises.length<2){
+    picker.style.display='none'
+    return
+  }
+  picker.style.display='flex'
+  exercises.forEach(function(exKey){
+    var ex=EXERCISES[exKey]
+    if(!ex)return
+    var btn=document.createElement('button')
+    btn.className='ex-picker-btn'+(exKey===currentExercise?' active':'')
+    btn.style.setProperty('--bp-color',BODY_PARTS[currentBodyPart].color)
+    btn.style.setProperty('--bp-bg','#1d4d6b')
+    btn.textContent=ex.label
+    btn.onclick=function(){if(!running)updateExercise(exKey)}
+    picker.appendChild(btn)
+  })
+}
+
+function showLoading(exKey,callback){
+  document.getElementById('guideText').textContent='Loading...'
+  var spinner=document.getElementById('figureContainer').querySelector('.loading-spinner')
+  spinner.style.display='block'
+  var img=document.querySelector('.figure-'+exKey)
+  if(!img)return callback()
+  var src=img.getAttribute('data-src')||img.getAttribute('src')
+  if(!src||imgCache[src]){
+    spinner.style.display='none'
+    return callback()
+  }
+  preloadImg(src).then(function(){
+    var fb=img.parentElement.querySelector('.img-fallback')
+    if(fb)fb.style.display='none'
+    spinner.style.display='none'
+    callback()
+  }).catch(function(){
+    spinner.style.display='none'
+    callback()
+  })
+}
+
+function updateExercise(exKey){
+  if(running)return
+  showLoading(exKey,function(){
+    currentExercise=exKey
+    var ex=EXERCISES[exKey]
+    currentMode=ex.mode
+    var bp=BODY_PARTS[currentBodyPart]
+    target=challengeTarget||(currentMode==='reps'?20:currentMode==='time'?30:1)
+    document.getElementById('exerciseLabel').textContent=ex.label
+    document.getElementById('exerciseIcon').className='icon '+ex.icon
+    document.getElementById('exerciseIcon').style.color=bp?bp.color:'#4a9ec4'
+    document.getElementById('targetPill').innerHTML='TARGET <span class="num" id="targetNum">'+target+'</span> <span id="targetUnit">'+currentMode.toUpperCase().replace('REPS','REPS').replace('TIME','SEC').replace('DISTANCE','KM')+'</span>'
+    document.getElementById('guideText').textContent=ex.tip
+    renderExercises()
+    document.querySelectorAll('.figure-container img').forEach(function(i){
+      var match=i.classList.contains('figure-'+exKey)
+      i.classList.toggle('active',match)
+      if(match&&!i.src)loadFigureImg(i)
+    })
+    var topEls=document.querySelectorAll('.exercise-name,.target-pill,.guide-text')
+    topEls.forEach(function(el){el.classList.remove('ex-transition');void el.offsetWidth;el.classList.add('ex-transition')})
+    var figContainer=document.querySelector('.figure-container')
+    if(figContainer){figContainer.classList.remove('fig-transition');void figContainer.offsetWidth;figContainer.classList.add('fig-transition')}
+    repCount=0;elapsedMs=0;started=false
+    document.getElementById('stopwatch').textContent='00:00'
+    document.getElementById('startBtn').textContent='START'
+    document.getElementById('doneBtn').style.display='none'
+    document.getElementById('repCounter').textContent='0 / '+target
+    document.getElementById('repCounter').classList.remove('complete')
+    if(currentMode==='reps'){
+      document.getElementById('repCounter').style.display='block'
+      document.getElementById('distanceWrap').style.display='none'
+    }else if(currentMode==='time'){
+      document.getElementById('repCounter').style.display='none'
+      document.getElementById('distanceWrap').style.display='none'
+    }else if(currentMode==='distance'){
+      document.getElementById('repCounter').style.display='none'
+      document.getElementById('distanceWrap').style.display='flex'
+    }
+  })
+}
+
+// === EXERCISE CONTROLS ===
+function startExercise(){
+  if(running)return
+  initAudio()
+  running=true;started=true
+  startTime=Date.now()-elapsedMs
+  document.getElementById('startBtn').textContent='PAUSE'
+  if(currentMode==='reps'){
+    var ex=EXERCISES[currentExercise]
+    if(ex.pace){startBeep(ex.pace);startAutoRep(ex.pace)}
+  }else if(currentMode==='time'){
+    startBeep(2000)
+  }
+  if(timerInterval)clearInterval(timerInterval)
+  timerInterval=setInterval(tick,100)
+  document.getElementById('doneBtn').style.display='inline-block'
+}
+
+function startAutoRep(ms){
+  if(autoRepInterval)clearInterval(autoRepInterval)
+  autoRepInterval=setInterval(function(){
+    if(running&&currentMode==='reps')tapRep()
+  },ms)
+}
+function stopAutoRep(){if(autoRepInterval){clearInterval(autoRepInterval);autoRepInterval=null}}
+
+function pauseExercise(){
+  running=false
+  document.getElementById('startBtn').textContent='RESUME'
+  stopBeep()
+  stopAutoRep()
+  if(timerInterval){clearInterval(timerInterval);timerInterval=null}
+  elapsedMs=Date.now()-startTime
+}
+
+function tick(){
+  elapsedMs=Date.now()-startTime
+  var s=Math.floor(elapsedMs/1000)
+  var mm=Math.floor(s/60).toString().padStart(2,'0')
+  var ss=(s%60).toString().padStart(2,'0')
+  document.getElementById('stopwatch').textContent=mm+':'+ss
+  if(currentMode==='time'&&s>=target){
+    finishExercise(true)
+  }
+}
+
+function tapRep(){
+  if(!running)return
+  repCount++
+  sfxCount()
+  document.getElementById('repCounter').textContent=repCount+' / '+target
+  if(repCount>=target){
+    document.getElementById('repCounter').classList.add('complete')
+    finishExercise(true)
+  }
+}
+
+function finishExercise(passed){
+  if(!started)return
+  running=false
+  stopBeep()
+  stopAutoRep()
+  if(timerInterval){clearInterval(timerInterval);timerInterval=null}
+  document.getElementById('startBtn').textContent='START'
+  document.getElementById('doneBtn').style.display='none'
+  var actual=0
+  if(currentMode==='reps')actual=repCount
+  else if(currentMode==='time')actual=Math.floor(elapsedMs/1000)
+  else if(currentMode==='distance')actual=parseFloat(document.getElementById('distanceInput').value)||0
+  var finalPassed=passed!==undefined?passed:actual>=target
+  lastActual=actual
+  if(finalPassed)sfxComplete();else sfxFail()
+  showResultModal(finalPassed,actual)
+  if(challengeId){
+    var xhr=new XMLHttpRequest()
+    xhr.open('POST','/challenges/verify-fitness/',true)
+    xhr.setRequestHeader('Content-Type','application/x-www-form-urlencoded')
+    xhr.setRequestHeader('X-CSRFToken',getCSRF())
+    xhr.onload=function(){
+      if(xhr.status===200){
+        var r=JSON.parse(xhr.responseText)
+        if(r.passed){
+          document.getElementById('resultRewards').style.display='inline-block'
+           document.getElementById('resultRewards').innerHTML='+'+r.xp+' XP &nbsp;·&nbsp; Rs '+r.coins
+          document.getElementById('resultTitle').textContent='CHALLENGE COMPLETE'
+          document.getElementById('resultTitle').className='result-title pass'
+        } else {
+          document.getElementById('resultTitle').textContent='KEEP GOING'
+          document.getElementById('resultTitle').className='result-title fail'
+        }
+      }
+    }
+    xhr.send('challenge_id='+encodeURIComponent(challengeId)+'&exercise='+encodeURIComponent(currentExercise)+'&target='+target+'&actual='+actual+'&mode='+currentMode)
+  }
+}
+
+function showResultModal(passed,actual){
+  var modeLabel=currentMode==='reps'?'reps':currentMode==='time'?'sec':'km'
+  var emojis=passed?['🔥','💪','🏆','⭐','👏']:['💪','🔥','👊','⚡','💯']
+  document.getElementById('resultEmoji').textContent=emojis[Math.floor(Math.random()*emojis.length)]
+  document.getElementById('resultTitle').textContent=passed?'CRUSHED IT':'KEEP GOING'
+  document.getElementById('resultTitle').className='result-title '+(passed?'pass':'fail')
+  document.getElementById('resultStats').textContent=Math.floor(actual)+' '+modeLabel+' / '+Math.floor(target)+' '+modeLabel
+  document.getElementById('resultOverlay').style.display='flex'
+  var aiXhr=new XMLHttpRequest()
+  aiXhr.open('POST','/fitness/analyze/',true)
+  aiXhr.setRequestHeader('Content-Type','application/x-www-form-urlencoded')
+  aiXhr.setRequestHeader('X-CSRFToken',getCSRF())
+  aiXhr.onload=function(){
+    if(aiXhr.status===200){
+      var r=JSON.parse(aiXhr.responseText)
+      document.getElementById('resultAi').textContent=r.feedback
+    } else {
+      document.getElementById('resultAi').textContent=passed?'Solid work keep pushing':'Close next time you will crush it'
+    }
+  }
+  aiXhr.onerror=function(){
+    document.getElementById('resultAi').textContent=passed?'Solid work keep pushing':'Close next time you will crush it'
+  }
+  aiXhr.send('exercise='+encodeURIComponent(currentExercise)+'&actual='+actual+'&target='+target+'&mode='+currentMode+'&elapsed='+Math.floor(elapsedMs/1000))
+}
+
+function closeResult(){
+  document.getElementById('resultOverlay').style.display='none'
+  if(challengeId&&window.opener&&!window.opener.closed)window.opener.location.reload()
+  if(challengeId)window.close()
+}
+
+function shareWorkout(){
+  var title=document.getElementById('exerciseLabel').textContent+' Workout'
+  var modeLabel=currentMode==='reps'?'reps':currentMode==='time'?'sec':'km'
+  var passed=lastActual>=target
+  var desc=(passed?'Completed':'Attempted')+' '+Math.floor(lastActual)+' '+modeLabel+' of '+Math.floor(target)+' '+modeLabel+' '+title+' on ChillX!'
+  var fb=new FormData()
+  fb.append('title',title)
+  fb.append('category','fitness')
+  fb.append('description',desc)
+  fb.append('proof_text',title+': '+Math.floor(lastActual)+'/'+Math.floor(target)+' '+modeLabel)
+  fetch('/social/create/',{method:'POST',body:fb,headers:{'X-CSRFToken':getCSRF()},credentials:'same-origin'})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(d.post_id)alert('Shared to your feed!')
+      else alert(d.error||'Failed to share')
+    })
+    .catch(function(){alert('Failed to share')})
+}
+
+function resetExercise(){
+  stopBeep()
+  stopAutoRep()
+  if(timerInterval){clearInterval(timerInterval);timerInterval=null}
+  running=false;started=false;elapsedMs=0;repCount=0
+  document.getElementById('stopwatch').textContent='00:00'
+  document.getElementById('startBtn').textContent='START'
+  document.getElementById('doneBtn').style.display='none'
+  if(currentMode==='reps'){
+    document.getElementById('repCounter').textContent='0 / '+target
+    document.getElementById('repCounter').classList.remove('complete')
+  }
+}
+
+function getCSRF(){
+  var n='csrftoken',m=document.cookie.match('(^|;)\\s*'+n+'\\s*=\\s*([^;]+)')
+  return m?m.pop():''
+}
+
+// === EVENT BINDINGS ===
+document.getElementById('startBtn').addEventListener('click',function(){
+  if(!running&&started)resumeExercise()
+  else if(!running)startExercise()
+  else pauseExercise()
+})
+function resumeExercise(){
+  running=true
+  startTime=Date.now()-elapsedMs
+  document.getElementById('startBtn').textContent='PAUSE'
+  if(currentMode==='reps'){var ex=EXERCISES[currentExercise];if(ex.pace){startBeep(ex.pace);startAutoRep(ex.pace)}}
+  if(timerInterval)clearInterval(timerInterval)
+  timerInterval=setInterval(tick,100)
+  document.getElementById('doneBtn').style.display='inline-block'
+}
+document.getElementById('doneBtn').addEventListener('click',function(){finishExercise()})
+document.addEventListener('keydown',function(e){
+  if(e.code==='Space'&&currentMode==='reps'&&running){e.preventDefault();tapRep()}
+  if(e.key==='Enter'&&started)finishExercise()
+})
+
+// === INIT ===
+renderBodyParts()
+var initialEx=challengeExercise&&EXERCISES[challengeExercise]?challengeExercise:BODY_PART_EXERCISES['chest'][0]
+updateExercise(initialEx)
+if(EXERCISES[initialEx]){
+  var ex=BODY_PARTS['chest']
+  if(ex){
+    document.getElementById('exerciseIcon').style.color=ex.color
+  }
+}
+
+if(challengeId){
+  document.getElementById('targetBar').textContent=target
+  document.getElementById('unitBar').textContent=currentMode==='reps'?'reps':currentMode==='time'?'sec':'km'
+  document.getElementById('exerciseBar').textContent=EXERCISES[currentExercise].label.toUpperCase()
+  document.getElementById('challengeBar').style.display='flex'
+  document.getElementById('bodyPartPicker').style.display='none'
+  document.getElementById('exercisePicker').style.display='none'
+}
+
+// Lazy-load: only the active image loads — others idle until selected
+</script>
+<script>(function(){var h=document.getElementById('chillxHeader'),b=document.getElementById('hideHeaderBtn');if(!h||!b)return;b.addEventListener('click',function(){h.classList.toggle('hidden');b.innerHTML=h.classList.contains('hidden')?'<i class="fas fa-eye"></i>':'<i class="fas fa-eye-slash"></i>';});})();</script>
+</body>
+</html>

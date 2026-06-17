@@ -1,0 +1,17 @@
+{
+  "name": "ojt-project",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@babel/core": "^8.0.0",
+    "@babel/preset-react": "^8.0.0"
+  }
+}

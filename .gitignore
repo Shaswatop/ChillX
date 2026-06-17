@@ -1,0 +1,44 @@
+# Python
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Node
+node_modules/
+
+# Database (contains user data - DO NOT COMMIT)
+db.sqlite3
+*.sqlite3
+
+# Logs
+server_err.txt
+server_out.txt
+*.log
+
+# Environment
+.env
+.env.local
+
+# OS
+Thumbs.db
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Build outputs
+static/js/multiplayer.code.js
+static/js/multiplayer.code.min.js
+
+# Temporary / output files
+riddles_output.txt
+CHILLX_REPORT.docx
+PROJECT_REPORT.md
+
+# Claude AI
+.claude/
+.claude.json

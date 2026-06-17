@@ -1,0 +1,7 @@
+channels==4.3.2
+daphne==4.2.2
+Django==6.0.5
+django-cors-headers==4.9.0
+djangorestframework==3.17.1
+djangorestframework_simplejwt==5.5.1
+pillow==12.2.0

@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0a0c14" />
+  <title>AIM.TRAIN</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+</head>
+<body>
+  <div class="app" id="app">
+    <div class="background">
+      <div class="background__gradient"></div>
+      <div class="background__scanlines"></div>
+      <div class="background__grain"></div>
+      <div class="ambient-particles" id="ambientParticles" aria-hidden="true"></div>
+    </div>
+
+    <main class="shell">
+      <section class="scene" aria-label="Aim training room">
+        <div id="threeCanvas" class="scene__canvas"></div>
+      </section>
+
+      <section class="hud" aria-label="Game HUD">
+        <div class="hud__top-right">
+          <button class="icon-button" id="settingsToggle" type="button" aria-label="Open settings">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 8.25a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5Zm9 3.75-2.05-.47a7.5 7.5 0 0 0-.73-1.74l1.15-1.76-1.69-1.69-1.76 1.15c-.56-.29-1.14-.54-1.74-.73L13.75 3h-3.5l-.43 2.81c-.6.19-1.18.44-1.74.73L6.32 5.39 4.63 7.08l1.15 1.76c-.29.56-.54 1.14-.73 1.74L3 12l2.05.47c.19.6.44 1.18.73 1.74l-1.15 1.76 1.69 1.69 1.76-1.15c.56.29 1.14.54 1.74.73l.43 2.81h3.5l.43-2.81c.6-.19 1.18-.44 1.74-.73l1.76 1.15 1.69-1.69-1.15-1.76c.29-.56.54-1.14.73-1.74L21 12Z"/>
+            </svg>
+          </button>
+
+          <div class="mode-card mode-card--compact">
+            <div class="mode-card__breadcrumb" id="modeBreadcrumb">CLICKING · BASIC</div>
+            <div class="mode-card__title" id="modeInfoTitle">Tile Frenzy</div>
+            <div class="mode-card__description" id="modeInfoDescription">Shoot any tile, replace it instantly, and keep the wall full.</div>
+          </div>
+        </div>
+
+        <div class="hud__bottom-left">
+          <div class="stat">
+            <div class="stat__label">Accuracy</div>
+            <div class="stat__value" id="accuracyValue">100.0%</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">Kills/Sec</div>
+            <div class="stat__value" id="killsPerSecondValue">0.00</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">Switch Speed</div>
+            <div class="stat__value" id="switchSpeedValue">0.00 /s</div>
+          </div>
+        </div>
+
+        <div class="hud__bottom-center">
+          <div class="timer">
+            <span class="timer__dot">●</span>
+            <span id="timerValue">00:30</span>
+          </div>
+          <div class="score" id="scoreValue">0</div>
+        </div>
+
+        <div class="hud__bottom-right">
+          <div class="restart">
+            <div class="restart__label">Quick Restart <span class="key-badge">Y</span></div>
+              <svg class="weapon-icon" viewBox="0 0 120 54" aria-hidden="true">
+                <path d="M12 32h51l5-7h21c4 0 7 3 7 7v4h-9v5h-8v-5H52l-8 9H28l5-9H12z" fill="#c8cdd5"/>
+                <path d="M73 25h22c2 0 4 2 4 4v3H73z" fill="#e0e0e0"/>
+                <path d="M12 32h51l5-7h21c4 0 7 3 7 7v4h-9v5h-8v-5H52l-8 9H28l5-9H12z" fill="none" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/>
+              </svg>
+            <div class="ammo">∞</div>
+          </div>
+        </div>
+      </section>
+
+      <div class="scope" id="scope" aria-hidden="true">
+        <div class="scope__ring"></div>
+        <div class="scope__crosshair">
+          <div class="scope__line scope__line--h"></div>
+          <div class="scope__line scope__line--v"></div>
+          <div class="scope__dot"></div>
+        </div>
+        <div class="scope__ticks">
+          <span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <div class="scope__scan"></div>
+        <div class="scope__vignette"></div>
+      </div>
+      <div class="crosshair" id="crosshair" aria-hidden="true">
+        <span class="crosshair__arm crosshair__arm--up"></span>
+        <span class="crosshair__arm crosshair__arm--right"></span>
+        <span class="crosshair__arm crosshair__arm--down"></span>
+        <span class="crosshair__arm crosshair__arm--left"></span>
+      </div>
+
+      <div class="fx-layer" id="fxLayer" aria-hidden="true"></div>
+
+      <div class="countdown" id="countdown" aria-live="polite"></div>
+
+      <section class="overlay overlay--menu" id="menuOverlay" aria-label="Main menu">
+        <div class="menu">
+          <div class="menu__grid" aria-hidden="true"></div>
+          <div class="menu__glow" aria-hidden="true"></div>
+
+          <div class="menu__hero">
+            <h1 class="menu__title">AIM<span class="menu__title-accent">.TRAIN</span></h1>
+          </div>
+
+          <div class="mode-grid" id="modeGrid" aria-label="Mode selection"></div>
+
+          <div class="menu__actions">
+            <button class="primary-button" id="playNowButton" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16l13-8L7 4Z" fill="currentColor"/></svg>
+              <span>Play Tile Frenzy</span>
+            </button>
+            <button class="secondary-button" id="openSettingsFromMenu" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.25a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5Zm9 3.75-2.05-.47a7.5 7.5 0 0 0-.73-1.74l1.15-1.76-1.69-1.69-1.76 1.15c-.56-.29-1.14-.54-1.74-.73L13.75 3h-3.5l-.43 2.81c-.6.19-1.18.44-1.74.73L6.32 5.39 4.63 7.08l1.15 1.76c-.29.56-.54 1.14-.73 1.74L3 12l2.05.47c.19.6.44 1.18.73 1.74l-1.15 1.76 1.69 1.69 1.76-1.15c.56.29 1.14.54 1.74.73l.43 2.81h3.5l.43-2.81c.6-.19 1.18-.44 1.74-.73l1.76 1.15 1.69-1.69-1.15-1.76c.29-.56.54-1.14.73-1.74L21 12Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+              <span>Settings</span>
+            </button>
+          </div>
+
+          <div class="menu__footer">
+            <div class="menu__hint">
+              <span class="key-badge">LMB</span> Shoot
+            </div>
+            <div class="menu__hint">
+              <span class="key-badge">RMB</span> Hold for Scope
+            </div>
+            <div class="menu__hint">
+              <span class="key-badge">ESC</span> Pause
+            </div>
+            <div class="menu__hint">
+              <span class="key-badge">Y</span> Quick Restart
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="overlay overlay--results hidden" id="resultsOverlay" aria-label="Results screen">
+        <div class="results-card">
+          <div class="results-card__header">
+            <div class="results-card__mode" id="resultsMode">Tile Frenzy Complete</div>
+            <div class="results-card__badge" id="resultsGradeBadge">A</div>
+          </div>
+
+          <div class="results-card__score">
+            <div class="results-card__score-label">Score</div>
+            <div class="results-card__score-value" id="resultsScore">0</div>
+            <div class="results-card__best" id="resultsBest">Personal Best: 0</div>
+          </div>
+
+          <div class="results-grid">
+            <div class="result-stat"><span>Accuracy</span><strong id="resultsAccuracy">0.0%</strong></div>
+            <div class="result-stat"><span>Hits</span><strong id="resultsHits">0</strong></div>
+            <div class="result-stat"><span>Misses</span><strong id="resultsMisses">0</strong></div>
+            <div class="result-stat"><span>Best Combo</span><strong id="resultsBestCombo">0</strong></div>
+            <div class="result-stat"><span>Avg React</span><strong id="resultsAvgReact">0 ms</strong></div>
+            <div class="result-stat"><span>K/S</span><strong id="resultsKps">0.00</strong></div>
+          </div>
+
+          <div class="results-card__buttons">
+            <button class="primary-button" id="playAgainButton" type="button">Play Again</button>
+            <button class="secondary-button" id="changeModeButton" type="button">Change Mode</button>
+            <button class="ghost-button" id="mainMenuButton" type="button">Main Menu</button>
+          </div>
+        </div>
+      </section>
+
+      <aside class="settings-panel" id="settingsPanel" aria-label="Settings panel" aria-hidden="true">
+        <div class="settings-panel__header">
+          <div>
+            <div class="settings-panel__eyebrow">OPTIONS</div>
+            <h2>Settings</h2>
+          </div>
+          <button class="icon-button icon-button--close" id="closeSettingsButton" type="button" aria-label="Close settings">
+            <span></span>
+            <span></span>
+          </button>
+        </div>
+
+        <div class="setting-group">
+          <label for="crosshairSize">Crosshair Size</label>
+          <input id="crosshairSize" type="range" min="12" max="28" value="16" />
+        </div>
+
+        <div class="setting-group">
+          <label for="crosshairColor">Crosshair Color</label>
+          <input id="crosshairColor" type="color" value="#ffffff" />
+        </div>
+
+        <div class="setting-group">
+          <label for="masterVolume">Master Volume</label>
+          <input id="masterVolume" type="range" min="0" max="100" value="70" />
+        </div>
+
+        <div class="setting-group">
+          <label for="sfxVolume">SFX Volume</label>
+          <input id="sfxVolume" type="range" min="0" max="100" value="80" />
+        </div>
+
+        <div class="setting-row">
+          <button class="secondary-button" id="fullscreenButton" type="button">Fullscreen</button>
+          <button class="secondary-button" id="muteButton" type="button">Mute</button>
+        </div>
+
+        <div class="settings-panel__keys">
+          <div><span>Shoot</span><strong>Left Click</strong></div>
+          <div><span>Quick Restart</span><strong>Y</strong></div>
+          <div><span>Pause</span><strong>Escape</strong></div>
+          <div><span>Fullscreen</span><strong>F</strong></div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script defer src="./app.js"></script>
+</body>
+</html>

@@ -1,0 +1,207 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>Memory Test</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Black+Ops+One&family=Lilita+One&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a1929;color:#e0e0e0;font-family:'Poppins',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;user-select:none}
+body::before{content:'';position:fixed;inset:0;z-index:-1;background:url('/static/BG.png') center/cover no-repeat;filter:blur(12px) brightness(0.7);}
+.game-wrap{width:100%;max-width:400px;padding:16px;text-align:center;background:#0d3b66;border:2px solid #1d4d6b;border-radius:16px}
+h1{font-size:.8rem;font-weight:600;color:#d6e8f5;margin-bottom:8px;letter-spacing:1px;text-transform:uppercase}
+.stats{display:flex;justify-content:center;gap:20px;margin-bottom:10px}
+.stat{text-align:center}
+.stat-num{font-size:1rem;font-weight:700;color:#4a9ec4}
+.stat-label{font-size:.5rem;color:rgba(255,255,255,0.2);text-transform:uppercase;letter-spacing:1px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:280px;margin:0 auto}
+.cell{aspect-ratio:1;border-radius:12px;cursor:pointer;transition:all .15s;opacity:0.4;border:2px solid transparent}
+.cell.active{opacity:1;transform:scale(1.04)}
+.cell.lit{opacity:1;transform:scale(1.06);border-color:rgba(255,255,255,0.15);box-shadow:0 0 30px rgba(255,255,255,0.06)}
+.cell-0{background:#ef4444}.cell-1{background:#3b82f6}.cell-2{background:#22c55e}.cell-3{background:#eab308}
+.status{font-size:.85rem;font-weight:500;color:rgba(255,255,255,0.2);margin:10px 0;min-height:30px}
+.overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.8);z-index:100}
+.overlay.hidden{display:none}
+.overlay-title{font-size:1rem;font-weight:600;color:#f0f0f0;margin-bottom:6px}
+.overlay-sub{font-size:.65rem;color:rgba(255,255,255,0.3);margin-bottom:12px}
+.btn{padding:8px 24px;border:none;border-radius:8px;font-size:.7rem;font-weight:600;cursor:pointer;transition:all .3s;background:linear-gradient(180deg,#4a9ec4,#0d3b66);color:#fff}
+.btn:hover{transform:scale(1.04);box-shadow:0 4px 20px rgba(74,158,196,0.25)}
+/* ── Opponent tracking overlay ── */
+.opp-tracker{position:fixed;top:12px;right:12px;width:160px;background:#0d3b66;border:1px solid #1d4d6b;border-radius:10px;padding:10px 12px;z-index:1000;display:none}
+.opp-tracker.show{display:block}
+.op-label{font-size:.6rem;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.op-bar{height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;margin-bottom:6px}
+.op-bar-inner{height:100%;background:#7c5cfc;border-radius:2px;transition:width .3s;width:0%}
+.op-val{font-size:.65rem;color:rgba(255,255,255,0.4);font-weight:500}
+@media(max-width:400px){
+  .stats{flex-wrap:wrap;gap:6px}
+  .stat-num{font-size:.85rem}
+  .result-modal{padding:14px;max-width:95%}
+  .result-modal .grid{grid-template-columns:1fr}
+  .words-box{padding:8px 10px;min-height:70px}
+}
+</style>
+</head>
+<body>
+<a href="{% url "dashboard" %}" style="position:fixed;top:10px;left:10px;z-index:9999;display:flex;align-items:center;gap:6px;padding:6px 12px;background:#0d3b66;border:1.5px solid #1d4d6b;border-radius:8px;color:#d6e8f5;font-family:'Poppins',sans-serif;font-size:.7rem;font-weight:600;text-decoration:none;letter-spacing:1px;text-transform:uppercase;transition:all .2s;" onmouseover="this.style.background='#1d4d6b'" onmouseout="this.style.background='#0d3b66'"><i class="fas fa-arrow-left" style="font-size:.65rem;"></i> BACK</a>
+<div class="opp-tracker" id="oppTracker">
+  <div class="op-label">Opponent</div>
+  <div class="op-bar"><div class="op-bar-inner" id="oppBar"></div></div>
+  <div class="op-val" id="oppVal">Waiting...</div>
+</div>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<div class="overlay" id="overlay">
+  <div class="overlay-title">🧠 Memory Test</div>
+  <div class="overlay-sub">Watch the pattern, then repeat it</div>
+  <button class="btn" onclick="startGame()">Start</button>
+</div>
+<div class="game-wrap">
+  <h1>🧠 Memory Sequence</h1>
+  <div class="stats">
+    <div class="stat"><div class="stat-num" id="level">0</div><div class="stat-label">Level</div></div>
+    <div class="stat"><div class="stat-num" id="bestScore">0</div><div class="stat-label">Best</div></div>
+  </div>
+  <div class="grid" id="grid">
+    <div class="cell cell-0" data-idx="0"></div>
+    <div class="cell cell-1" data-idx="1"></div>
+    <div class="cell cell-2" data-idx="2"></div>
+    <div class="cell cell-3" data-idx="3"></div>
+  </div>
+  <div class="status" id="status">Press Start</div>
+<div id="challengeResult" style="display:none;margin-top:12px;padding:12px;border-radius:10px;font-size:.8rem;font-weight:500;"></div>
+</div>
+<script>
+var sequence=[],playerIdx=0,level=0,best=0,isPlaying=false,isInput=false,timeout=null
+var cells=document.querySelectorAll('.cell')
+
+function startGame(){
+  sequence=[];playerIdx=0;level=0;isPlaying=true;isInput=false
+  document.getElementById('overlay').classList.add('hidden')
+  document.getElementById('level').textContent='0'
+  document.getElementById('status').textContent='Watching...'
+  nextRound()
+}
+
+function nextRound(){
+  if(!isPlaying)return
+  level++;isInput=false
+  document.getElementById('level').textContent=level
+  if(level>best){best=level;document.getElementById('bestScore').textContent=best}
+  document.getElementById('status').textContent='Round '+level+' — Watch...'
+  sequence.push(Math.floor(Math.random()*4))
+  playSequence(0)
+}
+
+function playSequence(idx){
+  if(idx>=sequence.length){
+    setTimeout(function(){isInput=true;document.getElementById('status').textContent='Your turn — tap the pattern'},400)
+    return
+  }
+  var cellIdx=sequence[idx]
+  var cell=cells[cellIdx]
+  cell.classList.add('lit')
+  setTimeout(function(){
+    cell.classList.remove('lit')
+    setTimeout(function(){playSequence(idx+1)},200)
+  },500)
+}
+
+cells.forEach(function(cell){
+  cell.addEventListener('click',function(){
+    if(!isInput||!isPlaying)return
+    var idx=parseInt(this.dataset.idx)
+    this.classList.add('active')
+    if(sequence[playerIdx]===idx){
+      playerIdx++
+      setTimeout(function(){cell.classList.remove('active')},200)
+      if(playerIdx>=sequence.length){
+        playerIdx=0;isInput=false
+        document.getElementById('status').textContent='Correct!'
+        var pct = Math.min(100, Math.round((level / (challengeTarget || 1)) * 100));
+        sendProgress({current_level:level, target_level:challengeTarget || 10, percent_complete:pct});
+        if(challengeTarget&&level>=challengeTarget){
+          var finalLevel=level
+          isPlaying=false
+          document.getElementById('overlay').classList.remove('hidden')
+          document.getElementById('overlay').innerHTML='<div class="overlay-title">Challenge Complete!</div><div class="overlay-sub">You reached level '+finalLevel+'</div><button class="btn" onclick="location.reload()">Play Again</button>'
+          if(challengeId)setTimeout(function(){submitResult(finalLevel)},800)
+          sendComplete({level:finalLevel})
+        } else {
+          setTimeout(function(){nextRound()},600)
+        }
+      }
+    } else {
+      this.style.opacity='1';this.style.borderColor='rgba(239,68,68,0.3)'
+      document.getElementById('status').textContent='Game Over — Score: '+(level-1)
+      isPlaying=false;isInput=false
+      var finalScore=level-1
+      sendComplete({level:finalScore})
+      setTimeout(function(){
+        cell.style.opacity='';cell.style.borderColor=''
+        cell.classList.remove('active')
+        document.getElementById('overlay').classList.remove('hidden')
+        document.getElementById('overlay').innerHTML='<div class="overlay-title">Game Over</div><div class="overlay-sub">You reached level '+finalScore+'</div><button class="btn" onclick="location.reload()">Play Again</button>'
+        if(challengeId)setTimeout(function(){submitResult(finalScore)},800)
+      },600)
+    }
+  })
+})
+
+// ── Challenge auto-submit ──
+var challengeId=null,challengeTarget=null
+var p=new URLSearchParams(window.location.search)
+if(p.get('target'))challengeTarget=parseInt(p.get('target'))
+if(p.get('challenge'))challengeId=p.get('challenge')
+function getCSRF(){var m=document.cookie.match(/csrftoken=([^;]+)/);return m?m[1]:''}
+function submitResult(score){
+  if(!challengeId)return
+  var xhr=new XMLHttpRequest()
+  xhr.open('POST','/challenges/verify-memory/',true)
+  xhr.setRequestHeader('Content-Type','application/x-www-form-urlencoded')
+  xhr.setRequestHeader('X-CSRFToken',getCSRF())
+  xhr.onload=function(){
+    try{
+      var r=JSON.parse(xhr.responseText)
+      var div=document.getElementById('challengeResult')
+      div.style.display='block'
+      if(r.passed){
+        div.style.background='rgba(34,197,94,0.1)';div.style.border='1px solid rgba(34,197,94,0.2)'
+        div.style.color='#4ade80';div.textContent='Challenge passed! +'+r.xp+'XP, Rs '+r.coins
+        setTimeout(function(){if(window.opener&&!window.opener.closed)window.opener.location.reload();window.close()},2000)
+      } else {
+        div.style.background='rgba(239,68,68,0.1)';div.style.border='1px solid rgba(239,68,68,0.2)'
+        div.style.color='#f87171';div.textContent='Challenge failed — need level '+challengeTarget
+      }
+    }catch(e){}
+  }
+  xhr.send('challenge_id='+challengeId+'&score='+score+'&target='+challengeTarget)
+}
+
+// ── Multiplayer postMessage API ──
+function sendProgress(data){
+  window.parent.postMessage({type:'progress', data:data}, '*');
+}
+
+function sendComplete(data){
+  window.parent.postMessage({type:'complete', data:data}, '*');
+}
+
+window.addEventListener('message', function(e){
+  var msg = e.data || {};
+  if(msg.type === 'opponent_progress'){
+    var d = msg.data || {};
+    document.getElementById('oppBar').style.width = (d.percent_complete || 0) + '%';
+    document.getElementById('oppVal').textContent = 'Level ' + (d.current_level || 0) + '/' + (d.target_level || (challengeTarget || 10));
+    document.getElementById('oppTracker').classList.add('show');
+  } else if(msg.type === 'start'){
+    startGame();
+  }
+});
+
+window.parent.postMessage({type:'ready'}, '*');
+</script>
+</body>
+</html>

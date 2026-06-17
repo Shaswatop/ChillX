@@ -1,0 +1,610 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Aim Trainer 3D — ChillX</title>
+<link rel="icon" href="/static/LOGO.png">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Black+Ops+One&family=Lilita+One&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+:root {
+  --teal-1: #4a9ec4;
+  --teal-2: #0d3b66;
+  --teal-3: #0a2a4a;
+  --teal-soft: #d6e8f5;
+  --teal-glow: rgba(13,59,102, 0.3);
+  --ink: #2a2a3a;
+  --ink-dim: #0a2a4a;
+  --ink-mute: #3a6a7a;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Poppins', sans-serif;
+  background: #0a1929;
+}
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: url('/static/BG.png') center/cover no-repeat;
+  filter: blur(12px) brightness(0.7);
+}
+
+.chillx-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10000;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: #0d3b66;
+  border-bottom: 2px solid #1d4d6b;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  transition: transform 0.3s ease;
+}
+
+.chillx-header.hidden { transform: translateY(-100%); }
+
+.chillx-header .left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.chillx-back {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0d3b66;
+  border: 1.5px solid #1d4d6b;
+  color: #d6e8f5;
+  text-decoration: none;
+  font-size: 0.78rem;
+  transition: all 0.25s;
+  cursor: pointer;
+}
+
+.chillx-back:hover {
+  background: #1d4d6b;
+  color: #fff;
+  transform: scale(1.05);
+}
+
+.chillx-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Black Ops One', cursive;
+  font-size: 0.95rem;
+  color: var(--ink);
+  text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+}
+
+.chillx-brand img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--teal-soft), #bedbf0);
+  border: 2px solid var(--teal-2);
+  padding: 2px;
+}
+
+.chillx-header .right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chillx-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: linear-gradient(180deg, var(--teal-1), var(--teal-2));
+  border: 1.5px solid var(--teal-3);
+  border-radius: 14px;
+  color: var(--ink);
+  font-family: 'Black Ops One', cursive;
+  font-size: 0.72rem;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
+}
+
+.chillx-pill i { font-size: 0.65rem; }
+
+.chillx-toggle {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 1.5px solid var(--teal-3);
+  color: var(--ink-dim);
+  cursor: pointer;
+  font-size: 0.78rem;
+  transition: all 0.25s;
+}
+
+.chillx-toggle:hover {
+  background: var(--teal-soft);
+  color: var(--ink);
+}
+
+.aim-app-wrap {
+  position: absolute;
+  top: 52px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+}
+
+.aim-app-wrap iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  background: #0f1115;
+}
+
+  .aim-fullscreen .chillx-header { display: none; }
+  .aim-fullscreen .aim-app-wrap { top: 0; }
+
+@media(max-width:400px){
+  .stats{flex-wrap:wrap;gap:6px}
+  .stat-num{font-size:.85rem}
+  .result-modal{padding:14px;max-width:95%}
+  .result-modal .grid{grid-template-columns:1fr}
+  .words-box{padding:8px 10px;min-height:70px}
+}
+</style>
+</head>
+<body class="{% if request.GET.fs == '1' %}aim-fullscreen{% endif %}">
+
+<div class="chillx-header" id="chillxHeader">
+  <div class="left">
+    <a href="{% url 'dashboard' %}" class="chillx-back" title="Back to Dashboard">
+      <i class="fas fa-arrow-left"></i>
+    </a>
+    <div class="chillx-brand">
+      <img src="{% static 'LOGO.png' %}" alt="ChillX">
+      <span>CHILLX · AIM.TRAIN</span>
+    </div>
+  </div>
+  <div class="right">
+    <span class="chillx-pill"><i class="fas fa-crosshairs"></i> 3D</span>
+    <button class="chillx-toggle" id="hideHeaderBtn" title="Hide header (H)">
+      <i class="fas fa-eye-slash"></i>
+    </button>
+    <a href="{% url 'dashboard' %}" class="chillx-toggle" title="Exit (Esc)">
+      <i class="fas fa-times"></i>
+    </a>
+  </div>
+</div>
+
+<div class="aim-app-wrap" id="aimWrap">
+  <iframe id="aimFrame" src="{% static 'aim-trainer/index.html' %}" allow="autoplay; fullscreen"></iframe>
+</div>
+
+
+<script>
+(function() {
+  var header = document.getElementById('chillxHeader');
+  var hideBtn = document.getElementById('hideHeaderBtn');
+  var frame = document.getElementById('aimFrame');
+  var hidden = false;
+
+  function toggleHeader() {
+    hidden = !hidden;
+    header.classList.toggle('hidden', hidden);
+    hideBtn.innerHTML = hidden
+      ? '<i class="fas fa-eye"></i>'
+      : '<i class="fas fa-eye-slash"></i>';
+  }
+
+  hideBtn.addEventListener('click', toggleHeader);
+
+  // Inject gold theme override into the AIM iframe after load
+  frame.addEventListener('load', function() {
+    try {
+      var doc = frame.contentDocument || frame.contentWindow.document;
+      if (!doc) return;
+
+      // Gold theme override stylesheet
+      var css = `
+:root {
+  --accent: #0d3b66 !important;
+  --accent-warm: #4a9ec4 !important;
+  --accent-hot: #0d3b66 !important;
+  --accent-dim: #0a2a4a !important;
+}
+
+/* Menu background overlay */
+.overlay--menu {
+  background:
+    radial-gradient(circle at 50% 25%, rgba(255,248,220,0.4), transparent 30%),
+    linear-gradient(180deg, #d6e8f5 0%, #0d3b66 100%) !important;
+}
+
+/* Menu title */
+.menu__title {
+  color: #2a2a3a !important;
+  font-family: 'Black Ops One', 'Segoe UI', cursive !important;
+  text-shadow: 0 2px 0 rgba(255,255,255,0.5) !important;
+  letter-spacing: 2px !important;
+}
+.menu__title-accent {
+  color: #0a2a4a !important;
+}
+
+/* Mode cards */
+.mode-card {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 2px solid rgba(10,74,92, 0.3) !important;
+  color: #2a2a3a !important;
+}
+.mode-card:hover {
+  border-color: #0d3b66 !important;
+  background: #d6e8f5 !important;
+  transform: translateY(-2px) !important;
+}
+.mode-card.is-selected,
+.mode-card.active,
+.mode-card[data-selected="true"] {
+  background: linear-gradient(180deg, #d6e8f5, #bedbf0) !important;
+  border-color: #0d3b66 !important;
+  box-shadow: 0 0 0 3px rgba(13,59,102,0.4) !important;
+}
+.mode-card__title { color: #2a2a3a !important; }
+.mode-card__description { color: #0a2a4a !important; }
+.mode-card__breadcrumb {
+  color: #0a2a4a !important;
+  font-weight: 700 !important;
+  letter-spacing: 1px !important;
+}
+
+/* Primary button (Play) */
+.primary-button {
+  background: linear-gradient(180deg, #4a9ec4 0%, #0d3b66 50%, #0a2a4a 100%) !important;
+  border: 3px solid #0a2a4a !important;
+  color: #2a2a3a !important;
+  font-family: 'Black Ops One', cursive !important;
+  letter-spacing: 1.5px !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.4) !important;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.4), 0 4px 12px rgba(0,0,0,0.25) !important;
+}
+.primary-button:hover { filter: brightness(1.08) !important; transform: translateY(-1px) !important; }
+
+/* Secondary button (Settings) */
+.secondary-button {
+  background: #fff !important;
+  color: #0a2a4a !important;
+  border: 2px solid #0a2a4a !important;
+  font-family: 'Black Ops One', cursive !important;
+  letter-spacing: 1px !important;
+}
+.secondary-button:hover {
+  background: #d6e8f5 !important;
+  color: #2a2a3a !important;
+}
+
+/* Key badges in menu footer */
+.key-badge {
+  background: linear-gradient(180deg, #4a9ec4, #0d3b66) !important;
+  color: #2a2a3a !important;
+  border: 1.5px solid #0a2a4a !important;
+  font-family: 'Black Ops One', cursive !important;
+}
+
+/* HUD (in-game) */
+.hud {
+  color: #4a9ec4 !important;
+}
+.hud__top-right .hud-stat,
+.hud__bottom-left .hud-stat,
+.hud__bottom-right .hud-stat,
+.hud__label { color: #4a9ec4 !important; }
+.hud__value { color: #fff !important; text-shadow: 0 0 8px rgba(92,196,216, 0.6) !important; }
+.hud__mode-card {
+  background: rgba(255, 248, 220, 0.95) !important;
+  border: 2px solid #0d3b66 !important;
+  color: #2a2a3a !important;
+}
+.hud__mode-card .mode-card__breadcrumb { color: #0a2a4a !important; }
+.hud__mode-card .mode-card__title { color: #2a2a3a !important; }
+.hud__mode-card .mode-card__description { color: #0a2a4a !important; }
+
+/* Crosshair */
+.crosshair__arm { background: #4a9ec4 !important; }
+.crosshair__arm::before,
+.crosshair__arm::after { background: #4a9ec4 !important; }
+
+/* Results card */
+.results-card {
+  background: linear-gradient(180deg, #d6e8f5 0%, #bedbf0 100%) !important;
+  border: 3px solid #0d3b66 !important;
+  color: #2a2a3a !important;
+  box-shadow: 0 0 40px rgba(13,59,102,0.4), 0 0 0 4px rgba(0,0,0,0.2) !important;
+}
+.results-card__header {
+  border-bottom: 2px solid rgba(10,74,92, 0.2) !important;
+  color: #2a2a3a !important;
+}
+.results-card__mode {
+  color: #0a2a4a !important;
+  font-family: 'Black Ops One', cursive !important;
+  letter-spacing: 1.5px !important;
+}
+.results-card__badge {
+  background: linear-gradient(180deg, #4a9ec4, #0d3b66) !important;
+  color: #2a2a3a !important;
+  border: 2px solid #0a2a4a !important;
+  font-family: 'Black Ops One', cursive !important;
+}
+.results-card__score-value {
+  color: #0a2a4a !important;
+  text-shadow: 0 2px 0 rgba(255,255,255,0.5) !important;
+  font-family: 'Black Ops One', cursive !important;
+}
+.results-card__score-label,
+.results-card__best { color: #0a2a4a !important; }
+
+.result-stat {
+  background: rgba(255,255,255,0.7) !important;
+  border: 1px solid rgba(10,74,92,0.3) !important;
+  color: #2a2a3a !important;
+}
+.result-stat span { color: #0a2a4a !important; }
+.result-stat strong { color: #2a2a3a !important; }
+
+.results-card__buttons .primary-button,
+.results-card__buttons .secondary-button { width: 100% !important; }
+
+/* Settings panel */
+.settings-panel {
+  background: linear-gradient(180deg, #d6e8f5, #bedbf0) !important;
+  border: 3px solid #0d3b66 !important;
+  color: #2a2a3a !important;
+  box-shadow: 0 0 40px rgba(13,59,102,0.4) !important;
+}
+.settings-panel__header {
+  border-bottom: 2px solid rgba(10,74,92, 0.2) !important;
+  color: #2a2a3a !important;
+}
+.settings-panel__eyebrow {
+  color: #0a2a4a !important;
+  font-family: 'Black Ops One', cursive !important;
+  letter-spacing: 2px !important;
+}
+.settings-panel__title { color: #2a2a3a !important; font-family: 'Black Ops One', cursive !important; }
+.setting-group__label { color: #0a2a4a !important; }
+.setting-group__value { color: #2a2a3a !important; font-weight: 700 !important; }
+.setting-row__label { color: #0a2a4a !important; }
+
+/* Toggle switch */
+.toggle input:checked + .toggle__track,
+.toggle.is-on .toggle__track {
+  background: linear-gradient(180deg, #4a9ec4, #0d3b66) !important;
+  border-color: #0a2a4a !important;
+}
+.toggle__track { background: #d4c490 !important; border: 1.5px solid #0a2a4a !important; }
+
+/* Range slider */
+input[type="range"] {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  background: transparent !important;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  background: linear-gradient(90deg, #0a2a4a, #0d3b66, #4a9ec4) !important;
+  height: 6px !important;
+  border-radius: 3px !important;
+  border: 1px solid #0a2a4a !important;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  background: linear-gradient(180deg, #4a9ec4, #0d3b66) !important;
+  border: 2px solid #0a2a4a !important;
+  width: 18px !important;
+  height: 18px !important;
+  border-radius: 50% !important;
+  margin-top: -7px !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
+  cursor: pointer !important;
+}
+input[type="range"]::-moz-range-track {
+  background: linear-gradient(90deg, #0a2a4a, #0d3b66, #4a9ec4) !important;
+  height: 6px !important;
+  border-radius: 3px !important;
+  border: 1px solid #0a2a4a !important;
+}
+input[type="range"]::-moz-range-thumb {
+  background: linear-gradient(180deg, #4a9ec4, #0d3b66) !important;
+  border: 2px solid #0a2a4a !important;
+  width: 18px !important;
+  height: 18px !important;
+  border-radius: 50% !important;
+  cursor: pointer !important;
+}
+
+/* Countdown */
+.countdown {
+  color: #4a9ec4 !important;
+  text-shadow: 0 0 30px rgba(92,196,216, 0.8) !important;
+  font-family: 'Black Ops One', cursive !important;
+}
+
+/* Toast */
+.toast,
+.flash-message,
+.aim-toast {
+  background: linear-gradient(180deg, #4a9ec4, #0d3b66) !important;
+  border: 2px solid #0a2a4a !important;
+  color: #2a2a3a !important;
+}
+
+/* Pause menu (if any) */
+.pause-menu,
+.overlay--pause {
+  background: rgba(255, 248, 220, 0.97) !important;
+  border: 3px solid #0d3b66 !important;
+  color: #2a2a3a !important;
+}
+
+/* Body fonts */
+body, .app, .menu, .hud, .settings-panel, .results-card {
+  font-family: 'Poppins', 'Segoe UI', system-ui, sans-serif !important;
+}
+.menu__title,
+.results-card__mode,
+.results-card__score-value,
+.primary-button,
+.secondary-button,
+.key-badge,
+.countdown,
+.settings-panel__eyebrow,
+.settings-panel__title,
+.mode-card__breadcrumb,
+.hud__label {
+  font-family: 'Black Ops One', cursive !important;
+}
+      `;
+
+      var style = doc.createElement('style');
+      style.id = 'chillx-gold-theme';
+      style.textContent = css;
+      doc.head.appendChild(style);
+
+      // Re-style any link to "index.html" so back goes to parent
+      var links = doc.querySelectorAll('a[href*="index.html"], a[href*="../"], a.back, a.go-back');
+      links.forEach(function(a) {
+        a.addEventListener('click', function(ev) {
+          ev.preventDefault();
+          window.top.location.href = '{% url "dashboard" %}';
+        });
+      });
+
+      // Some AIM trainers have an Escape handler; ensure parent nav works
+      doc.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          // Don't double-fire; only navigate if not in a sub-state
+        }
+      });
+    } catch (err) {
+      console.warn('ChillX theme inject failed:', err);
+    }
+  });
+
+  // Press H to toggle, Esc to exit
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'h' || e.key === 'H') {
+      toggleHeader();
+    } else if (e.key === 'Escape') {
+      window.location.href = '{% url "dashboard" %}';
+    }
+  });
+})();
+</script>
+{% if request.GET.challenge %}
+<style>
+.challenge-bar{position:fixed;top:52px;left:0;right:0;z-index:9999;display:flex;align-items:center;justify-content:space-between;padding:6px 16px;background:#0d3b66;border-bottom:2px solid #4a9ec4;font-size:.75rem;color:#d6e8f5}
+.challenge-bar .target{font-weight:700;color:#fff;font-family:'Black Ops One',cursive}
+.challenge-bar .target span{color:#fbbf24}
+.challenge-overlay{position:fixed;inset:0;z-index:20000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.85)}
+.challenge-overlay.show{display:flex}
+.challenge-card{background:#0d3b66;border:1px solid #1d4d6b;border-radius:20px;padding:30px 34px;max-width:380px;width:90%;text-align:center}
+.challenge-card h2{font-family:'Black Ops One',cursive;font-size:1.2rem;color:#d6e8f5;margin-bottom:4px}
+.challenge-card .score{font-size:2.5rem;font-weight:700;color:#fbbf24;margin:8px 0}
+.challenge-card .detail{font-size:.7rem;color:rgba(214,232,245,0.4);margin-bottom:12px}
+.challenge-card .result{display:none;padding:8px;border-radius:8px;font-size:.75rem;font-weight:600;margin-bottom:10px}
+.challenge-card .result.passed{display:block;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.1);color:#22c55e}
+.challenge-card .result.failed{display:block;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.1);color:#f87171}
+.challenge-card .btn{padding:9px 24px;border-radius:10px;font-size:.75rem;font-weight:600;cursor:pointer;transition:all .3s;font-family:'Black Ops One',cursive;margin:4px}
+.challenge-card .btn-submit{background:linear-gradient(180deg,#4a9ec4,#0d3b66);border:2px solid #0a2a4a;color:#d6e8f5}
+.challenge-card .btn-submit:hover{filter:brightness(1.1)}
+.challenge-card .btn-back{background:rgba(74,158,196,0.1);border:1px solid rgba(74,158,196,0.2);color:#4a9ec4}
+.challenge-card .btn-back:hover{background:rgba(74,158,196,0.15)}
+</style>
+
+<div class="challenge-bar" id="challengeBar">
+  <span>🎯 Target: <span class="target"><span id="targetDisplay">{{ request.GET.target }}</span> pts</span></span>
+  <span style="font-size:.65rem;opacity:0.6">Play, then submit your score</span>
+</div>
+
+<div class="challenge-overlay" id="challengeOverlay">
+  <div class="challenge-card">
+    <h2>Results</h2>
+    <div class="score" id="submitScore">—</div>
+    <div class="detail" id="submitDetail">Accuracy: — | Hits: —</div>
+    <div class="result" id="submitResult"></div>
+    <div>
+      <button class="btn btn-submit" id="submitBtn" onclick="submitAimScore()">✓ Submit Score</button>
+      <button class="btn btn-back" onclick="window.location.href='/challenges/'">← Back</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var challengeId="{{ request.GET.challenge }}",challengeTarget=parseInt("{{ request.GET.target }}")||0,scorePoll=null,lastScore=null,lastAcc="—",lastHits=0
+
+function pollResults(){
+  try{
+    var doc=document.getElementById('aimFrame').contentDocument
+    if(!doc)return
+    var overlay=doc.getElementById('resultsOverlay')
+    if(overlay&&!overlay.classList.contains('hidden')){
+      var s=doc.getElementById('resultsScore'),a=doc.getElementById('resultsAccuracy'),h=doc.getElementById('resultsHits')
+      if(s&&s.textContent!=='0'){
+        lastScore=parseInt(s.textContent)||0;lastAcc=(a?a.textContent:'—');lastHits=parseInt(h?h.textContent:'0')||0
+        document.getElementById('submitScore').textContent=lastScore+' pts'
+        document.getElementById('submitDetail').textContent='Accuracy: '+lastAcc+' | Hits: '+lastHits
+        if(lastScore>=challengeTarget)document.getElementById('submitScore').style.color='#22c55e'
+        document.getElementById('challengeOverlay').classList.add('show')
+        if(scorePoll){clearInterval(scorePoll);scorePoll=null}
+      }
+    }
+  }catch(e){}
+}
+
+if(challengeId){scorePoll=setInterval(pollResults,800);document.getElementById('challengeBar').style.display='flex'}
+
+function submitAimScore(){
+  if(!lastScore){document.getElementById('submitResult').textContent='Finish a round first!';document.getElementById('submitResult').className='result failed';return}
+  var xhr=new XMLHttpRequest()
+  xhr.open('POST','/challenges/verify-aim3d/',true)
+  xhr.setRequestHeader('Content-Type','application/x-www-form-urlencoded')
+  xhr.setRequestHeader('X-CSRFToken',getCSRF())
+  xhr.onload=function(){
+    if(xhr.status===200){
+      var d=JSON.parse(xhr.responseText)
+      document.getElementById('submitResult').textContent=d.passed?'✓ Completed! +'+d.xp+' XP, Rs '+d.coins:'Failed — '+lastScore+'/'+challengeTarget
+      document.getElementById('submitResult').className='result '+(d.passed?'passed':'failed')
+      document.getElementById('submitBtn').disabled=true;document.getElementById('submitBtn').style.opacity=0.5
+       if(d.passed)setTimeout(function(){if(window.opener&&!window.opener.closed)window.opener.location.reload();window.close()},2000)
+    }
+  }
+  xhr.send('challenge_id='+challengeId+'&score='+lastScore+'&target='+challengeTarget+'&accuracy='+encodeURIComponent(lastAcc)+'&hits='+lastHits)
+}
+
+function getCSRF(){var n='csrftoken',m=document.cookie.match('(^|;)\\s*'+n+'\\s*=\\s*([^;]+)');return m?m.pop():''}
+</script>
+{% endif %}
+
+</body>
+</html>

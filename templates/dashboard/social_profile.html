@@ -1,0 +1,279 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>{{ profile_user.display_name|default:profile_user.username }} — Profile</title>
+<link rel="icon" href="/static/LOGO.png">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Black+Ops+One&family=Lilita+One&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script>
+(function(){
+  var anims=['slideLeft','slideRight','slideUp','slideDown','fadeZoom','fadeRotate'];
+  var picked=anims[Math.floor(Math.random()*anims.length)];
+  document.documentElement.style.setProperty('--vt-old',picked+'Out');
+  document.documentElement.style.setProperty('--vt-new',picked+'In');
+})();
+</script>
+<style>
+@view-transition{navigation:auto}
+:root{view-transition-name:page-content;--vt-old:slideLeftOut;--vt-new:slideLeftIn}
+::view-transition-old(page-content){animation:var(--vt-old) .4s ease-in forwards}
+::view-transition-new(page-content){animation:var(--vt-new) .4s ease-out}
+@keyframes slideLeftOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(-40px)}}
+@keyframes slideLeftIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideRightOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(40px)}}
+@keyframes slideRightIn{from{opacity:0;transform:translateX(-40px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideUpOut{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-40px)}}
+@keyframes slideUpIn{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideDownOut{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(40px)}}
+@keyframes slideDownIn{from{opacity:0;transform:translateY(-40px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeZoomOut{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(0.92)}}
+@keyframes fadeZoomIn{from{opacity:0;transform:scale(1.08)}to{opacity:1;transform:scale(1)}}
+@keyframes fadeRotateOut{from{opacity:1;transform:rotate(0) scale(1)}to{opacity:0;transform:rotate(-2deg) scale(0.95)}}
+@keyframes fadeRotateIn{from{opacity:0;transform:rotate(2deg) scale(1.05)}to{opacity:1;transform:rotate(0) scale(1)}}
+:root{--fb-bg:#f0f2f5;--fb-card:#fff;--fb-hover:rgba(0,0,0,0.04);--fb-text:#2a2a3a;--fb-text-sec:rgba(42,42,58,0.5);--fb-border:rgba(0,0,0,0.08);--fb-primary:#2d88ff;--fb-like:#2d88ff;--fb-positive:#31a24c;}
+.popup-overlay{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.35);display:none;align-items:center;justify-content:center;animation:fadeIn .2s ease;}
+.popup-overlay.open{display:flex;}
+.popup-box{background:var(--fb-card);border:1px solid var(--fb-border);border-radius:20px;padding:28px 32px 24px;width:90%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.15);text-align:center;animation:popUp .25s cubic-bezier(0.34,1.56,0.64,1);}
+.popup-icon{width:56px;height:56px;border-radius:50%;background:rgba(45,136,255,0.12);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:1.4rem;color:var(--fb-primary);}
+.popup-title{font-size:1.05rem;font-weight:700;color:var(--fb-text);margin-bottom:8px;}
+.popup-msg{font-size:.85rem;color:var(--fb-text-sec);line-height:1.5;margin-bottom:22px;}
+.popup-actions{display:flex;gap:10px;justify-content:center;}
+.popup-btn{padding:9px 24px;border-radius:12px;cursor:pointer;font-size:.85rem;font-weight:600;transition:all .2s;border:none;font-family:inherit;}
+.popup-btn.cancel{background:var(--fb-hover);color:var(--fb-text-sec);}
+.popup-btn.cancel:hover{background:var(--fb-border);color:var(--fb-text);}
+.popup-btn.confirm{background:var(--fb-primary);color:#fff;box-shadow:0 4px 15px rgba(45,136,255,0.15);}
+.popup-btn.confirm:hover{transform:translateY(-1px);box-shadow:0 6px 25px rgba(45,136,255,0.2);}
+.popup-btn.danger{background:linear-gradient(135deg,#ff4757,#ff6b81);color:#fff;box-shadow:0 4px 15px rgba(255,71,87,0.15);}
+.popup-btn.danger:hover{transform:translateY(-1px);box-shadow:0 6px 25px rgba(255,71,87,0.2);}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+@keyframes popUp{from{opacity:0;transform:scale(.85) translateY(20px);}to{opacity:1;transform:scale(1) translateY(0);}}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;}
+body{background:#f0f2f5;font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;}
+body>*{position:relative;z-index:1;}
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.12);border-radius:4px;}
+.top-nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:var(--fb-card);border-bottom:1px solid var(--fb-border);}
+.nav-left{display:flex;align-items:center;gap:10px;}
+.nav-back{display:flex;align-items:center;gap:6px;color:var(--fb-text-sec);text-decoration:none;font-size:.75rem;font-weight:600;}
+.nav-back:hover{color:var(--fb-text);}
+.nav-title{font-size:.85rem;color:var(--fb-text);font-weight:700;}
+.main-wrap{display:flex;height:100%;padding-top:56px;}
+.sidebar{width:280px;min-width:280px;padding:16px 8px;overflow-y:auto;background:var(--fb-bg);border-right:1px solid var(--fb-border);}
+.sidebar .ls-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;color:var(--fb-text);text-decoration:none;font-size:.85rem;font-weight:500;transition:background .15s;}
+.sidebar .ls-item:hover{background:var(--fb-hover);}
+.sidebar .ls-item i{width:20px;text-align:center;font-size:1rem;color:var(--fb-primary);}
+.content{flex:1;overflow-y:auto;padding:20px;display:flex;justify-content:center;}
+.content-inner{width:100%;max-width:680px;}
+/* Profile header */
+.profile-header{background:var(--fb-card);border-radius:12px;overflow:hidden;border:1px solid var(--fb-border);margin-bottom:16px;}
+.profile-cover{height:200px;background:linear-gradient(135deg,#2d88ff,#6c5ce7);position:relative;}
+.profile-avatar-wrap{position:absolute;bottom:-50px;left:24px;width:100px;height:100px;border-radius:50%;overflow:hidden;border:4px solid var(--fb-card);background:var(--fb-hover);display:flex;align-items:center;justify-content:center;}
+.profile-avatar-wrap img{width:100%;height:100%;object-fit:cover;}
+.profile-avatar-wrap span{font-size:2rem;font-weight:700;color:#fff;}
+.profile-info-wrap{padding:60px 24px 20px;}
+.profile-display-name{font-size:1.4rem;font-weight:700;color:var(--fb-text);}
+.profile-username{font-size:.85rem;color:var(--fb-text-sec);margin-top:2px;}
+.profile-title-tag{display:inline-block;margin-top:8px;padding:4px 12px;border-radius:20px;background:rgba(45,136,255,0.15);color:var(--fb-primary);font-size:.75rem;font-weight:600;}
+.profile-bio{color:var(--fb-text);font-size:.85rem;margin-top:10px;line-height:1.5;}
+.profile-stats{display:flex;gap:24px;margin-top:14px;padding-top:14px;border-top:1px solid var(--fb-border);}
+.stat-item{text-align:center;}
+.stat-value{font-size:1.1rem;font-weight:700;color:var(--fb-text);}
+.stat-label{font-size:.7rem;color:var(--fb-text-sec);text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
+/* Profile action buttons */
+.profile-actions{display:flex;gap:8px;margin-top:14px;}
+.profile-btn{padding:8px 20px;border-radius:8px;border:none;font-size:.8rem;font-weight:600;cursor:pointer;transition:opacity .2s;}
+.profile-btn.primary{background:var(--fb-primary);color:#fff;}
+.profile-btn.primary:hover{opacity:.85;}
+.profile-btn.secondary{background:var(--fb-hover);color:var(--fb-text);}
+.profile-btn.secondary:hover{opacity:.85;}
+/* Section cards */
+.section-card{background:var(--fb-card);border-radius:12px;padding:20px;border:1px solid var(--fb-border);margin-bottom:16px;}
+.section-title{font-size:1rem;font-weight:700;color:var(--fb-text);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.section-title i{color:var(--fb-primary);}
+/* Interests */
+.interest-tags{display:flex;flex-wrap:wrap;gap:8px;}
+.interest-tag{padding:6px 14px;border-radius:20px;background:rgba(45,136,255,0.1);color:var(--fb-primary);font-size:.8rem;font-weight:500;border:1px solid rgba(45,136,255,0.2);}
+/* Posts list */
+.post-item{padding:14px 0;border-bottom:1px solid var(--fb-border);}
+.post-item:last-child{border-bottom:none;}
+.post-category{display:inline-block;padding:2px 10px;border-radius:12px;background:rgba(45,136,255,0.1);color:var(--fb-primary);font-size:.7rem;font-weight:600;text-transform:uppercase;}
+.post-title{color:var(--fb-text);font-size:.9rem;font-weight:600;margin-top:6px;}
+.post-desc{color:var(--fb-text-sec);font-size:.8rem;margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.post-time{color:var(--fb-text-sec);font-size:.7rem;margin-top:6px;}
+/* Stories mini */
+.story-mini{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:8px;background:var(--fb-hover);color:var(--fb-text);font-size:.8rem;margin-right:8px;margin-bottom:8px;}
+.story-mini i{color:var(--fb-primary);}
+/* Rank badge */
+.rank-badge{display:inline-block;padding:3px 12px;border-radius:20px;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;}
+.rank-common{background:linear-gradient(135deg,#6b7280,#9ca3af);color:#fff;}
+.rank-rare{background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;}
+.rank-epic{background:linear-gradient(135deg,#7c3aed,#8b5cf6);color:#fff;}
+.rank-legendary{background:linear-gradient(135deg,#d97706,#f59e0b);color:#fff;}
+.no-content{text-align:center;padding:30px;color:var(--fb-text-sec);font-size:.85rem;}
+</style>
+</head>
+<body>
+{% include 'interval_tracker.html' %}
+<div id="app">
+<div class="page-transition" id="pageTransition"></div>
+<nav class="top-nav">
+  <div class="nav-left">
+    <a href="{% url 'social' %}" class="nav-back"><i class="fas fa-arrow-left"></i> Social</a>
+    <span class="nav-title">Profile</span>
+  </div>
+  <div class="nav-right"></div>
+</nav>
+<div class="main-wrap">
+  <aside class="sidebar">
+    <a href="{% url 'home' %}" class="ls-item"><i class="fas fa-home"></i><span>Home</span></a>
+    <a href="{% url 'social' %}" class="ls-item"><i class="fas fa-users"></i><span>Social Feed</span></a>
+    <a href="{% url 'chatx' %}" class="ls-item"><i class="fas fa-comment-dots"></i><span>ChatX</span></a>
+  </aside>
+  <div class="content">
+    <div class="content-inner">
+      <!-- Profile Header -->
+      <div class="profile-header">
+        <div class="profile-cover">
+          <div class="profile-avatar-wrap">
+            {% if profile_user.avatar_base64 %}
+            <img src="/api/shop/avatar/?user_id={{ profile_user.id }}&t={% now "U" %}" alt="">
+            {% else %}
+            <span>{{ profile_user.display_name|default:profile_user.username|first|upper }}</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="profile-info-wrap">
+          <div class="profile-display-name">{{ profile_user.display_name|default:profile_user.username }}</div>
+          <div class="profile-username">@{{ profile_user.username }}</div>
+          {% if profile_user.title %}
+          <div class="profile-title-tag">{{ profile_user.title }}</div>
+          {% endif %}
+          {% if profile_user.bio %}
+          <div class="profile-bio">{{ profile_user.bio }}</div>
+          {% endif %}
+          <div class="profile-stats">
+            <div class="stat-item">
+              <div class="stat-value">{{ profile_user.level }}</div>
+              <div class="stat-label">Level</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">{{ profile_user.xp }}</div>
+              <div class="stat-label">XP</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">Rs {{ profile_user.coins }}</div>
+              <div class="stat-label">Money</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">{{ profile_user.diamonds }}</div>
+              <div class="stat-label">Diamonds</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">{{ posts|length }}</div>
+              <div class="stat-label">Posts</div>
+            </div>
+          </div>
+          {% if not is_own %}
+          <div class="profile-actions">
+            {% if is_friend %}
+            <button class="profile-btn secondary" onclick="location.href='{% url 'social' %}'"><i class="fas fa-check"></i> Friends</button>
+            {% else %}
+            <button class="profile-btn primary" onclick="frSendRequest({{ profile_user.id }})"><i class="fas fa-user-plus"></i> Add Friend</button>
+            {% endif %}
+          </div>
+          {% endif %}
+          {% if profile_user.flex_effect %}
+          <div style="margin-top:10px;"><span class="rank-badge rank-{{ profile_user.flex_effect }}">{{ profile_user.flex_effect }}</span></div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Interests -->
+      {% if interests %}
+      <div class="section-card">
+        <div class="section-title"><i class="fas fa-star"></i> Interests</div>
+        <div class="interest-tags">
+          {% for interest in interests %}
+          <span class="interest-tag">{{ interest }}</span>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Stories -->
+      {% if stories %}
+      <div class="section-card">
+        <div class="section-title"><i class="fas fa-story"></i> Recent Stories</div>
+        {% for story in stories %}
+        <div class="story-mini">
+          <i class="fas fa-circle" style="color:var(--fb-primary);font-size:.5rem;"></i>
+          {{ story.text|truncatechars:60|default:"Photo story" }}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Posts -->
+      <div class="section-card">
+        <div class="section-title"><i class="fas fa-newspaper"></i> Posts ({{ posts|length }})</div>
+        {% if posts %}
+        {% for post in posts %}
+        <div class="post-item">
+          <span class="post-category">{{ post.category }}</span>
+          <div class="post-title">{{ post.title }}</div>
+          {% if post.description %}<div class="post-desc">{{ post.description }}</div>{% endif %}
+          <div class="post-time">{{ post.created_at|timesince }} ago</div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="no-content">No posts yet</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+document.getElementById('pageTransition')?.classList.add('fade-out');
+function frSendRequest(userId) {
+  fetch('/social/friends/request/'+userId+'/', {method:'POST', headers:{'X-CSRFToken':'{{ csrf_token }}'}})
+  .then(r=>r.json()).then(d=>{if(d.ok)showAlert('Friend request sent!');else showAlert(d.error);});
+}
+let popupResolve=null;
+function showPopup(title,msg,icon,confirmLabel,confirmClass){
+  return new Promise(function(resolve){
+    popupResolve=resolve;
+    document.getElementById('popupTitle').textContent=title;
+    document.getElementById('popupMsg').textContent=msg;
+    document.getElementById('popupIcon').innerHTML='<i class="fas fa-'+icon+'"></i>';
+    var btn=document.getElementById('popupConfirmBtn');
+    btn.textContent=confirmLabel||'Confirm';
+    btn.className='popup-btn '+(confirmClass||'confirm');
+    document.getElementById('popupOverlay').classList.add('open');
+  });
+}
+function closePopup(){
+  document.getElementById('popupOverlay').classList.remove('open');
+  if(popupResolve){popupResolve(false);popupResolve=null;}
+}
+function confirmPopup(){
+  document.getElementById('popupOverlay').classList.remove('open');
+  if(popupResolve){popupResolve(true);popupResolve=null;}
+}
+function showConfirm(msg,confirmLabel,confirmClass){
+  return showPopup('Are you sure?',msg,'exclamation-triangle',confirmLabel||'Delete',confirmClass||'danger');
+}
+function showAlert(msg){
+  return showPopup('Notice',msg,'info-circle','OK','confirm');
+}
+</script>
+</div>
+{% include 'invite_poll.html' %}
+{% include 'call_components.html' %}
+{% include 'chathead.html' %}
+</body>
+</html>

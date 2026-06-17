@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Chill Zone — ChallengeHub{% endblock %}
+
+{% block extra_styles %}
+<style>
+  :root{
+    --bg:#f0f2f5;--surface:#fff;--text:#2a2a3a;
+    --teal-1:#4a9ec4;--teal-2:#0d3b66;--teal-3:#0a2a4a;
+    --teal-soft:#d6e8f5;--teal-glow:rgba(13,59,102,0.15);
+    --ink:#2a2a3a;--ink-dim:#0a2a4a;
+  }
+  body{
+    background:#f0f2f5 !important;
+    color:var(--text) !important;
+  }
+  body::before{
+    background:rgba(240,242,245,0.6) !important;
+  }
+  ::-webkit-scrollbar{width:8px;}
+  ::-webkit-scrollbar-track{background:rgba(0,0,0,0.06);}
+  ::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#c0c8d4,#a0aab6);border-radius:4px;}
+
+  .glass-card{
+    background:#fff !important;
+    backdrop-filter:none !important;
+    -webkit-backdrop-filter:none !important;
+    border:1.5px solid rgba(13,59,102,0.12);
+    box-shadow:0 4px 20px rgba(0,0,0,0.06);
+  }
+  .glass-card-dark{
+    background:#fff !important;
+    backdrop-filter:none !important;
+    -webkit-backdrop-filter:none !important;
+    border:1.5px solid rgba(13,59,102,0.12);
+    color:var(--text) !important;
+    box-shadow:0 4px 20px rgba(0,0,0,0.06);
+  }
+
+  .navbar-chillx{
+    background:linear-gradient(180deg,#fff,#f8f9fb) !important;
+    backdrop-filter:none !important;
+    -webkit-backdrop-filter:none !important;
+    box-shadow:0 2px 12px rgba(0,0,0,0.06) !important;
+  }
+
+  .section-title{
+    color:var(--text) !important;
+    text-shadow:none !important;
+  }
+
+  .btn-teal{
+    box-shadow:inset 0 2px 0 rgba(255,255,255,0.5),0 4px 12px rgba(13,59,102,0.15) !important;
+  }
+
+  .alert-teal{
+    background:linear-gradient(180deg,#e8f4fc,#dceef8) !important;
+  }
+  .alert-teal.danger{
+    background:linear-gradient(180deg,#ffe8e8,#ffd8d8) !important;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row min-vh-100 align-items-center justify-content-center text-center">
+  <div class="col-lg-6">
+    <h1 class="display-4 fw-bold" style="letter-spacing:-1px;">
+      <span class="text-gradient">Chill</span> Zone
+    </h1>
+    <p class="mt-3" style="color:rgba(42,42,58,0.5);font-size:1.05rem;">
+      Take a breather. Relax, recharge, and come back stronger.
+    </p>
+  </div>
+</div>
+{% endblock %}

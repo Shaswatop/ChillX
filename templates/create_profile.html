@@ -1,0 +1,542 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Create Your Profile — ChillX</title>
+<link rel="icon" href="/static/LOGO.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Black+Ops+One&family=Lilita+One&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  background:#f0f2f5;
+  font-family:'Poppins',sans-serif;
+  min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
+  position:relative;
+}
+body::before{
+  content:'';position:absolute;inset:0;
+  background:rgba(240,242,245,0.4);
+  pointer-events:none;
+}
+.page-transition{position:fixed;inset:0;z-index:9999;pointer-events:none;background:#f0f2f5;opacity:1;transition:opacity .5s ease;}
+.page-transition.fade-out{opacity:0;}
+.page-transition.fade-in{opacity:1;pointer-events:auto;}
+
+.wrap{
+  width:100%;max-width:440px;position:relative;z-index:10;
+  animation:wrapIn .6s cubic-bezier(.23,1,.32,1) both;
+}
+@keyframes wrapIn{
+  0%{opacity:0;transform:translateY(30px) scale(.95);}
+  100%{opacity:1;transform:translateY(0) scale(1);}
+}
+
+.card{
+  background:#fff;
+  border:3px solid #0d3b66;
+  border-radius:20px;
+  padding:26px 24px 22px;
+  box-shadow:0 0 30px rgba(13,59,102,0.12),0 4px 20px rgba(0,0,0,0.06);
+}
+
+.header{text-align:center;margin-bottom:14px;opacity:0;animation:fadeSlide .5s .15s ease both;}
+@keyframes fadeSlide{0%{opacity:0;transform:translateY(10px);}100%{opacity:1;transform:translateY(0);}}
+.header h1{
+  font-family:'Black Ops One',cursive;
+  font-size:1.4rem;color:#041828;letter-spacing:1px;
+  text-shadow:0 1px 0 rgba(255,255,255,0.5);
+}
+.header p{font-size:.78rem;color:#3a6a7a;margin-top:4px;font-weight:500;}
+
+.avatar-section{text-align:center;margin-bottom:18px;opacity:0;animation:fadeSlide .5s .25s ease both;}
+.avatar-circle{
+  position:relative;width:100px;height:100px;border-radius:50%;
+  margin:0 auto 8px;cursor:pointer;overflow:hidden;
+  border:3px solid #0d3b66;
+  background:linear-gradient(135deg,#d6e8f5,#bedbf0);
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .3s;
+  box-shadow:0 0 0 4px rgba(13,59,102,0.25),0 6px 18px rgba(13,59,102,0.35);
+}
+.avatar-circle:hover{transform:scale(1.05);}
+.avatar-circle img{width:100%;height:100%;object-fit:cover;display:none;}
+.avatar-circle .placeholder{
+  font-size:2.2rem;color:#0a2a4a;font-weight:700;
+}
+.avatar-circle input{display:none;}
+.avatar-label{
+  display:inline-block;font-size:.7rem;color:#0a2a4a;
+  font-weight:600;cursor:pointer;letter-spacing:1px;
+  text-transform:uppercase;
+  border-bottom:1.5px solid #0d3b66;padding-bottom:1px;
+}
+.avatar-label:hover{color:#041828;}
+
+.crop-overlay{
+  position:fixed;inset:0;z-index:999;
+  background:rgba(0,0,0,0.4);
+  display:none;align-items:center;justify-content:center;padding:20px;
+  opacity:0;transition:opacity .35s;
+}
+.crop-overlay.active{display:flex;opacity:1;}
+.crop-box{
+  background:#fff;border:3px solid #0d3b66;border-radius:18px;
+  padding:20px;width:100%;max-width:380px;
+  box-shadow:0 0 30px rgba(13,59,102,0.15);
+  transform:scale(.92);transition:transform .35s cubic-bezier(.34,1.56,.64,1);
+}
+.crop-overlay.active .crop-box{transform:scale(1);}
+.crop-box h3{
+  font-family:'Black Ops One',cursive;font-size:1.05rem;color:#041828;
+  text-align:center;letter-spacing:1.5px;margin-bottom:14px;
+}
+.crop-area{
+  position:relative;width:200px;height:200px;border-radius:50%;
+  margin:0 auto 12px;overflow:hidden;
+  border:3px solid #0d3b66;
+  background:#e0edf5;
+}
+.crop-area img{
+  position:absolute;top:0;left:0;width:100%;height:100%;
+  object-fit:cover;cursor:grab;user-select:none;
+}
+.crop-area img:active{cursor:grabbing;}
+.crop-zoom{
+  display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:14px;
+}
+.crop-zoom input[type=range]{
+  -webkit-appearance:none;width:160px;height:4px;
+  background:#faf3d8;border-radius:4px;outline:none;
+}
+.crop-zoom input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:18px;height:18px;border-radius:50%;
+  background:linear-gradient(180deg,#4a9ec4,#0d3b66);cursor:pointer;
+  border:2px solid #0a2a4a;
+  box-shadow:0 2px 6px rgba(0,0,0,0.2);
+}
+.crop-actions{display:flex;gap:10px;justify-content:center;}
+.crop-actions button{
+  padding:9px 22px;border-radius:10px;
+  font-family:'Black Ops One',cursive;font-size:.8rem;letter-spacing:1.5px;
+  cursor:pointer;transition:all .2s;text-transform:uppercase;
+  border:2px solid #0a2a4a;
+}
+.crop-cancel{background:#fff;color:#0a2a4a;}
+.crop-cancel:hover{background:#faf3d8;}
+.crop-confirm{
+  background:linear-gradient(180deg,#4a9ec4,#0d3b66);color:#041828;
+  text-shadow:0 1px 0 rgba(255,255,255,0.4);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,0.4);
+}
+.crop-confirm:hover{filter:brightness(1.08);}
+
+.inputGroup{
+  margin-bottom:12px;opacity:0;animation:fadeSlide .5s ease both;
+}
+.inputGroup:nth-child(2){animation-delay:.3s;}
+.inputGroup:nth-child(3){animation-delay:.4s;}
+.inputGroup:nth-child(4){animation-delay:.5s;}
+.input-label{
+  display:block;margin-bottom:4px;
+  font-size:.65rem;color:#0a2a4a;font-weight:700;
+  letter-spacing:1.5px;text-transform:uppercase;
+}
+.inputWrap{
+  position:relative;border-radius:10px;overflow:hidden;
+  background:#fff;border:1.5px solid rgba(0,0,0,0.1);
+  transition:border-color .3s,box-shadow .3s;
+}
+.inputWrap:focus-within{
+  border-color:#0d3b66;
+  box-shadow:0 0 0 3px rgba(13,59,102,0.2);
+}
+.input-icon{
+  position:absolute;left:12px;top:50%;transform:translateY(-50%);
+  color:#0a2a4a;font-size:.85rem;pointer-events:none;
+}
+input,textarea{
+  display:block;width:100%;
+  background:transparent;border:none;border-radius:10px;
+  font-family:'Poppins',sans-serif;font-size:.85rem;color:#2a2a3a;
+  outline:none;padding:0 14px;
+}
+input{height:40px;padding-left:36px;}
+textarea{height:62px;padding:8px 12px;resize:none;}
+input::placeholder,textarea::placeholder{color:#a08a70;}
+.hint{font-size:.65rem;color:#a08a70;margin-top:3px;font-weight:500;}
+
+.btn-wrap{
+  margin-top:14px;opacity:0;animation:fadeSlide .5s .6s ease both;
+}
+.btn{
+  display:block;width:100%;height:46px;border:2px solid #0a2a4a;border-radius:10px;
+  background:linear-gradient(180deg,#4a9ec4,#0d3b66);
+  color:#041828;font-size:.9rem;
+  font-family:'Black Ops One',cursive;letter-spacing:2px;
+  cursor:pointer;text-transform:uppercase;
+  position:relative;overflow:hidden;
+  transition:all .25s;
+  text-shadow:0 1px 0 rgba(255,255,255,0.4);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,0.4),0 4px 12px rgba(13,59,102,0.4);
+}
+.btn:hover{filter:brightness(1.08);transform:translateY(-2px);}
+.btn:active{transform:translateY(0);}
+.btn-icon{display:inline-block;margin-left:6px;transition:transform .3s;}
+.btn:hover .btn-icon{transform:translateX(4px);}
+
+.skip{
+  position:fixed;bottom:16px;right:16px;z-index:10;
+  color:#3a6a7a;font-size:.7rem;text-decoration:none;
+  font-weight:600;letter-spacing:1px;
+  padding:5px 12px;border-radius:8px;
+  background:rgba(0,0,0,0.06);
+}
+.skip:hover{color:#0a2a4a;background:rgba(0,0,0,0.12);}
+
+.picker-overlay{
+  position:fixed;inset:0;z-index:999;
+  background:rgba(0,0,0,0.4);
+  display:none;align-items:center;justify-content:center;padding:20px;
+  opacity:0;transition:opacity .35s;
+}
+.picker-overlay.active{display:flex;opacity:1;}
+.picker-box{
+  background:#fff;border:3px solid #0d3b66;border-radius:18px;
+  padding:18px;width:100%;max-width:440px;
+  box-shadow:0 0 30px rgba(13,59,102,0.15);
+  transform:scale(.92);transition:transform .35s cubic-bezier(.34,1.56,.64,1);
+  max-height:90vh;overflow-y:auto;
+}
+.picker-overlay.active .picker-box{transform:scale(1);}
+.picker-box h3{
+  font-family:'Black Ops One',cursive;font-size:1rem;color:#041828;
+  text-align:center;letter-spacing:1.5px;margin-bottom:12px;
+}
+.picker-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;
+}
+.picker-item{
+  aspect-ratio:1;border-radius:50%;overflow:hidden;cursor:pointer;
+  border:2px solid #e8d8a8;
+  transition:all .3s ease;position:relative;
+  background:#e0edf5;
+  display:flex;align-items:center;justify-content:center;
+}
+.picker-item:hover{
+  border-color:#0d3b66;
+  transform:scale(1.06);
+  box-shadow:0 0 16px rgba(13,59,102,0.3);
+}
+.picker-item img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;}
+.picker-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+.picker-actions button{
+  padding:9px 18px;border-radius:10px;
+  font-family:'Black Ops One',cursive;font-size:.75rem;letter-spacing:1.5px;
+  cursor:pointer;transition:all .2s;text-transform:uppercase;
+  border:2px solid #0a2a4a;
+}
+.picker-close{background:#fff;color:#0a2a4a;}
+.picker-close:hover{background:#faf3d8;}
+.picker-browse{
+  background:linear-gradient(180deg,#4a9ec4,#0d3b66);color:#041828;
+  display:flex;align-items:center;gap:6px;
+  text-shadow:0 1px 0 rgba(255,255,255,0.4);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,0.4);
+}
+.picker-browse:hover{filter:brightness(1.08);}
+
+.error-msg{
+  background:linear-gradient(180deg,#ffd0d0,#ffb0b0);
+  border:1.5px solid #cc3333;color:#aa1111;
+  padding:8px 12px;border-radius:10px;
+  font-size:.75rem;margin-bottom:12px;text-align:center;
+  font-weight:600;
+  animation:shake .5s ease;
+}
+@keyframes shake{
+  0%,100%{transform:translateX(0);}
+  20%{transform:translateX(-8px);}
+  40%{transform:translateX(8px);}
+  60%{transform:translateX(-5px);}
+  80%{transform:translateX(5px);}
+}
+
+@media(max-width:480px){
+  .card{padding:20px 18px 18px;}
+  .header h1{font-size:1.2rem;}
+  .picker-grid{grid-template-columns:repeat(4,1fr);gap:8px;}
+}
+</style>
+</head>
+<body>
+{% include 'interval_tracker.html' %}
+<div id="app">
+<div class="page-transition" id="pageTransition"></div>
+
+<div class="wrap">
+  <div class="card">
+    <div class="header">
+      <h1>CREATE YOUR PROFILE</h1>
+      <p>Set your identity in the arena</p>
+    </div>
+
+    <form method="post" id="profileForm">
+      {% csrf_token %}
+
+      <div class="avatar-section">
+        <div class="avatar-circle" id="avatarCircle" onclick="openAvatarPicker()">
+          <div class="placeholder" id="avatarPlaceholder">+</div>
+          <img id="avatarPreview" src="" alt="">
+        </div>
+        <input type="file" id="avatarInput" accept="image/*" style="display:none">
+        <input type="hidden" name="avatar_base64" id="avatarBase64">
+        <a class="avatar-label" onclick="openAvatarPicker()">Choose Avatar</a>
+      </div>
+
+      <div class="inputGroup">
+        <label class="input-label">Display Name</label>
+        <div class="inputWrap">
+          <i class="fas fa-user input-icon"></i>
+          <input type="text" name="display_name" id="displayName" placeholder="Enter your display name" maxlength="30" required autofocus>
+        </div>
+        <div class="hint">3–30 characters, shown to other players</div>
+      </div>
+
+      <div class="inputGroup">
+        <label class="input-label">Bio</label>
+        <div class="inputWrap">
+          <textarea name="bio" id="bio" placeholder="Tell the arena about yourself..." maxlength="200"></textarea>
+        </div>
+      </div>
+
+      {% if error %}
+      <div class="error-msg">{{ error }}</div>
+      {% endif %}
+
+      <div class="btn-wrap">
+        <button class="btn" type="submit">GO TO DASHBOARD <span class="btn-icon">→</span></button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<a href="{% url 'dashboard' %}" class="skip">Skip →</a>
+
+<div class="picker-overlay" id="avatarPicker">
+  <div class="picker-box">
+    <h3>CHOOSE YOUR AVATAR</h3>
+    <div class="picker-grid" id="pickerGrid"></div>
+    <div class="picker-actions">
+      <button class="picker-browse" onclick="browseFromPC()"><i class="fas fa-folder-open"></i> Browse from PC</button>
+      <button class="picker-close" onclick="closePicker()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="crop-overlay" id="cropModal">
+  <div class="crop-box">
+    <h3>ALIGN YOUR PHOTO</h3>
+    <div class="crop-area" id="cropArea">
+      <img id="cropImage" src="" alt="" draggable="false">
+    </div>
+    <div class="crop-zoom">
+      <span style="color:#3a6a7a;font-size:.8rem;">−</span>
+      <input type="range" id="zoomRange" min="1" max="3" step="0.01" value="1.2">
+      <span style="color:#3a6a7a;font-size:.9rem;">+</span>
+    </div>
+    <div class="crop-actions">
+      <button class="crop-cancel" onclick="closeCrop()">Cancel</button>
+      <button class="crop-confirm" onclick="confirmCrop()">Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var AVATAR_URLS = [
+  '/static/avatars/avatar1.jpg','/static/avatars/avatar2.jpg',
+  '/static/avatars/avatar3.jpg','/static/avatars/avatar4.jpg',
+  '/static/avatars/avatar5.jpg','/static/avatars/avatar6.jpg',
+  '/static/avatars/avatar7.jpg','/static/avatars/avatar8.jpg',
+  '/static/avatars/avatar9.jpg','/static/avatars/avatar10.jpg'
+];
+
+function buildPicker(){
+  var grid = document.getElementById('pickerGrid');
+  grid.innerHTML = '';
+  AVATAR_URLS.forEach(function(url, i){
+    var div = document.createElement('div');
+    div.className = 'picker-item';
+    var img = document.createElement('img');
+    img.src = url;
+    img.alt = 'Avatar '+(i+1);
+    img.loading = 'lazy';
+    div.appendChild(img);
+    div.addEventListener('click', function(){ selectPremade(url); });
+    grid.appendChild(div);
+  });
+}
+
+function openAvatarPicker(){ document.getElementById('avatarPicker').classList.add('active'); }
+function closePicker(){ document.getElementById('avatarPicker').classList.remove('active'); }
+function browseFromPC(){ closePicker(); document.getElementById('avatarInput').click(); }
+
+function selectPremade(url){
+  closePicker();
+  document.getElementById('cropImage').src = url;
+  cropper.scale = 1.2;
+  cropper.tx = 0; cropper.ty = 0;
+  document.getElementById('zoomRange').value = 1.2;
+  applyCropTransform();
+  document.getElementById('cropModal').classList.add('active');
+}
+
+buildPicker();
+
+var cropper = {
+  img: null, scale: 1.2, tx: 0, ty: 0,
+  startX: 0, startY: 0, dragging: false, rawFile: null
+};
+var cropImg = document.getElementById('cropImage');
+var zoomRange = document.getElementById('zoomRange');
+
+document.getElementById('avatarInput').addEventListener('change', function(e){
+  var file = e.target.files[0];
+  if(!file) return;
+  cropper.rawFile = file;
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    cropper.img = new Image();
+    cropper.img.onload = function(){
+      cropImg.src = cropper.img.src;
+      cropper.scale = 1.2;
+      cropper.tx = 0; cropper.ty = 0;
+      zoomRange.value = 1.2;
+      applyCropTransform();
+      document.getElementById('cropModal').classList.add('active');
+    };
+    cropper.img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+function applyCropTransform(){
+  if(!cropImg.src) return;
+  cropImg.style.transform = 'translate('+cropper.tx+'px, '+cropper.ty+'px) scale('+cropper.scale+')';
+}
+
+zoomRange.addEventListener('input', function(){
+  cropper.scale = parseFloat(this.value);
+  var area = document.getElementById('cropArea');
+  var maxTx = (cropper.scale - 1) * area.offsetWidth / 2;
+  var maxTy = (cropper.scale - 1) * area.offsetHeight / 2;
+  cropper.tx = Math.max(-maxTx, Math.min(maxTx, cropper.tx));
+  cropper.ty = Math.max(-maxTy, Math.min(maxTy, cropper.ty));
+  applyCropTransform();
+});
+
+cropImg.addEventListener('mousedown', function(e){
+  cropper.dragging = true;
+  cropper.startX = e.clientX - cropper.tx;
+  cropper.startY = e.clientY - cropper.ty;
+  cropImg.style.cursor = 'grabbing';
+});
+document.addEventListener('mousemove', function(e){
+  if(!cropper.dragging) return;
+  var nx = e.clientX - cropper.startX;
+  var ny = e.clientY - cropper.startY;
+  var area = document.getElementById('cropArea');
+  var maxTx = (cropper.scale - 1) * area.offsetWidth / 2;
+  var maxTy = (cropper.scale - 1) * area.offsetHeight / 2;
+  nx = Math.max(-maxTx, Math.min(maxTx, nx));
+  ny = Math.max(-maxTy, Math.min(maxTy, ny));
+  cropper.tx = nx;
+  cropper.ty = ny;
+  applyCropTransform();
+});
+document.addEventListener('mouseup', function(){
+  cropper.dragging = false;
+  if(cropImg) cropImg.style.cursor = 'grab';
+});
+
+function closeCrop(){
+  document.getElementById('cropModal').classList.remove('active');
+  document.getElementById('avatarInput').value = '';
+}
+
+function confirmCrop(){
+  var area = document.getElementById('cropArea');
+  var size = area.offsetWidth;
+  var natW = cropImg.naturalWidth;
+  var natH = cropImg.naturalHeight;
+  var imgAspect = natW / natH;
+  var dispW, dispH, offX, offY;
+  if (imgAspect > 1) {
+    dispH = size; dispW = size * imgAspect;
+    offX = (size - dispW) / 2; offY = 0;
+  } else {
+    dispW = size; dispH = size / imgAspect;
+    offX = 0; offY = (size - dispH) / 2;
+  }
+  var s = cropper.scale;
+  var tx = cropper.tx || 0;
+  var ty = cropper.ty || 0;
+  var half = size / 2;
+  var vLeft = (0 - tx - half) / s + half;
+  var vTop = (0 - ty - half) / s + half;
+  var vRight = (size - tx - half) / s + half;
+  var vBottom = (size - ty - half) / s + half;
+  var sx = (vLeft - offX) / dispW * natW;
+  var sy = (vTop - offY) / dispH * natH;
+  var sw = (vRight - vLeft) / dispW * natW;
+  var sh = (vBottom - vTop) / dispH * natH;
+  sx = Math.max(0, sx); sy = Math.max(0, sy);
+  sw = Math.min(natW - sx, sw); sh = Math.min(natH - sy, sh);
+  var canvas = document.createElement('canvas');
+  canvas.width = 240; canvas.height = 240;
+  var ctx = canvas.getContext('2d');
+  ctx.beginPath();
+  ctx.arc(120, 120, 120, 0, Math.PI * 2);
+  ctx.closePath();
+  ctx.clip();
+  ctx.drawImage(cropImg, sx, sy, sw, sh, 0, 0, 240, 240);
+  var dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+  document.getElementById('avatarBase64').value = dataUrl;
+  var preview = document.getElementById('avatarPreview');
+  preview.src = dataUrl;
+  preview.style.display = 'block';
+  document.getElementById('avatarPlaceholder').style.display = 'none';
+  document.getElementById('cropModal').classList.remove('active');
+}
+
+document.getElementById('profileForm').addEventListener('submit', function(e){
+  var inp = document.getElementById('displayName');
+  if(inp.value.trim().length < 3){
+    e.preventDefault();
+    inp.parentElement.style.borderColor = '#cc3333';
+    inp.focus();
+    setTimeout(function(){
+      inp.parentElement.style.borderColor = '';
+    }, 600);
+    return;
+  }
+  e.preventDefault();
+  var pt=document.getElementById('pageTransition');
+  pt.classList.remove('fade-out');
+  pt.classList.add('fade-in');
+  setTimeout(function(){e.target.submit();},500);
+});
+
+(function(){
+  var t=document.getElementById('pageTransition');
+  requestAnimationFrame(function(){t.classList.add('fade-out');});
+})();
+</script>
+</div>
+{% include 'invite_poll.html' %}
+{% include 'call_components.html' %}
+{% include 'chathead.html' %}
+</body>
+</html>

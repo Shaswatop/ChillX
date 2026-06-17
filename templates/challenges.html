@@ -1,0 +1,1300 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Challenges — ChillX</title>
+<link rel="icon" href="/static/LOGO.png">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Black+Ops+One&family=Lilita+One&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script>
+(function(){
+  var anims=['slideLeft','slideRight','slideUp','slideDown','fadeZoom','fadeRotate'];
+  var picked=anims[Math.floor(Math.random()*anims.length)];
+  document.documentElement.style.setProperty('--vt-old',picked+'Out');
+  document.documentElement.style.setProperty('--vt-new',picked+'In');
+})();
+</script>
+<style>
+@view-transition{navigation:auto}
+:root{view-transition-name:page-content;--vt-old:slideLeftOut;--vt-new:slideLeftIn}
+::view-transition-old(page-content){animation:var(--vt-old) .4s ease-in forwards}
+::view-transition-new(page-content){animation:var(--vt-new) .4s ease-out}
+@keyframes slideLeftOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(-40px)}}
+@keyframes slideLeftIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideRightOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(40px)}}
+@keyframes slideRightIn{from{opacity:0;transform:translateX(-40px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideUpOut{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-40px)}}
+@keyframes slideUpIn{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideDownOut{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(40px)}}
+@keyframes slideDownIn{from{opacity:0;transform:translateY(-40px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeZoomOut{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(0.92)}}
+@keyframes fadeZoomIn{from{opacity:0;transform:scale(1.08)}to{opacity:1;transform:scale(1)}}
+@keyframes fadeRotateOut{from{opacity:1;transform:rotate(0) scale(1)}to{opacity:0;transform:rotate(-2deg) scale(0.95)}}
+@keyframes fadeRotateIn{from{opacity:0;transform:rotate(2deg) scale(1.05)}to{opacity:1;transform:rotate(0) scale(1)}}
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#f0f2f5;--surface:#fff;--text:#2a2a3a;
+  --teal-1:#4a9ec4;--teal-2:#0d3b66;--teal-3:#0a2a4a;
+  --teal-soft:#d6e8f5;--teal-glow:rgba(13,59,102,0.3);
+  --ink:#2a2a3a;--ink-dim:#0a2a4a;--ink-mute:#3a6a7a;
+  --paper-teal:#e0edf5;
+}
+html,body{width:100%;min-height:100vh;overflow-x:hidden;font-family:'Poppins',sans-serif;}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  display:flex;flex-direction:column;position:relative;
+}
+body > *{position:relative;z-index:1;}
+/* ── CUSTOM POPUP ── */
+.popup-overlay{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.35);display:none;align-items:center;justify-content:center;animation:fadeIn .2s ease;}
+.popup-overlay.open{display:flex;}
+.popup-box{background:#fff;border:1px solid rgba(13,59,102,0.15);border-radius:20px;padding:28px 32px 24px;width:90%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.15);text-align:center;animation:popUp .25s cubic-bezier(0.34,1.56,0.64,1);}
+.popup-icon{width:56px;height:56px;border-radius:50%;background:rgba(74,158,196,0.12);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:1.4rem;color:#4a9ec4;}
+.popup-title{font-size:1.05rem;font-weight:700;color:#2a2a3a;margin-bottom:8px;}
+.popup-msg{font-size:.85rem;color:#3a6a7a;line-height:1.5;margin-bottom:22px;}
+.popup-actions{display:flex;gap:10px;justify-content:center;}
+.popup-btn{padding:9px 24px;border-radius:12px;cursor:pointer;font-size:.85rem;font-weight:600;transition:all .2s;border:none;font-family:inherit;}
+.popup-btn.cancel{background:var(--bg);color:#3a6a7a;}
+.popup-btn.cancel:hover{background:#e0edf5;color:#2a2a3a;}
+.popup-btn.confirm{background:linear-gradient(135deg,#4a9ec4,#0d3b66);color:#fff;box-shadow:0 4px 15px rgba(74,158,196,0.2);}
+.popup-btn.confirm:hover{transform:translateY(-1px);box-shadow:0 6px 25px rgba(74,158,196,0.3);}
+.popup-btn.danger{background:linear-gradient(135deg,#ff4757,#ff6b81);color:#fff;box-shadow:0 4px 15px rgba(255,71,87,0.25);}
+.popup-btn.danger:hover{transform:translateY(-1px);box-shadow:0 6px 25px rgba(255,71,87,0.35);}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+@keyframes popUp{from{opacity:0;transform:scale(.85) translateY(20px);}to{opacity:1;transform:scale(1) translateY(0);}}
+::-webkit-scrollbar{width:8px;}
+::-webkit-scrollbar-track{background:#e8eaed;}
+::-webkit-scrollbar-thumb{background:#b0b3b8;border-radius:4px;}
+
+.page-transition{position:fixed;inset:0;z-index:9999;pointer-events:none;background:var(--bg);opacity:1;transition:opacity .6s ease;}
+.page-transition.fade-out{opacity:0;}
+
+.top-nav{
+  position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;
+  padding:0 22px;height:56px;
+  background:linear-gradient(180deg,rgba(255,255,255,0.97),rgba(255,250,230,0.97));
+  border-bottom:2px solid var(--teal-2);
+  box-shadow:0 4px 14px rgba(0,0,0,0.08);
+  animation:navIn .6s ease both;
+}
+@keyframes navIn{0%{transform:translateY(-100%);opacity:0;}100%{transform:translateY(0);opacity:1;}}
+.nav-left{display:flex;align-items:center;gap:10px;}
+.nav-back{
+  width:32px;height:32px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  background:#fff;border:1.5px solid var(--teal-3);color:var(--ink-dim);
+  cursor:pointer;transition:all .3s;text-decoration:none;font-size:.78rem;
+}
+.nav-back:hover{background:var(--teal-soft);color:var(--ink);transform:scale(1.06);}
+.nav-title{font-family:'Black Ops One',cursive;font-size:.85rem;color:var(--ink);letter-spacing:1.5px;text-transform:uppercase;}
+.nav-right{display:flex;align-items:center;gap:8px;}
+.nav-right a.coin-pill:hover{transform:scale(1.05);box-shadow:0 4px 20px rgba(124,92,252,0.3);}
+.coin-pill{
+  display:flex;align-items:center;gap:5px;
+  background:linear-gradient(180deg,var(--teal-1),var(--teal-2));
+  border:2px solid var(--teal-3);border-radius:14px;padding:4px 12px 4px 9px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.4);
+}
+.coin-pill i{color:var(--ink);font-size:.72rem;}
+.coin-val{font-family:'Black Ops One',cursive;font-size:.78rem;color:var(--ink);}
+
+.main{
+  position:relative;z-index:10;max-width:1100px;width:100%;margin:0 auto;
+  padding:18px 16px 18px;flex:1;display:flex;flex-direction:column;
+  animation:mainIn .8s ease .2s both;
+}
+@keyframes mainIn{0%{opacity:0;transform:translateY(20px);}100%{opacity:1;transform:translateY(0);}}
+
+.hero{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  margin-bottom:14px;padding:0 2px;
+  animation:heroIn 1s cubic-bezier(.22,1,.36,1) .3s both;
+}
+@keyframes heroIn{0%{opacity:0;transform:translateX(-30px) scale(.96);}100%{opacity:1;transform:translateX(0) scale(1);}}
+.hero-left{display:flex;align-items:center;gap:12px;}
+.hero-avatar{
+  width:48px;height:48px;border-radius:50%;overflow:hidden;flex-shrink:0;
+  border:2px solid var(--teal-3);background:var(--teal-soft);
+  background-size:cover;background-position:center;position:relative;
+  box-shadow:0 0 0 3px rgba(13,59,102,0.25),0 4px 12px rgba(0,0,0,0.12);
+}
+.hero-avatar .lvl-badge{
+  position:absolute;bottom:-2px;right:-2px;width:20px;height:20px;border-radius:50%;
+  background:linear-gradient(180deg,var(--teal-1),var(--teal-2));
+  border:2px solid #fff;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Black Ops One',cursive;font-size:.5rem;color:var(--ink);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.4);
+}
+.hero-text h1{font-family:'Black Ops One',cursive;font-size:1.05rem;color:var(--ink);letter-spacing:.5px;margin-bottom:2px;}
+.hero-text p{font-family:'Quicksand',sans-serif;font-size:.78rem;color:var(--ink-mute);font-weight:600;}
+.hero-center{text-align:center;line-height:1.2;flex:1;}
+.hero-ch-title{font-family:'Black Ops One',cursive;font-size:1rem;color:var(--ink);letter-spacing:1.5px;text-transform:uppercase;}
+.hero-ch-sub{font-size:.7rem;color:var(--ink-mute);font-weight:600;}
+.hero-right .hero-logo{height:80px;width:auto;opacity:0.95;}
+
+.ch-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:18px;
+  padding:6px;flex:1;align-content:start;
+}
+
+.ch-card{
+  display:block;width:100%;cursor:pointer;
+  background:#fff;
+  border:2.5px solid var(--teal-2);
+  border-radius:14px;position:relative;min-height:340px;
+  transition:border-color .4s ease,box-shadow .3s ease,opacity .7s cubic-bezier(.22,1,.36,1);
+  box-shadow:0 4px 14px rgba(0,0,0,0.1),0 0 0 0 var(--teal-glow);
+  z-index:1;isolation:isolate;opacity:0;
+}
+.ch-card.entered{opacity:1;}
+.ch-card:hover{
+  border-color:var(--teal-3);
+  box-shadow:0 10px 30px rgba(0,0,0,0.12),0 0 24px var(--teal-glow);
+}
+.ch-card-inner{
+  position:relative;width:100%;min-height:340px;
+  transform-style:preserve-3d;border-radius:14px;
+  display:grid;transition:transform .9s cubic-bezier(.68,-.55,.27,1.55),box-shadow .9s ease;
+  will-change:transform;
+}
+.ch-card-inner > *{grid-area:1/1;}
+.ch-card.flipped .ch-card-inner{transform:rotateY(180deg) scale(1.03);box-shadow:0 0 40px var(--teal-glow);}
+
+.ch-card-front,.ch-card-back{
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px 18px 18px;border-radius:14px;overflow:visible;width:100%;
+}
+
+.ch-card-front{
+  background:var(--surface);
+  gap:10px;position:relative;
+}
+.ch-card-front::after{
+  content:'';position:absolute;left:0;right:0;top:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(10,74,92,0.5),transparent);
+  animation:scanLine 3s linear infinite;pointer-events:none;z-index:3;
+}
+@keyframes scanLine{0%{top:0;opacity:0;}10%{opacity:1;}90%{opacity:1;}100%{top:100%;opacity:0;}}
+.ch-card-front .card-icon{
+  width:72px;height:72px;display:flex;align-items:center;justify-content:center;
+  font-size:2rem;color:var(--ink);
+  background:linear-gradient(180deg,var(--teal-1),var(--teal-2));
+  border:2px solid var(--teal-3);border-radius:14px;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,0.4),0 4px 12px var(--teal-glow);
+  transition:all .4s;position:relative;z-index:1;
+}
+.ch-card-front .card-icon i{animation:iconFloat 3s ease-in-out infinite;}
+@keyframes iconFloat{0%,100%{transform:translateY(0) rotate(0deg);}50%{transform:translateY(-5px) rotate(2deg);}}
+.ch-card-front .card-category{
+  font-family:'Black Ops One',cursive;font-size:.75rem;color:var(--ink);
+  text-align:center;letter-spacing:1.5px;text-transform:uppercase;position:relative;z-index:1;
+}
+.ch-card-front .card-hint{
+  font-family:'Quicksand',sans-serif;font-size:.65rem;color:var(--ink-mute);
+  font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  position:relative;z-index:1;animation:hintPulse 2s ease-in-out infinite;
+}
+@keyframes hintPulse{0%,100%{opacity:0.5;transform:scale(1);}50%{opacity:1;transform:scale(1.04);}}
+
+.ch-card-back{
+  transform:rotateY(180deg);
+  background:var(--surface);
+  gap:6px;padding:16px 14px 14px;position:relative;
+}
+.ch-card-back > *{
+  opacity:0;transform:translateY(15px) scale(.85);
+  transition:all .6s cubic-bezier(.34,1.56,.64,1);
+  transform-origin:center top;
+}
+.ch-card.flipped .ch-card-back > *{opacity:1;transform:translateY(0) scale(1);}
+.ch-card.flipped .ch-card-back > :nth-child(1){transition-delay:.2s;}
+.ch-card.flipped .ch-card-back > :nth-child(2){transition-delay:.3s;}
+.ch-card.flipped .ch-card-back > :nth-child(3){transition-delay:.4s;}
+.ch-card.flipped .ch-card-back > :nth-child(4){transition-delay:.5s;}
+.ch-card.flipped .ch-card-back > :nth-child(5){transition-delay:.6s;}
+
+.ch-card-back .card-diff{
+  display:inline-block;font-size:.6rem;font-family:'Black Ops One',cursive;
+  letter-spacing:1.5px;padding:3px 12px;border-radius:20px;margin:0 auto 4px;text-align:center;
+  text-transform:uppercase;
+}
+.ch-card-back .card-diff.easy{background:linear-gradient(180deg,#bbf7d0,#86efac);color:#166534;border:1.5px solid #22c55e;}
+.ch-card-back .card-diff.medium{background:linear-gradient(180deg,#bfdbfe,#93c5fd);color:#1e40af;border:1.5px solid #3b82f6;}
+.ch-card-back .card-diff.hard{background:linear-gradient(180deg,#ddd6fe,#c4b5fd);color:#5b21b6;border:1.5px solid #8b5cf6;}
+.ch-card-back .card-diff.nightmare{background:linear-gradient(180deg,#fecaca,#fca5a5);color:#991b1b;border:1.5px solid #ef4444;}
+
+.ch-card-back .card-title{
+  font-family:'Black Ops One',cursive;font-size:.85rem;color:var(--ink);
+  text-align:center;line-height:1.25;letter-spacing:.5px;
+}
+.ch-card-back .card-desc{
+  font-family:'Poppins',sans-serif;font-size:.7rem;color:var(--ink-dim);
+  text-align:center;line-height:1.45;font-weight:500;flex:none;
+}
+.ch-card-back .card-rewards{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  font-family:'Black Ops One',cursive;font-size:.65rem;color:var(--ink-dim);
+  letter-spacing:.5px;
+}
+.ch-card-back .card-rewards .rew{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 7px;border-radius:6px;
+  background:rgba(13,59,102,0.08);
+  border:1px solid rgba(13,59,102,0.18);
+}
+.ch-card-back .card-rewards .rew.coin{background:rgba(251,191,36,0.12);border-color:rgba(217,119,6,0.35);color:#92400e;}
+.ch-card-back .card-rewards .rew i{color:var(--teal-3);font-size:.65rem;}
+.ch-card-back .card-rewards .rew.coin i{color:#d97706;}
+
+.card-btns{display:flex;gap:5px;width:100%;margin-top:2px;position:relative;}
+.card-btns::before{
+  content:"";position:absolute;left:50%;top:6px;bottom:6px;width:1px;
+  background:rgba(13,59,102,0.15);transform:translateX(-50%);pointer-events:none;
+}
+.card-start{
+  flex:1;padding:8px 0 8px 4px;border-radius:8px;cursor:pointer;
+  font-family:'Black Ops One',cursive;font-size:.55rem;
+  text-transform:uppercase;letter-spacing:1.2px;
+  background:#ffffff;
+  border:1.5px solid rgba(13,59,102,0.35);color:var(--ink-dim);
+  box-shadow:0 1px 0 rgba(255,255,255,0.6) inset, 0 1px 2px rgba(0,0,0,0.04);
+  transition:all .25s;
+  display:flex;align-items:center;justify-content:center;gap:4px;
+}
+.card-start:hover{background:var(--teal-soft);color:var(--ink);transform:translateY(-1px);box-shadow:0 2px 4px rgba(0,0,0,0.08);}
+.card-start:active{transform:translateY(0);}
+.card-start i{font-size:.55rem;color:var(--teal-3);}
+
+.ch-card-back .card-join{
+  flex:1;padding:8px 4px 8px 0;border-radius:8px;cursor:pointer;
+  font-family:'Black Ops One',cursive;font-size:.55rem;
+  text-transform:uppercase;letter-spacing:1.2px;
+  background:linear-gradient(180deg,var(--teal-1),var(--teal-2));
+  border:1.5px solid var(--teal-3);color:#ffffff;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.3), 0 2px 4px rgba(13,59,102,0.25);
+  transition:all .25s;
+  display:flex;align-items:center;justify-content:center;gap:4px;
+}
+.ch-card-back .card-join:hover{filter:brightness(1.08);transform:translateY(-1px);}
+.ch-card-back .card-join:active{transform:translateY(0);}
+.ch-card-back .card-join.completed{
+  background:linear-gradient(180deg,#bbf7d0,#86efac);
+  border-color:#22c55e;color:#166534;
+  pointer-events:none;
+}
+.modal-overlay{
+  display:none;position:fixed;inset:0;z-index:200;
+  background:rgba(0,0,0,0.3);
+  align-items:center;justify-content:center;
+}
+.modal-overlay.open{display:flex;animation:overlayIn .3s ease;}
+@keyframes overlayIn{0%{opacity:0;}100%{opacity:1;}}
+.modal-panel{
+  width:420px;max-width:90vw;max-height:80vh;overflow-y:auto;
+  background:#fff;border:3px solid var(--teal-2);border-radius:14px;padding:22px;
+  box-shadow:0 0 50px var(--teal-glow),0 20px 60px rgba(0,0,0,0.15);
+  animation:modalIn .4s cubic-bezier(.22,1,.36,1);
+}
+@keyframes modalIn{0%{opacity:0;transform:scale(.85) translateY(30px);}100%{opacity:1;transform:scale(1) translateY(0);}}
+.modal-close{
+  float:right;width:30px;height:30px;border-radius:8px;border:1.5px solid var(--teal-3);
+  cursor:pointer;background:#fff;color:var(--ink-dim);font-size:.8rem;
+  display:flex;align-items:center;justify-content:center;transition:all .3s;
+}
+.modal-close:hover{background:var(--teal-soft);color:var(--ink);transform:rotate(90deg) scale(1.1);}
+.modal-title{
+  font-family:'Black Ops One',cursive;font-size:1.05rem;color:var(--ink);
+  margin-bottom:6px;letter-spacing:.5px;clear:both;
+}
+.modal-desc{
+  font-family:'Poppins',sans-serif;font-size:.78rem;color:var(--ink-dim);
+  line-height:1.6;margin-bottom:14px;font-weight:500;
+}
+.modal-rewards{
+  font-family:'Black Ops One',cursive;font-size:.7rem;color:var(--ink-dim);
+  margin-bottom:14px;letter-spacing:.5px;
+}
+.modal-rewards i{color:var(--teal-3);}
+.modal-panel textarea{
+  width:100%;height:80px;padding:10px 12px;border-radius:10px;
+  background:#f0f2f5;border:1.5px solid var(--teal-3);
+  color:var(--ink);font-family:'Poppins',sans-serif;font-size:.78rem;
+  outline:none;resize:vertical;margin-bottom:12px;transition:all .3s;
+}
+.modal-panel textarea:focus{
+  border-color:var(--teal-3);
+  box-shadow:0 0 0 3px var(--teal-glow);
+}
+.modal-actions{display:flex;gap:8px;}
+.modal-btn{
+  flex:1;padding:9px 0;border-radius:10px;cursor:pointer;
+  font-family:'Black Ops One',cursive;font-size:.65rem;
+  text-transform:uppercase;letter-spacing:1.5px;transition:all .3s;border:2px solid;
+}
+.modal-btn.submit{
+  background:linear-gradient(180deg,var(--teal-1),var(--teal-2));
+  border-color:var(--teal-3);color:var(--ink);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.4);
+}
+.modal-btn.submit:hover{filter:brightness(1.08);transform:scale(1.03);}
+.modal-btn.submit:disabled{opacity:0.4;cursor:not-allowed;transform:none;filter:grayscale(.3);}
+.modal-btn.cancel{background:#fff;border-color:var(--teal-3);color:var(--ink-dim);}
+.modal-btn.cancel:hover{background:var(--teal-soft);color:var(--ink);}
+
+.modal-result{display:none;margin-top:12px;padding:12px;border-radius:10px;text-align:center;}
+.modal-result.show{display:block;animation:resultIn .5s cubic-bezier(.22,1,.36,1);}
+@keyframes resultIn{0%{opacity:0;transform:scale(.8) translateY(10px);}100%{opacity:1;transform:scale(1) translateY(0);}}
+.modal-result.passed{background:linear-gradient(180deg,#bbf7d0,#86efac);border:1.5px solid #22c55e;}
+.modal-result.failed{background:linear-gradient(180deg,#fecaca,#fca5a5);border:1.5px solid #ef4444;}
+.modal-result .mr-score{font-family:'Black Ops One',cursive;font-size:1.1rem;}
+.modal-result.passed .mr-score{color:#166534;}
+.modal-result.failed .mr-score{color:#991b1b;}
+.modal-result .mr-fb{font-size:.7rem;color:var(--ink-dim);margin-top:4px;font-weight:500;}
+
+.explore-wrap{text-align:center;padding:6px 0 2px;flex-shrink:0;animation:exploreIn 1s ease .8s both;}
+@keyframes exploreIn{0%{opacity:0;transform:translateY(20px);}100%{opacity:1;transform:translateY(0);}}
+.explore-controls{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.explore-count-label,.gen-count-label{
+  display:inline-flex;align-items:center;gap:6px;
+  font-family:'Poppins',sans-serif;font-size:.7rem;font-weight:700;
+  color:var(--ink-dim);text-transform:uppercase;letter-spacing:1px;
+}
+.explore-count,.gen-count{
+  width:54px;padding:8px 6px;border-radius:8px;text-align:center;
+  font-family:'Black Ops One',cursive;font-size:.85rem;color:var(--ink);
+  background:#fff;border:1.5px solid var(--teal-3);
+  outline:none;transition:all .2s;
+  -moz-appearance:textfield;
+}
+.explore-count::-webkit-outer-spin-button,
+.explore-count::-webkit-inner-spin-button,
+.gen-count::-webkit-outer-spin-button,
+.gen-count::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+.explore-count:focus,.gen-count:focus{border-color:var(--teal-1);box-shadow:0 0 0 3px rgba(13,59,102,0.15);}
+.bulk-delete-btn{
+  padding:10px 18px;border-radius:8px;cursor:pointer;
+  font-family:'Black Ops One',cursive;font-size:.6rem;
+  text-transform:uppercase;letter-spacing:1.2px;
+  background:rgba(255,255,255,0.85);color:#991b1b;
+  border:1.5px solid #fca5a5;
+  transition:all .25s;
+}
+.bulk-delete-btn:hover{background:linear-gradient(180deg,#fecaca,#fca5a5);color:#7f1d1d;transform:translateY(-1px);box-shadow:0 2px 6px rgba(220,38,38,0.2);}
+.bulk-delete-btn:disabled{opacity:.4;cursor:not-allowed;}
+.gen-controls{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+.explore-btn{
+  padding:11px 32px;border-radius:10px;cursor:pointer;
+  font-family:'Black Ops One',cursive;font-size:.7rem;
+  text-transform:uppercase;letter-spacing:1.5px;
+  background:linear-gradient(180deg,var(--teal-1),var(--teal-2));
+  border:2px solid var(--teal-3);color:var(--ink);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.4),0 4px 12px var(--teal-glow);
+  transition:all .3s;
+}
+.explore-btn:hover{filter:brightness(1.08);transform:scale(1.05);}
+.explore-btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;filter:grayscale(.3);}
+
+.empty-state{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:80px 20px;
+  animation:emptyIn 1.2s ease .3s both;
+}
+@keyframes emptyIn{0%{opacity:0;transform:scale(.9);}100%{opacity:1;transform:scale(1);}}
+.empty-state .ei{font-size:2.5rem;color:var(--teal-3);margin-bottom:4px;animation:emptyFloat 4s ease-in-out infinite;}
+@keyframes emptyFloat{0%,100%{transform:translateY(0) rotate(0deg);}50%{transform:translateY(-10px) rotate(5deg);}}
+.empty-state h2{font-family:'Black Ops One',cursive;font-size:1.3rem;color:var(--ink);letter-spacing:1.5px;text-transform:uppercase;}
+.empty-state p{font-size:.85rem;color:var(--ink-mute);max-width:300px;text-align:center;font-weight:500;}
+.empty-state .gen-btn{
+  padding:14px 40px;border-radius:10px;cursor:pointer;margin-top:10px;
+  font-family:'Black Ops One',cursive;font-weight:700;font-size:.78rem;
+  text-transform:uppercase;letter-spacing:1.5px;
+  background:linear-gradient(180deg,var(--teal-1),var(--teal-2));
+  border:2px solid var(--teal-3);color:var(--ink);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.4),0 6px 18px var(--teal-glow);
+  transition:all .3s;
+}
+.empty-state .gen-btn:hover{filter:brightness(1.08);transform:scale(1.06);}
+.empty-state .gen-btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;filter:grayscale(.3);}
+
+.msg{padding:7px 14px;border-radius:8px;font-size:.7rem;margin-bottom:12px;text-align:center;animation:msgIn .4s ease;font-weight:600;}
+@keyframes msgIn{0%{opacity:0;transform:translateY(-10px);}100%{opacity:1;transform:translateY(0);}}
+.msg.error{background:linear-gradient(180deg,#fecaca,#fca5a5);border:1.5px solid #ef4444;color:#991b1b;}
+.msg.success{background:linear-gradient(180deg,#bbf7d0,#86efac);border:1.5px solid #22c55e;color:#166534;}
+.msg.info{background:linear-gradient(180deg,#d6e8f5,#bedbf0);border:1.5px solid var(--teal-3);color:var(--ink-dim);}
+
+.gen-overlay{
+  display:none;position:fixed;inset:0;z-index:999;
+  background:rgba(0,0,0,0.35);
+  align-items:center;justify-content:center;flex-direction:column;gap:20px;
+}
+.gen-overlay.show{display:flex;}
+.gen-loader{display:flex;gap:4px;perspective:400px;}
+.gen-loader span{
+  display:inline-block;font-family:'Black Ops One',cursive;font-size:2.2rem;
+  text-transform:uppercase;letter-spacing:2px;
+  animation:genLetter 2s cubic-bezier(.4,0,.2,1) infinite;
+  background:linear-gradient(180deg,var(--teal-1),var(--teal-3));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 12px var(--teal-glow));
+}
+.gen-loader span:nth-child(1){animation-delay:0s;}
+.gen-loader span:nth-child(2){animation-delay:.12s;}
+.gen-loader span:nth-child(3){animation-delay:.24s;}
+.gen-loader span:nth-child(4){animation-delay:.36s;}
+.gen-loader span:nth-child(5){animation-delay:.48s;}
+.gen-loader span:nth-child(6){animation-delay:.6s;}
+.gen-loader span:nth-child(7){animation-delay:.72s;}
+.gen-loader span:nth-child(8){animation-delay:.84s;}
+.gen-loader span:nth-child(9){animation-delay:.96s;}
+.gen-loader span:nth-child(10){animation-delay:1.08s;}
+@keyframes genLetter{
+  0%{opacity:0;transform:translateY(20px) rotateX(-90deg);}
+  10%{opacity:1;transform:translateY(0) rotateX(0deg);}
+  30%{opacity:1;transform:translateY(0) rotateX(0deg);}
+  50%{opacity:0;transform:translateY(-20px) rotateX(90deg);}
+  100%{opacity:0;}
+}
+.gen-bar-wrap{width:160px;height:3px;border-radius:3px;background:rgba(13,59,102,0.15);overflow:hidden;position:relative;}
+.gen-bar{
+  position:absolute;top:0;left:-100%;width:100%;height:100%;border-radius:3px;
+  background:linear-gradient(90deg,transparent,var(--teal-2),transparent);
+  animation:genBar 1.2s ease-in-out infinite;
+}
+@keyframes genBar{0%{left:-100%;}50%{left:100%;}100%{left:-100%;}}
+
+.stats-bar{
+  display:flex;align-items:stretch;justify-content:space-between;gap:8px;
+  margin-bottom:16px;padding:10px 12px;
+  background:var(--surface);
+  border:1.5px solid rgba(13,59,102,0.2);border-radius:12px;
+  animation:heroIn .9s ease .35s both;
+}
+.stat-cell{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:4px 6px;border-right:1px dashed rgba(13,59,102,0.15);
+}
+.stat-cell:last-child{border-right:none;}
+.stat-cell .stat-icon{font-size:.85rem;color:var(--teal-1);}
+.stat-cell .stat-val{font-family:'Black Ops One',cursive;font-size:1.05rem;color:var(--ink);line-height:1;}
+.stat-cell .stat-label{font-family:'Quicksand',sans-serif;font-size:.6rem;color:var(--ink-mute);font-weight:700;letter-spacing:1px;text-transform:uppercase;}
+
+.reroll-btn{
+  position:absolute;top:6px;right:6px;z-index:5;
+  width:30px;height:30px;border-radius:50%;
+  background:rgba(255,255,255,0.9);
+  border:1.5px solid var(--teal-3);color:var(--ink-dim);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  font-size:.65rem;transition:all .3s;opacity:0;transform:scale(.7);
+  gap:1px;
+}
+.ch-card:hover .reroll-btn{opacity:1;transform:scale(1);}
+.reroll-btn:hover{background:var(--teal-2);color:#fff;transform:scale(1.15) rotate(180deg);}
+.reroll-btn:disabled{opacity:.4;cursor:not-allowed;background:rgba(255,255,255,0.5);color:#999;}
+.reroll-btn.locked{opacity:.5;cursor:not-allowed;}
+.reroll-btn .reroll-free{
+  position:absolute;top:-5px;right:-8px;
+  background:linear-gradient(180deg,#fde68a,#fbbf24);
+  color:#7c2d12;font-family:'Black Ops One',cursive;
+  font-size:.42rem;letter-spacing:.5px;
+  padding:1px 4px;border-radius:4px;border:1px solid #d97706;
+  box-shadow:0 1px 2px rgba(0,0,0,0.2);
+}
+.reroll-tooltip{
+  position:absolute;top:36px;right:6px;z-index:6;
+  background:var(--teal-3);color:#fff;padding:4px 8px;border-radius:6px;
+  font-family:'Poppins',sans-serif;font-size:.6rem;white-space:nowrap;
+  opacity:0;pointer-events:none;transition:opacity .3s;
+  font-weight:600;
+}
+.reroll-btn:hover + .reroll-tooltip{opacity:1;}
+
+.delete-btn{
+  position:absolute;top:6px;left:6px;z-index:5;
+  width:30px;height:30px;border-radius:50%;
+  background:rgba(255,255,255,0.7);
+  border:1.5px solid rgba(239,68,68,0.4);color:#dc2626;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  font-size:.6rem;transition:all .25s;opacity:0;transform:scale(.7);
+}
+.ch-card:hover .delete-btn{opacity:.85;transform:scale(1);}
+.delete-btn:hover{background:linear-gradient(180deg,#fecaca,#fca5a5);color:#7f1d1d;transform:scale(1.18);box-shadow:0 2px 6px rgba(220,38,38,0.25);}
+.delete-btn:active{transform:scale(.95);}
+
+.proof-tabs{
+  display:flex;gap:6px;margin-bottom:10px;
+  background:#f0f2f5;padding:4px;border-radius:10px;
+}
+.proof-tab{
+  flex:1;padding:7px 0;border-radius:7px;cursor:pointer;
+  font-family:'Black Ops One',cursive;font-size:.55rem;letter-spacing:1.5px;
+  text-transform:uppercase;background:transparent;border:none;color:var(--ink-mute);
+  transition:all .3s;
+}
+.proof-tab.active{background:linear-gradient(180deg,var(--teal-1),var(--teal-2));color:var(--ink);box-shadow:0 2px 6px var(--teal-glow);}
+
+.upload-area{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:6px;padding:18px;border:2px dashed var(--teal-3);border-radius:10px;
+  background:#f0f2f5;color:var(--ink-mute);cursor:pointer;
+  font-family:'Poppins',sans-serif;font-size:.7rem;font-weight:500;
+  margin-bottom:12px;transition:all .3s;min-height:90px;
+}
+.upload-area:hover{background:#e4e7eb;border-color:var(--teal-2);}
+.upload-area.dragover{background:#d6e8f5;border-style:solid;transform:scale(1.01);}
+.upload-area i{font-size:1.4rem;color:var(--teal-3);}
+.upload-area .upload-preview{max-width:100%;max-height:120px;border-radius:8px;border:1.5px solid var(--teal-3);display:none;}
+.upload-area.has-image i,.upload-area.has-image .upload-hint{display:none;}
+.upload-area.has-image .upload-preview{display:block;}
+
+.levelup-toast{
+  position:fixed;top:80px;left:50%;transform:translateX(-50%);
+  z-index:300;background:linear-gradient(180deg,var(--teal-1),var(--teal-2));
+  border:2px solid var(--teal-3);border-radius:12px;padding:14px 26px;
+  color:var(--ink);font-family:'Black Ops One',cursive;font-size:.95rem;
+  letter-spacing:2px;text-transform:uppercase;
+  box-shadow:0 8px 30px var(--teal-glow),inset 0 1px 0 rgba(255,255,255,0.4);
+  display:none;animation:levelUpIn .8s cubic-bezier(.34,1.56,.64,1);
+}
+.levelup-toast.show{display:block;}
+@keyframes levelUpIn{0%{opacity:0;transform:translateX(-50%) translateY(-30px) scale(.7);}100%{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}}
+
+.confetti-burst{position:fixed;inset:0;z-index:250;pointer-events:none;overflow:hidden;}
+.confetti-burst span{
+  position:absolute;width:8px;height:14px;border-radius:2px;
+  top:50%;left:50%;
+  animation:confettiPop 1.5s ease-out forwards;
+}
+@keyframes confettiPop{
+  0%{transform:translate(-50%,-50%) rotate(0);opacity:1;}
+  100%{transform:translate(var(--tx),var(--ty)) rotate(720deg);opacity:0;}
+}
+
+@media(max-width:900px){.ch-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:600px){
+  .ch-grid{grid-template-columns:1fr;gap:14px;}
+  .main{padding:14px 12px 30px;}
+  .hero{flex-direction:column;gap:10px;text-align:center;}
+  .hero-center{order:-1;}
+}
+</style>
+</head>
+<body>
+{% include 'interval_tracker.html' %}
+<div id="app">
+<div class="page-transition" id="pageTransition"></div>
+
+<div class="gen-overlay" id="genOverlay">
+  <div class="gen-loader"><span>G</span><span>e</span><span>n</span><span>e</span><span>r</span><span>a</span><span>t</span><span>i</span><span>n</span><span>g</span></div>
+  <div class="gen-bar-wrap"><div class="gen-bar"></div></div>
+</div>
+
+<nav class="top-nav">
+  <div class="nav-left">
+    <a href="{% url 'dashboard' %}" class="nav-back"><i class="fas fa-arrow-left"></i></a>
+    <span class="nav-title">Challenges</span>
+  </div>
+  <div class="nav-right">
+    <a href="{% url 'multiplayer' %}" class="coin-pill" style="text-decoration:none;background:linear-gradient(135deg,#7c5cfc,#00d4aa);border-color:rgba(124,92,252,0.3);cursor:pointer;">
+      <i class="fas fa-gamepad"></i>
+      <span class="coin-val" style="color:#fff;">Arena</span>
+    </a>
+    <div class="coin-pill">
+      <i class="fas fa-coins"></i>
+      <span class="coin-val" id="topCoins">{{ user_coins|default:0 }}</span>
+    </div>
+    <div class="coin-pill" style="background:linear-gradient(180deg,#a78bfa,#7c3aed);border-color:#5b21b6;">
+      <i class="fas fa-bolt"></i>
+      <span class="coin-val" id="topXp">{{ user_xp|default:0 }}</span>
+    </div>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="hero">
+    <div class="hero-left">
+      <div class="hero-avatar"{% if user.avatar_base64 %} style="background-image:url('/api/shop/avatar/?t={% now "U" %}')"{% endif %}>
+        {% if not user.avatar_base64 %}<i class="fas fa-user" style="font-size:.9rem;color:var(--ink-mute);display:flex;align-items:center;justify-content:center;width:100%;height:100%;"></i>{% endif %}
+        <div class="lvl-badge">{{ user.level|default:1 }}</div>
+      </div>
+      <div class="hero-text">
+        <h1>{{ user.display_name|default:"Champion" }}</h1>
+        <p>Your trials await, brave soul.</p>
+      </div>
+    </div>
+    <div class="hero-center">
+      <div class="hero-ch-title">Daily Challenges</div>
+      <div class="hero-ch-sub">Complete challenges to earn XP and money</div>
+    </div>
+    <div class="hero-right">
+      <img src="/static/LOGO.png" class="hero-logo" alt="ChillX">
+    </div>
+  </div>
+
+  {% if messages %}
+  {% for message in messages %}
+  <div class="msg {{ message.tags }}">{{ message }}</div>
+  {% endfor %}
+  {% endif %}
+
+  <div class="stats-bar">
+    <div class="stat-cell">
+      <i class="fas fa-hourglass-half stat-icon"></i>
+      <div class="stat-val" id="statPending">{{ pending_count }}</div>
+      <div class="stat-label">Pending</div>
+    </div>
+    <div class="stat-cell">
+      <i class="fas fa-check-circle stat-icon"></i>
+      <div class="stat-val" id="statDone">{{ completed_count }}</div>
+      <div class="stat-label">Done</div>
+    </div>
+    <div class="stat-cell">
+      <i class="fas fa-layer-group stat-icon"></i>
+      <div class="stat-val" id="statTotal">{{ total_count }}</div>
+      <div class="stat-label">Total</div>
+    </div>
+    <div class="stat-cell">
+      <i class="fas fa-fire-flame-curved stat-icon"></i>
+      <div class="stat-val" id="statStreak">{{ streak|default:0 }}</div>
+      <div class="stat-label">Streak</div>
+    </div>
+  </div>
+
+  {% if challenges %}
+  <div class="ch-grid" id="chGrid">
+    {% for ch in challenges %}
+    <div class="ch-card" id="card-{{ ch.id }}" data-id="{{ ch.id }}">
+      {% if ch.status == 'pending' %}
+      <button class="reroll-btn {% if user_rerolls == 0 and not daily_free_available and user_coins < 50 %}locked{% endif %}"
+              data-had-free="{% if user_rerolls > 0 or daily_free_available %}1{% else %}0{% endif %}"
+              onclick="event.stopPropagation();rerollCard({{ ch.id }});"
+              {% if user_rerolls == 0 and not daily_free_available and user_coins < 50 %}disabled title="Need Rs 50 (or wait for tomorrow's free reroll)"{% endif %}>
+        <i class="fas fa-dice"></i>
+        {% if user_rerolls > 0 or daily_free_available %}<span class="reroll-free">FREE</span>{% endif %}
+      </button>
+      <div class="reroll-tooltip">
+        {% if user_rerolls > 0 %}Reroll · FREE (you have {{ user_rerolls }} token{{ user_rerolls|pluralize }}){% elif daily_free_available %}Reroll · FREE (daily){% else %}Reroll · 50🪙{% endif %}
+      </div>
+      {% endif %}
+      <button class="delete-btn" onclick="event.stopPropagation();deleteCard({{ ch.id }}, {{ ch.title|escapejs|stringformat:'\"s\"' }});" title="Delete this challenge">
+        <i class="fas fa-trash-alt"></i>
+      </button>
+      <div class="ch-card-inner">
+        <div class="ch-card-front">
+          <div class="card-icon">
+            {% with ch.category|lower as cat %}
+            {% if 'code' in cat or 'program' in cat or 'develop' in cat or 'script' in cat %}<i class="fas fa-keyboard"></i>
+            {% elif 'art' in cat or 'design' in cat or 'draw' in cat or 'illustrat' in cat or 'paint' in cat %}<i class="fas fa-palette"></i>
+            {% elif 'game' in cat or 'gaming' in cat or 'play' in cat or 'subway' in cat or 'clash' in cat or 'asphalt' in cat %}<i class="fas fa-gamepad"></i>
+            {% elif 'fit' in cat or 'gym' in cat or 'workout' in cat or 'exercise' in cat or 'sport' in cat or 'pushup' in cat or 'run' in cat %}<i class="fas fa-dumbbell"></i>
+            {% elif 'music' in cat or 'song' in cat or 'instrument' in cat or 'audio' in cat %}<i class="fas fa-music"></i>
+            {% elif 'quiz' in cat or 'trivia' in cat or 'riddle' in cat or 'gk' in cat or 'acronym' in cat %}<i class="fas fa-question-circle"></i>
+            {% elif 'write' in cat or 'story' in cat or 'journal' in cat or 'content' in cat or 'blog' in cat %}<i class="fas fa-feather-pointed"></i>
+            {% elif 'typing' in cat or 'type' in cat or 'monkeytype' in cat or 'keybr' in cat or 'wpm' in cat %}<i class="fas fa-keyboard"></i>
+            {% elif 'reaction' in cat or 'reflex' in cat or 'humanbenchmark' in cat %}<i class="fas fa-bolt"></i>
+            {% elif 'cps' in cat or 'click' in cat %}<i class="fas fa-mouse-pointer"></i>
+            {% elif 'photo' in cat or 'camera' in cat or 'image' in cat or 'picture' in cat or 'photograph' in cat %}<i class="fas fa-camera"></i>
+            {% elif 'cook' in cat or 'food' in cat or 'bake' in cat or 'kitchen' in cat or 'recipe' in cat %}<i class="fas fa-utensils"></i>
+            {% elif 'fashion' in cat or 'cloth' in cat or 'wear' in cat or 'style' in cat or 'outfit' in cat %}<i class="fas fa-shirt"></i>
+            {% elif 'film' in cat or 'video' in cat or 'movie' in cat or 'cinema' in cat or 'edit' in cat %}<i class="fas fa-film"></i>
+            {% elif 'dance' in cat or 'choreo' in cat or 'move' in cat %}<i class="fas fa-shoe-prints"></i>
+            {% elif 'business' in cat or 'entre' in cat or 'startup' in cat or 'market' in cat or 'finance' in cat %}<i class="fas fa-briefcase"></i>
+            {% else %}<i class="fas fa-keyboard"></i>{% endif %}
+            {% endwith %}
+          </div>
+          <div class="card-category">{{ ch.category|title }}</div>
+          <div class="card-hint">✦ Click to Reveal ✦</div>
+        </div>
+        <div class="ch-card-back">
+          <div class="card-diff {{ ch.difficulty }}">{{ ch.difficulty }}</div>
+          <div class="card-title">{{ ch.title }}</div>
+          <div class="card-desc">{{ ch.description }}</div>
+          <div class="card-rewards"><span class="rew xp"><i class="fas fa-trophy"></i> {{ ch.xp_reward }} XP</span><span class="rew coin"><i class="fas fa-coins"></i> Rs {{ ch.coin_reward }}</span></div>
+          {% if ch.status == 'completed' %}
+          <button class="card-join completed"><i class="fas fa-check"></i> Completed</button>
+          {% else %}
+          <div class="card-btns">
+            {% if ch.link %}
+            <button class="card-start" data-link="{{ ch.link }}" onclick="event.stopPropagation();openChallengeLink(this)"><i class="fas fa-external-link-alt"></i> Start</button>
+            {% endif %}
+            <button class="card-join" onclick="event.stopPropagation();openModal({{ ch.id }}, '{{ ch.proof_type|escapejs }}')"><i class="fas fa-paper-plane"></i> Submit</button>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="explore-wrap">
+    <div class="explore-controls">
+      <label class="explore-count-label">How many?
+        <input type="number" id="exploreCount" class="explore-count" min="1" max="20" value="4">
+      </label>
+      <button class="explore-btn" id="exploreBtn" onclick="generateMore()"><i class="fas fa-plus"></i> Explore More</button>
+      <button class="bulk-delete-btn" id="bulkDeleteBtn" onclick="deleteBulk()" title="Delete all completed + expired challenges">
+        <i class="fas fa-broom"></i> Clean Up
+      </button>
+    </div>
+  </div>
+
+  {% else %}
+  <div class="empty-state">
+    <div class="ei"><i class="fas fa-layer-group"></i></div>
+    <h2>No Challenges Yet</h2>
+    <p>Generate AI-powered challenges tailored to your skills and interests.</p>
+    <div class="gen-controls">
+      <label class="gen-count-label">How many?
+        <input type="number" id="genCount" class="gen-count" min="1" max="20" value="3">
+      </label>
+      <button class="gen-btn" id="genBtn" onclick="startGen()"><i class="fas fa-wand-magic-sparkles"></i> Generate Challenges</button>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-panel">
+    <button class="modal-close" onclick="closeModal()"><i class="fas fa-xmark"></i></button>
+    <div class="modal-title" id="modalTitle"></div>
+    <div class="modal-desc" id="modalDesc"></div>
+    <div class="modal-rewards" id="modalRewards"></div>
+    <form id="modalForm" onsubmit="submitChallenge(event)">
+      <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+      <input type="hidden" name="challenge_id" id="modalChId">
+      <div class="proof-tabs" id="proofTabs">
+        <button type="button" class="proof-tab active" data-mode="text">📝 Text</button>
+        <button type="button" class="proof-tab" data-mode="image">📸 Image</button>
+      </div>
+      <textarea name="proof_text" id="proofText" placeholder="What did you accomplish? Describe your work..."></textarea>
+      <input type="hidden" name="proof_image" id="proofImageData">
+      <div class="upload-area" id="uploadArea" style="display:none;">
+        <i class="fas fa-cloud-arrow-up"></i>
+        <span class="upload-hint">Drop / Paste (Ctrl+V) / Click to upload</span>
+        <img class="upload-preview" id="uploadPreview" alt="preview">
+        <input type="file" id="uploadInput" accept="image/*" style="display:none;">
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn submit" type="submit" id="modalSubmitBtn"><i class="fas fa-check"></i> Submit</button>
+        <button class="modal-btn cancel" type="button" onclick="closeModal()">Cancel</button>
+      </div>
+    </form>
+    <div class="modal-result" id="modalResult">
+      <div class="mr-score" id="modalScore"></div>
+      <div class="mr-fb" id="modalFb"></div>
+    </div>
+  </div>
+</div>
+
+<div class="levelup-toast" id="levelUpToast">⭐ Level Up! <span id="levelUpNum"></span></div>
+<div class="confetti-burst" id="confettiBurst"></div>
+
+<script>
+(function(){var t=document.getElementById('pageTransition');requestAnimationFrame(function(){t.classList.add('fade-out');});})();
+
+document.querySelectorAll('.ch-card').forEach(function(card,i){setTimeout(function(){card.classList.add('entered');},300+i*100);});
+
+document.querySelectorAll('.ch-card').forEach(function(card){
+  card.addEventListener('mousemove',function(e){
+    var r=this.getBoundingClientRect();
+    var x=e.clientX-r.left,y=e.clientY-r.top;
+    var cx=r.width/2,cy=r.height/2;
+    var rotX=-(y-cy)/20,rotY=(x-cx)/20;
+    this.style.transform='perspective(1500px) rotateX('+rotX+'deg) rotateY('+rotY+'deg) scale3d(1.02,1.02,1.02)';
+  });
+  card.addEventListener('mouseleave',function(){
+    this.style.transform='';
+  });
+  card.addEventListener('click',function(e){
+    if(e.target.closest('.card-join')||e.target.closest('.card-start')||e.target.closest('.reroll-btn')||e.target.closest('.delete-btn')||e.target.closest('.modal-close')||e.target.closest('.modal-overlay')) return;
+    this.classList.toggle('flipped');
+  });
+});
+
+function openChallengeLink(btn){
+  var link = btn.getAttribute('data-link');
+  if(!link) return;
+  // Custom protocol (vscode:// etc.) — use location redirect
+  if(link.startsWith('vscode://') || link.startsWith('vscode-insiders://') || link.startsWith('github://')){
+    var a = document.createElement('a');
+    a.href = link;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    return;
+  }
+  window.open(link, '_blank');
+}
+
+function openModal(id){
+  var card=document.getElementById('card-'+id);
+  if(!card)return;
+  document.getElementById('modalTitle').textContent=card.querySelector('.card-title').textContent;
+  document.getElementById('modalDesc').textContent=card.querySelector('.card-desc').textContent;
+  document.getElementById('modalRewards').innerHTML=card.querySelector('.card-rewards').innerHTML;
+  document.getElementById('modalChId').value=id;
+  document.getElementById('modalResult').className='modal-result';
+  document.getElementById('modalForm').reset();
+  document.getElementById('modalSubmitBtn').disabled=false;
+  document.getElementById('modalSubmitBtn').innerHTML='<i class="fas fa-check"></i> Submit';
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal(){document.getElementById('modalOverlay').classList.remove('open');}
+document.getElementById('modalOverlay').addEventListener('click',function(e){if(e.target===this)closeModal();});
+
+function submitChallenge(event){
+  event.preventDefault();
+  var id=document.getElementById('modalChId').value;
+  var form=document.getElementById('modalForm');
+  var btn=document.getElementById('modalSubmitBtn');
+  btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Checking...';
+  fetch('/challenges/submit/'+id+'/',{
+    method:'POST',
+    body:new URLSearchParams({
+      'csrfmiddlewaretoken':form.querySelector('[name=csrfmiddlewaretoken]').value,
+      'proof_text':form.querySelector('[name=proof_text]').value
+    }),
+    headers:{'Content-Type':'application/x-www-form-urlencoded'}
+  })
+  .then(function(r){return r.json();})
+  .then(function(data){
+    var result=document.getElementById('modalResult');
+    result.className='modal-result show';
+    document.getElementById('modalScore').textContent=data.score+'/10';
+    document.getElementById('modalFb').textContent=data.feedback;
+    if(data.passed){
+      result.classList.add('passed');
+      var card=document.getElementById('card-'+id);
+      var j=card.querySelector('.card-join');
+      j.className='card-join completed';
+      j.innerHTML='<i class="fas fa-check"></i> Completed';
+      j.onclick=null;
+      setTimeout(closeModal,1000);
+    } else {
+      result.classList.add('failed');
+      btn.disabled=false;btn.innerHTML='<i class="fas fa-check"></i> Submit';
+    }
+  })
+  .catch(function(){
+    btn.disabled=false;btn.innerHTML='<i class="fas fa-check"></i> Submit';
+    var result=document.getElementById('modalResult');
+    result.className='modal-result show failed';
+    document.getElementById('modalScore').textContent='Error';
+    document.getElementById('modalFb').textContent='Network error. Please try again.';
+  });
+}
+
+function startGen(){
+  var btn=document.getElementById('genBtn');
+  var countEl=document.getElementById('genCount');
+  var count=parseInt(countEl && countEl.value ? countEl.value : '3',10);
+  if(isNaN(count)||count<1) count=3;
+  if(count>20) count=20;
+  if(btn){btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Generating '+count+'...';}
+  document.getElementById('genOverlay').classList.add('show');
+  fetch('{% url "challenge_generate_more" %}',{
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRFToken':'{{ csrf_token }}'},
+    body:'count='+count
+  })
+  .then(function(r){return r.json();})
+  .then(function(data){
+    if(data.success){
+      document.getElementById('pageTransition').classList.add('fade-in');
+      setTimeout(function(){window.location.reload();},500);
+    } else {
+      document.getElementById('genOverlay').classList.remove('show');
+      if(btn){btn.disabled=false;btn.innerHTML='<i class="fas fa-wand-magic-sparkles"></i> Generate Challenges';}
+      showAlert(data.message || data.error || 'Failed to generate challenges.');
+    }
+  })
+  .catch(function(){
+    document.getElementById('genOverlay').classList.remove('show');
+    if(btn){btn.disabled=false;btn.innerHTML='<i class="fas fa-wand-magic-sparkles"></i> Generate Challenges';}
+    showAlert('Network error. Try again.');
+  });
+}
+
+function generateMore(){
+  var btn=document.getElementById('exploreBtn');
+  var countEl=document.getElementById('exploreCount');
+  var count=parseInt(countEl && countEl.value ? countEl.value : '4',10);
+  if(isNaN(count)||count<1) count=4;
+  if(count>20) count=20;
+  btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Loading '+count+'...';
+  document.getElementById('genOverlay').classList.add('show');
+  fetch('{% url "challenge_generate_more" %}',{
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRFToken':'{{ csrf_token }}'},
+    body:'count='+count
+  })
+  .then(function(r){return r.json();})
+  .then(function(data){
+    if(data.success){
+      document.getElementById('pageTransition').classList.add('fade-in');
+      setTimeout(function(){window.location.reload();},500);
+    } else {
+      document.getElementById('genOverlay').classList.remove('show');
+      btn.disabled=false;btn.innerHTML='<i class="fas fa-plus"></i> Explore More';
+      showAlert(data.message || data.error || 'Failed to load more.');
+    }
+  })
+  .catch(function(){
+    document.getElementById('genOverlay').classList.remove('show');
+    btn.disabled=false;btn.innerHTML='<i class="fas fa-plus"></i> Explore More';
+    showAlert('Network error. Try again.');
+  });
+}
+
+function deleteCard(id, title){
+  showConfirm('Delete "'+title+'"? This cannot be undone.').then(function(ok){
+    if(!ok)return;
+    var card=document.getElementById('card-'+id);
+    if(card){card.style.transition='all .3s';card.style.transform='scale(.8)';card.style.opacity='0';}
+    fetch('/challenges/delete/'+id+'/',{
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRFToken':csrfToken}
+    })
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(data.success){
+        if(card) setTimeout(function(){card.remove();}, 280);
+      } else {
+        if(card){card.style.transform='';card.style.opacity='';}
+        showAlert(data.message || 'Delete failed.');
+      }
+    })
+    .catch(function(){
+      if(card){card.style.transform='';card.style.opacity='';}
+      showAlert('Network error.');
+    });
+  });
+}
+
+function deleteBulk(){
+  var btn=document.getElementById('bulkDeleteBtn');
+  showConfirm('Delete all completed and expired challenges?').then(function(ok){
+    if(!ok)return;
+    if(btn){btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Cleaning...';}
+    fetch('/challenges/delete-bulk/',{
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRFToken':csrfToken},
+      body:'scope=completed'
+    })
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(data.success){
+        document.getElementById('pageTransition').classList.add('fade-in');
+        setTimeout(function(){window.location.reload();},400);
+      } else {
+        if(btn){btn.disabled=false;btn.innerHTML='<i class="fas fa-broom"></i> Clean Up';}
+        showAlert(data.message || 'Bulk delete failed.');
+      }
+    })
+    .catch(function(){
+      if(btn){btn.disabled=false;btn.innerHTML='<i class="fas fa-broom"></i> Clean Up';}
+      showAlert('Network error.');
+    });
+  });
+}
+
+var currentProofMode='text';
+var currentProofType='text';
+var csrfToken='{{ csrf_token }}';
+
+function openModal(id, proofType){
+  var card=document.getElementById('card-'+id);
+  if(!card)return;
+  document.getElementById('modalTitle').textContent=card.querySelector('.card-title').textContent;
+  document.getElementById('modalDesc').textContent=card.querySelector('.card-desc').textContent;
+  document.getElementById('modalRewards').innerHTML=card.querySelector('.card-rewards').innerHTML;
+  document.getElementById('modalChId').value=id;
+  document.getElementById('modalResult').className='modal-result';
+  document.getElementById('modalForm').reset();
+  document.getElementById('modalSubmitBtn').disabled=false;
+  document.getElementById('modalSubmitBtn').innerHTML='<i class="fas fa-check"></i> Submit';
+  document.getElementById('proofImageData').value='';
+  document.getElementById('uploadArea').classList.remove('has-image');
+  document.getElementById('uploadPreview').src='';
+  document.getElementById('modalOverlay').classList.add('open');
+
+  currentProofType = proofType || 'text';
+  var tabsEl = document.getElementById('proofTabs');
+  if (currentProofType === 'image') {
+    tabsEl.style.display='flex';
+    setProofMode('image');
+  } else if (currentProofType === 'both') {
+    tabsEl.style.display='flex';
+    setProofMode('text');
+  } else {
+    tabsEl.style.display='none';
+    setProofMode('text');
+  }
+}
+
+function setProofMode(mode){
+  currentProofMode = mode;
+  document.querySelectorAll('.proof-tab').forEach(function(t){
+    t.classList.toggle('active', t.dataset.mode===mode);
+  });
+  var ta=document.getElementById('proofText');
+  var up=document.getElementById('uploadArea');
+  if (mode==='image'){
+    ta.style.display='none';
+    ta.required=false;
+    up.style.display='flex';
+  } else {
+    ta.style.display='';
+    ta.required=true;
+    up.style.display='none';
+  }
+}
+
+document.querySelectorAll('.proof-tab').forEach(function(t){
+  t.addEventListener('click', function(){ setProofMode(this.dataset.mode); });
+});
+
+(function(){
+  var area=document.getElementById('uploadArea');
+  var input=document.getElementById('uploadInput');
+  if(!area||!input) return;
+  area.addEventListener('click', function(){ input.click(); });
+  ['dragenter','dragover'].forEach(function(ev){
+    area.addEventListener(ev, function(e){ e.preventDefault(); e.stopPropagation(); area.classList.add('dragover'); });
+  });
+  ['dragleave','drop'].forEach(function(ev){
+    area.addEventListener(ev, function(e){ e.preventDefault(); e.stopPropagation(); area.classList.remove('dragover'); });
+  });
+  area.addEventListener('drop', function(e){
+    var f=e.dataTransfer.files[0];
+    if(f) handleImage(f);
+  });
+  input.addEventListener('change', function(){
+    if(input.files[0]) handleImage(input.files[0]);
+  });
+  // Paste from clipboard support (both on area and globally when modal open)
+  function handlePaste(e){
+    var items=e.clipboardData.items;
+    for(var i=0;i<items.length;i++){
+      if(items[i].type.indexOf('image')!==-1){
+        e.preventDefault();
+        var blob=items[i].getAsFile();
+        if(blob) handleImage(blob);
+        return;
+      }
+    }
+  }
+  area.addEventListener('paste', handlePaste);
+  document.addEventListener('paste', function(e){
+    if(document.getElementById('modalOverlay').classList.contains('open')){
+      // Only grab paste if we're in image proof mode
+      if(document.getElementById('uploadArea').style.display!=='none'){
+        handlePaste(e);
+      }
+    }
+  });
+  function handleImage(file){
+    if(file.size>5*1024*1024){ showAlert('Image must be under 5 MB'); return; }
+    var reader=new FileReader();
+    reader.onload=function(e){
+      document.getElementById('uploadPreview').src=e.target.result;
+      area.classList.add('has-image');
+      document.getElementById('proofImageData').value=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+})();
+
+function rerollCard(id){
+  var btn=document.querySelector('#card-'+id+' .reroll-btn');
+  if(btn && btn.disabled) return;
+  var hasFree = btn && btn.querySelector('.reroll-free');
+  var msg = hasFree ? 'Reroll this challenge for FREE?' : 'Reroll this challenge for Rs 50?';
+  var label = hasFree ? 'Reroll Free' : 'Reroll (50\u00a2)';
+  showPopup('Reroll Challenge', msg, 'dice', label, 'confirm').then(function(ok){
+    if(!ok)return;
+    if(btn){btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i>';}
+    fetch('/challenges/regenerate/'+id+'/',{
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRFToken':csrfToken}
+    })
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(data.success){
+        document.getElementById('pageTransition').classList.add('fade-in');
+        setTimeout(function(){window.location.reload();},500);
+      } else {
+        if(btn){
+          btn.disabled=false;
+          var stillFree = btn.dataset.hadFree === '1';
+          btn.innerHTML = '<i class="fas fa-dice"></i>' + (stillFree ? '<span class="reroll-free">FREE</span>' : '');
+        }
+        showAlert(data.message || data.error || 'Reroll failed.');
+      }
+    })
+    .catch(function(){
+      if(btn){
+        btn.disabled=false;
+        var stillFree = btn.dataset.hadFree === '1';
+        btn.innerHTML = '<i class="fas fa-dice"></i>' + (stillFree ? '<span class="reroll-free">FREE</span>' : '');
+      }
+      showAlert('Network error.');
+    });
+  });
+}
+
+function fireConfetti(){
+  var wrap=document.getElementById('confettiBurst');
+  wrap.innerHTML='';
+  var colors=['#0d3b66','#4a9ec4','#bbf7d0','#fde68a','#c4b5fd','#fca5a5'];
+  for(var i=0;i<60;i++){
+    var s=document.createElement('span');
+    var angle=Math.random()*Math.PI*2;
+    var dist=80+Math.random()*260;
+    s.style.background=colors[Math.floor(Math.random()*colors.length)];
+    s.style.setProperty('--tx', Math.cos(angle)*dist+'px');
+    s.style.setProperty('--ty', Math.sin(angle)*dist+'px');
+    s.style.animationDelay=(Math.random()*0.3)+'s';
+    wrap.appendChild(s);
+  }
+  setTimeout(function(){wrap.innerHTML='';},2000);
+}
+
+function showLevelUp(newLevel){
+  var t=document.getElementById('levelUpToast');
+  document.getElementById('levelUpNum').textContent=' → Lv '+newLevel;
+  t.classList.add('show');
+  fireConfetti();
+  setTimeout(function(){t.classList.remove('show');},3500);
+}
+
+(function(){
+  var prev=parseInt(localStorage.getItem('chillx_level')||'0',10);
+  var cur={{ user_level|default:1 }};
+  if(prev>0 && cur>prev){
+    setTimeout(function(){showLevelUp(cur);},800);
+  }
+  localStorage.setItem('chillx_level', cur);
+})();
+
+(function(){
+  var origSubmit=submitChallenge;
+  submitChallenge=function(event){
+    event.preventDefault();
+    var id=document.getElementById('modalChId').value;
+    var form=document.getElementById('modalForm');
+    var btn=document.getElementById('modalSubmitBtn');
+    btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Checking...';
+    var payload={
+      'csrfmiddlewaretoken': form.querySelector('[name=csrfmiddlewaretoken]').value,
+      'proof_text': form.querySelector('[name=proof_text]').value
+    };
+    var imgData=document.getElementById('proofImageData').value;
+    if(imgData) payload['proof_image']=imgData;
+    fetch('/challenges/submit/'+id+'/',{
+      method:'POST',
+      body:new URLSearchParams(payload),
+      headers:{'Content-Type':'application/x-www-form-urlencoded'}
+    })
+    .then(function(r){return r.json();})
+    .then(function(data){
+      var result=document.getElementById('modalResult');
+      result.className='modal-result show';
+      document.getElementById('modalScore').textContent=data.score+'/10';
+      document.getElementById('modalFb').textContent=data.feedback;
+      if(data.passed){
+        result.classList.add('passed');
+        var card=document.getElementById('card-'+id);
+        var j=card.querySelector('.card-join');
+        j.className='card-join completed';
+        j.innerHTML='<i class="fas fa-check"></i> Completed';
+        j.onclick=null;
+        fireConfetti();
+        if(data.new_level && data.new_level> {{ user_level|default:1 }}){
+          setTimeout(function(){showLevelUp(data.new_level);},600);
+          localStorage.setItem('chillx_level', data.new_level);
+        }
+        if(typeof data.total_coins==='number'){
+          var tc=document.getElementById('topCoins');
+          if(tc) tc.textContent=data.total_coins;
+        }
+        if(typeof data.total_xp==='number'){
+          var tx=document.getElementById('topXp');
+          if(tx) tx.textContent=data.total_xp;
+        }
+        var sd=document.getElementById('statDone');
+        if(sd) sd.textContent=parseInt(sd.textContent||'0',10)+1;
+        var sp=document.getElementById('statPending');
+        if(sp) sp.textContent=Math.max(0,parseInt(sp.textContent||'0',10)-1);
+        setTimeout(closeModal,1400);
+      } else {
+        result.classList.add('failed');
+        btn.disabled=false;btn.innerHTML='<i class="fas fa-check"></i> Submit';
+      }
+    })
+    .catch(function(){
+      btn.disabled=false;btn.innerHTML='<i class="fas fa-check"></i> Submit';
+      var result=document.getElementById('modalResult');
+      result.className='modal-result show failed';
+      document.getElementById('modalScore').textContent='Error';
+      document.getElementById('modalFb').textContent='Network error. Please try again.';
+    });
+  };
+})();
+
+// No auto-refresh on tab visibility — game tabs already reload the opener
+// when they auto-close (window.opener.location.reload()), so we don't need
+// any visibility/focus listener here. That listener used to cause the page
+// to refresh every time the user came back from any other tab/app.
+</script>
+<!-- CUSTOM POPUP -->
+<div class="popup-overlay" id="popupOverlay" onclick="if(event.target===this)closePopup()">
+  <div class="popup-box" id="popupBox">
+    <div class="popup-icon" id="popupIcon"><i class="fas fa-exclamation-triangle"></i></div>
+    <div class="popup-title" id="popupTitle">Are you sure?</div>
+    <div class="popup-msg" id="popupMsg"></div>
+    <div class="popup-actions" id="popupActions">
+      <button class="popup-btn cancel" onclick="closePopup()">Cancel</button>
+      <button class="popup-btn confirm" id="popupConfirmBtn" onclick="confirmPopup()">Confirm</button>
+    </div>
+  </div>
+</div>
+<script>
+let popupResolve=null;
+function showPopup(title,msg,icon,confirmLabel,confirmClass){
+  return new Promise(function(resolve){
+    popupResolve=resolve;
+    document.getElementById('popupTitle').textContent=title;
+    document.getElementById('popupMsg').textContent=msg;
+    document.getElementById('popupIcon').innerHTML='<i class="fas fa-'+icon+'"></i>';
+    var btn=document.getElementById('popupConfirmBtn');
+    btn.textContent=confirmLabel||'Confirm';
+    btn.className='popup-btn '+(confirmClass||'confirm');
+    document.getElementById('popupOverlay').classList.add('open');
+  });
+}
+function closePopup(){
+  document.getElementById('popupOverlay').classList.remove('open');
+  if(popupResolve){popupResolve(false);popupResolve=null;}
+}
+function confirmPopup(){
+  document.getElementById('popupOverlay').classList.remove('open');
+  if(popupResolve){popupResolve(true);popupResolve=null;}
+}
+function showConfirm(msg,confirmLabel,confirmClass){
+  return showPopup('Are you sure?',msg,'exclamation-triangle',confirmLabel||'Delete',confirmClass||'danger');
+}
+function showAlert(msg){
+  return showPopup('Notice',msg,'info-circle','OK','confirm');
+}
+</script>
+</div>
+{% include 'invite_poll.html' %}
+{% include 'call_components.html' %}
+{% include 'chathead.html' %}
+</body>
+</html>
