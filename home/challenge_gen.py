@@ -157,13 +157,15 @@ def auto_generate_daily(user):
     if not created:
         from .challenge_catalog import (
             get_inapp_challenge, get_poki_challenge, get_offline_challenge,
+            IN_APP_GAMES, POKI_GAMES,
         )
-        import random
+        inapp_keys = list(IN_APP_GAMES.keys())
+        poki_keys = [g['key'] for g in POKI_GAMES]
         for i in range(count):
             is_long = (i == count - 1)
             picker = random.choice([
-                lambda: get_inapp_challenge(user.level),
-                lambda: get_poki_challenge(user.level),
+                lambda: get_inapp_challenge(random.choice(inapp_keys), user.level),
+                lambda: get_poki_challenge(random.choice(poki_keys), user.level),
                 lambda: get_offline_challenge(
                     random.choice(categories) if categories else "general",
                     user.level,
@@ -250,59 +252,77 @@ def generate_more(user, count=0):
     else:
         count = min(count, 20)
 
-    challenges_data = ai_generate(categories, difficulty, count + 3, history, level=user.level, user=user)
-    if not challenges_data:
-        return []
-    # Safety net: ensure every user-pref category is represented
-    balanced = balance_categories(challenges_data, categories, user.level)
-    # Pick the final list to save:
-    # 1. Always include fillers (they cover missing user prefs)
-    # 2. Fill the rest with AI results, dropping duplicates of pref categories
-    #    and any "unexpected" categories first, to make room for fillers
-    ai_titles = {c.get('title') for c in challenges_data}
-    fillers = [c for c in balanced if c.get('title') not in ai_titles]
-    ai_picks = [c for c in balanced if c.get('title') in ai_titles]
-
-    # Dedup: drop AI picks whose title already exists from today or duplicates within batch
-    seen_titles = set(existing_titles)
-    deduped = []
-    for c in ai_picks:
-        t = c.get('title', '')
-        if t and t not in seen_titles:
-            deduped.append(c)
-            seen_titles.add(t)
-
-    # Trim ai_picks to (count - len(fillers)) — prefer keeping unique-category
-    # entries and dropping unexpected/duplicate-category ones
-    slots_for_ai = max(0, count - len(fillers))
-    if len(deduped) > slots_for_ai:
-        seen_cats = set()
-        kept = []
-        extras = []
-        for c in deduped:
-            if c.get('category') in seen_cats or c.get('category') not in categories:
-                extras.append(c)  # duplicate or unexpected — drop first
-            else:
-                kept.append(c)
-                seen_cats.add(c.get('category'))
-        # If we still have too many, drop the lowest-priority extras
-        if len(kept) > slots_for_ai:
-            kept = kept[:slots_for_ai]
-        # If we have room, pull back from extras
-        if len(kept) < slots_for_ai:
-            kept.extend(extras[:slots_for_ai - len(kept)])
-        ai_picks = kept
-    else:
-        ai_picks = deduped
-
-    to_save = fillers + ai_picks
-    # Trim to count
-    to_save = to_save[:count]
     created = []
-    for i, cd in enumerate(to_save):
-        is_long = (i == len(to_save) - 1) and len(to_save) > 1
-        ch = generate_and_save_challenge(user, cd, difficulty, is_long)
-        created.append(ch)
+
+    # Try AI generation
+    challenges_data = ai_generate(categories, difficulty, count + 3, history, level=user.level, user=user)
+    if challenges_data:
+        balanced = balance_categories(challenges_data, categories, user.level)
+        ai_titles = {c.get('title') for c in challenges_data}
+        fillers = [c for c in balanced if c.get('title') not in ai_titles]
+        ai_picks = [c for c in balanced if c.get('title') in ai_titles]
+
+        seen_titles = set(existing_titles)
+        deduped = []
+        for c in ai_picks:
+            t = c.get('title', '')
+            if t and t not in seen_titles:
+                deduped.append(c)
+                seen_titles.add(t)
+
+        slots_for_ai = max(0, count - len(fillers))
+        if len(deduped) > slots_for_ai:
+            seen_cats = set()
+            kept = []
+            extras = []
+            for c in deduped:
+                if c.get('category') in seen_cats or c.get('category') not in categories:
+                    extras.append(c)
+                else:
+                    kept.append(c)
+                    seen_cats.add(c.get('category'))
+            if len(kept) > slots_for_ai:
+                kept = kept[:slots_for_ai]
+            if len(kept) < slots_for_ai:
+                kept.extend(extras[:slots_for_ai - len(kept)])
+            ai_picks = kept
+        else:
+            ai_picks = deduped
+
+        to_save = fillers + ai_picks
+        to_save = to_save[:count]
+        for i, cd in enumerate(to_save):
+            is_long = (i == len(to_save) - 1) and len(to_save) > 1
+            ch = generate_and_save_challenge(user, cd, difficulty, is_long)
+            created.append(ch)
+
+    # Catalog fallback
+    if not created:
+        from .challenge_catalog import get_inapp_challenge, get_poki_challenge, get_offline_challenge, IN_APP_GAMES, POKI_GAMES
+        inapp_keys = list(IN_APP_GAMES.keys())
+        poki_keys = [g['key'] for g in POKI_GAMES]
+        for i in range(count):
+            is_long = (i == count - 1)
+            picker = random.choice([
+                lambda: get_inapp_challenge(random.choice(inapp_keys), user.level),
+                lambda: get_poki_challenge(random.choice(poki_keys), user.level),
+                lambda: get_offline_challenge(
+                    random.choice(categories) if categories else "general",
+                    user.level,
+                ),
+            ])
+            cd = picker()
+            if cd:
+                ch = generate_and_save_challenge(user, cd, difficulty, is_long)
+                created.append(ch)
+
+    # Hardcoded fallback
+    if not created:
+        for i, cd in enumerate(_fallback_challenges(categories, difficulty, count)):
+            is_long = (i == count - 1) and count > 1
+            ch = generate_and_save_challenge(user, cd, difficulty, is_long)
+            created.append(ch)
+
     return created
 
 
@@ -318,11 +338,13 @@ def regenerate_challenge(challenge, user):
         # Catalog fallback for reroll
         from .challenge_catalog import (
             get_inapp_challenge, get_poki_challenge, get_offline_challenge,
+            IN_APP_GAMES, POKI_GAMES,
         )
-        import random
+        inapp_keys = list(IN_APP_GAMES.keys())
+        poki_keys = [g['key'] for g in POKI_GAMES]
         picker = random.choice([
-            lambda: get_inapp_challenge(user.level),
-            lambda: get_poki_challenge(user.level),
+            lambda: get_inapp_challenge(random.choice(inapp_keys), user.level),
+            lambda: get_poki_challenge(random.choice(poki_keys), user.level),
             lambda: get_offline_challenge(
                 random.choice(categories) if categories else "general",
                 user.level,

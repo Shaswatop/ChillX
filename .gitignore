@@ -42,3 +42,6 @@ PROJECT_REPORT.md
 # Claude AI
 .claude/
 .claude.json
+
+# Generated reports
+REPORTS/

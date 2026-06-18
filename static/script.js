@@ -8,7 +8,7 @@ if(window.top!==window){
   if(window.__origSetInterval)window.setInterval=window.__origSetInterval;
 
 // ── WEBRTC CALLING ──
-const STUN_SERVERS={'iceServers':[{'urls':'stun:stun.l.google.com:19302'},{'urls':'stun:stun1.l.google.com:19302'}]};
+const STUN_SERVERS={'iceServers':[{'urls':'stun:stun.l.google.com:19302'},{'urls':'stun:stun1.l.google.com:19302'},{'urls':'turn:openrelay.metered.ca:80',username:'openrelayproject',credential:'openrelayproject'},{'urls':'turns:openrelay.metered.ca:443',username:'openrelayproject',credential:'openrelayproject'}]};
 let pc=null;
 let localStream=null;
 let screenStream=null;
