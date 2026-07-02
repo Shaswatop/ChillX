@@ -1,4 +1,3 @@
-import os
 import json
 import random
 import urllib.request
@@ -15,6 +14,7 @@ try:
 except ImportError:
     HAS_CV2 = False
 
+import os
 GROQ_KEY = os.environ.get("GROQ_KEY", "")
 GROQ_KEY2 = os.environ.get("GROQ_KEY2", "")
 GEMINI_KEY = os.environ.get("GEMINI_KEY", "")
