@@ -5,7 +5,13 @@ import urllib.error
 import base64
 import io
 import re
+import os
 from typing import Optional
+from dotenv import load_dotenv
+
+env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+load_dotenv(env_path)
+
 try:
     import cv2
     import numpy as np
@@ -14,7 +20,6 @@ try:
 except ImportError:
     HAS_CV2 = False
 
-import os
 GROQ_KEY = os.environ.get("GROQ_KEY", "")
 GROQ_KEY2 = os.environ.get("GROQ_KEY2", "")
 GEMINI_KEY = os.environ.get("GEMINI_KEY", "")
@@ -23,8 +28,11 @@ OPENROUTER_KEY = os.environ.get("OPENROUTER_KEY", "")
 OPENROUTER_KEY2 = os.environ.get("OPENROUTER_KEY2", "")
 
 
-def _groq_request(messages, model="llama3-70b-8192", temperature=0.7, max_tokens=2048, custom_key=None):
+def _groq_request(messages, model="llama-3.3-70b-versatile", temperature=0.7, max_tokens=2048, custom_key=None):
     keys = [custom_key] if custom_key else [GROQ_KEY, GROQ_KEY2]
+    keys = [k for k in keys if k]
+    if not keys:
+        return None
     for key in keys:
         try:
             data = json.dumps({
@@ -39,15 +47,25 @@ def _groq_request(messages, model="llama3-70b-8192", temperature=0.7, max_tokens
                 headers={
                     "Authorization": f"Bearer {key}",
                     "Content-Type": "application/json",
+                    "User-Agent": "Mozilla/5.0",
                 },
                 method="POST",
             )
             with urllib.request.urlopen(req, timeout=30) as resp:
                 result = json.loads(resp.read().decode())
                 return result["choices"][0]["message"]["content"].strip()
-        except Exception:
-            continue
+        except urllib.error.HTTPError as e:
+            import sys as _sys
+            _sys.stderr.write(f"[GROQ ERROR] HTTP {e.code}: {e.read().decode()[:200]}\n")
+            _sys.stderr.flush()
+        except Exception as e:
+            import sys as _sys
+            _sys.stderr.write(f"[GROQ ERROR] {type(e).__name__}: {str(e)[:200]}\n")
+            _sys.stderr.flush()
     return None
+
+
+UA = "Mozilla/5.0"
 
 
 def _gemini_request(prompt, image_data=None, custom_key=None, model="gemini-2.0-flash"):
@@ -61,7 +79,7 @@ def _gemini_request(prompt, image_data=None, custom_key=None, model="gemini-2.0-
                 })
             data = json.dumps(contents).encode()
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
-            req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"}, method="POST")
+            req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json", "User-Agent": UA}, method="POST")
             with urllib.request.urlopen(req, timeout=60) as resp:
                 result = json.loads(resp.read().decode())
                 return result["candidates"][0]["content"]["parts"][0]["text"].strip()
@@ -500,6 +518,7 @@ def _openrouter_request(messages, model="openai/gpt-4o-mini", temperature=0.7, m
                 headers={
                     "Authorization": f"Bearer {key}",
                     "Content-Type": "application/json",
+                    "User-Agent": UA,
                     "HTTP-Referer": "http://localhost:8000",
                 },
                 method="POST",
@@ -512,7 +531,7 @@ def _openrouter_request(messages, model="openai/gpt-4o-mini", temperature=0.7, m
     return None
 
 
-def _groq_request_stream(messages, model="llama3-70b-8192", temperature=0.9, max_tokens=3000):
+def _groq_request_stream(messages, model="llama-3.3-70b-versatile", temperature=0.9, max_tokens=3000):
     """Call Groq with streaming, yielding content tokens as they arrive."""
     for key in [GROQ_KEY, GROQ_KEY2]:
         try:
@@ -529,6 +548,7 @@ def _groq_request_stream(messages, model="llama3-70b-8192", temperature=0.9, max
                 headers={
                     "Authorization": f"Bearer {key}",
                     "Content-Type": "application/json",
+                    "User-Agent": UA,
                 },
                 method="POST",
             )
@@ -591,9 +611,12 @@ def chat_response(user_message, challenge_context, history=None, ai_name="ChillX
     groq_key = custom_keys.get("groq") or None
     gemini_key = custom_keys.get("gemini") or None
     openrouter_key = custom_keys.get("openrouter") or None
-    groq_model = models.get("groq", "llama3-70b-8192")
+    groq_model = models.get("groq", "llama-3.3-70b-versatile")
     gemini_model = models.get("gemini", "gemini-2.0-flash")
     openrouter_model = models.get("openrouter", "openai/gpt-4o-mini")
+
+    if not groq_key and not GROQ_KEY and not gemini_key and not GEMINI_KEY and not openrouter_key and not OPENROUTER_KEY:
+        return "No API key configured. Go to **Settings > API Keys** in the app to enter your Groq, Gemini, or OpenRouter key. You can get a free Groq key at https://console.groq.com/keys"
 
     if image_data:
         result = _gemini_request(system_prompt + "\n\n" + user_message, image_data=image_data, custom_key=gemini_key, model=gemini_model)

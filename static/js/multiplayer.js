@@ -49,12 +49,15 @@ function useMultiplayerSocket(roomCode, userId, onMessage) {
     let mounted = true;
     function connect() {
       if (!mounted) return;
+      let reconnectAttempts = 0;
+      const MAX_RECONNECT = 10;
       const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const url = `${proto}//${window.location.host}/ws/multiplayer/${roomCode}/`;
       const ws = new WebSocket(url);
       wsRef.current = ws;
       ws.onopen = () => {
         if (mounted) setConnectionStatus('connected');
+        reconnectAttempts = 0;
       };
       ws.onmessage = e => {
         if (!mounted) return;
@@ -70,10 +73,16 @@ function useMultiplayerSocket(roomCode, userId, onMessage) {
         wsRef.current = null;
         if (mounted) {
           setConnectionStatus('disconnected');
-          reconnectTimer = setTimeout(connect, 2000);
+          reconnectAttempts++;
+          if (reconnectAttempts <= MAX_RECONNECT) {
+            reconnectTimer = setTimeout(connect, 2000);
+          } else {
+            console.error('Max reconnection attempts reached');
+          }
         }
       };
-      ws.onerror = () => {
+      ws.onerror = (err) => {
+        console.error('WebSocket error', err);
         ws.close();
       };
     }

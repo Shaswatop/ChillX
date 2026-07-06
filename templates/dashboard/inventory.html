@@ -450,7 +450,7 @@ body>*{position:relative;z-index:1;}
 <div id="root"></div>
 <script>window.USER={display_name:"{{ user.display_name|default:user.username|escapejs }}",title:"{{ user.title|escapejs }}",flex_effect:"{{ user.flex_effect|escapejs }}",name_effect:"{{ user.name_effect|escapejs }}",avatar_border:"{{ user.avatar_border|escapejs }}",bg_effect:"{{ user.bg_effect|escapejs }}",has_avatar:{{ user.avatar_base64|yesno:"true,false" }}};</script>
 <script src="/static/js/inventory.js"></script>
-t.target===this)closePopup()">
+<div class="popup-overlay" id="popupOverlay" onclick="if(event.target===this)closePopup()">
   <div class="popup-box" id="popupBox">
     <div class="popup-icon" id="popupIcon"><i class="fas fa-exclamation-triangle"></i></div>
     <div class="popup-title" id="popupTitle">Are you sure?</div>

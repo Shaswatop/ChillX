@@ -1320,7 +1320,7 @@ function InventoryApp() {
     index: i,
     onToggle: toggleItem,
     onCrate: openCrate,
-    crateAnim: crateAnim
+    crateAnim: openingCrate?.id
   })))), showAvatarModal && /*#__PURE__*/React.createElement(AvatarUploadModal, {
     onClose: () => setShowAvatarModal(false),
     onSave: handleAvatarSave

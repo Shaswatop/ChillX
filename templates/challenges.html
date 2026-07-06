@@ -1178,7 +1178,7 @@ function showLevelUp(newLevel){
   if(prev>0 && cur>prev){
     setTimeout(function(){showLevelUp(cur);},800);
   }
-  localStorage.setItem('chillx_level', cur);
+  try{localStorage.setItem('chillx_level', cur);}catch(e){}
 })();
 
 (function(){
@@ -1216,7 +1216,7 @@ function showLevelUp(newLevel){
         fireConfetti();
         if(data.new_level && data.new_level> {{ user_level|default:1 }}){
           setTimeout(function(){showLevelUp(data.new_level);},600);
-          localStorage.setItem('chillx_level', data.new_level);
+          try{localStorage.setItem('chillx_level', data.new_level);}catch(e){}
         }
         if(typeof data.total_coins==='number'){
           var tc=document.getElementById('topCoins');

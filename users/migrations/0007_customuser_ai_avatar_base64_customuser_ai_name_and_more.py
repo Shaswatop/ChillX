@@ -43,7 +43,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='customuser',
             name='groq_model',
-            field=models.CharField(blank=True, default='llama3-70b-8192', max_length=100),
+            field=models.CharField(blank=True, default='llama-3.3-70b-versatile', max_length=100),
         ),
         migrations.AddField(
             model_name='customuser',

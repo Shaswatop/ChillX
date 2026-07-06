@@ -1146,10 +1146,10 @@ gameLoop();
 
 // ── Multiplayer postMessage API ──
 function sendProgress(data){
-  window.parent.postMessage({type:'progress', data:data}, '*');
+  try { window.parent.postMessage({type:'progress', data:data}, '*'); } catch(e) {}
 }
 function sendComplete(data){
-  window.parent.postMessage({type:'complete', data:data}, '*');
+  try { window.parent.postMessage({type:'complete', data:data}, '*'); } catch(e) {}
 }
 var challengeTarget = 0;
 window.addEventListener('message', function(e){
@@ -1164,7 +1164,7 @@ window.addEventListener('message', function(e){
     restartGame();
   }
 });
-window.parent.postMessage({type:'ready'}, '*');
+try { window.parent.postMessage({type:'ready'}, '*'); } catch(e) {}
 </script>
 </body>
 </html>

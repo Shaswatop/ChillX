@@ -307,8 +307,22 @@ function loadGunModel() {
       }
     },
     undefined,
-    (err) => {
-      console.error("Gun model failed to load:", err);
+    function(err){
+      console.error('Failed to load gun model:', err);
+      var group = new THREE.Group();
+      var barrelGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.25, 8);
+      var barrelMat = new THREE.MeshStandardMaterial({color: 0x444444, metalness: 0.8, roughness: 0.3});
+      var barrel = new THREE.Mesh(barrelGeo, barrelMat);
+      barrel.rotation.x = Math.PI / 2;
+      barrel.position.z = -0.15;
+      group.add(barrel);
+      var bodyGeo = new THREE.BoxGeometry(0.06, 0.04, 0.1);
+      var bodyMat = new THREE.MeshStandardMaterial({color: 0x333333, metalness: 0.6, roughness: 0.4});
+      var body = new THREE.Mesh(bodyGeo, bodyMat);
+      body.position.z = 0.05;
+      group.add(body);
+      scene.add(group);
+      gun = group;
     }
   );
 }
@@ -1304,7 +1318,7 @@ function applySettings(settings) {
 }
 
 function persistSettings() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.settings));
+  try{localStorage.setItem(STORAGE_KEY, JSON.stringify(state.settings));}catch(e){}
   updateMuteButton();
 }
 
@@ -1341,7 +1355,7 @@ function saveHighScoreIfBetter(modeKey, data) {
   const prev = scores[modeKey];
   if (!prev || data.score > prev.score) {
     scores[modeKey] = { score: data.score, accuracy: data.accuracy, hits: data.hits, grade: data.grade, date: new Date().toISOString().slice(0, 10) };
-    localStorage.setItem(HIGH_SCORES_KEY, JSON.stringify(scores));
+    try{localStorage.setItem(HIGH_SCORES_KEY, JSON.stringify(scores));}catch(e){}
     return true;
   }
   return false;

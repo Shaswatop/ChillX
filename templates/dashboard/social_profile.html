@@ -241,7 +241,8 @@ body>*{position:relative;z-index:1;}
 document.getElementById('pageTransition')?.classList.add('fade-out');
 function frSendRequest(userId) {
   fetch('/social/friends/request/'+userId+'/', {method:'POST', headers:{'X-CSRFToken':'{{ csrf_token }}'}})
-  .then(r=>r.json()).then(d=>{if(d.ok)showAlert('Friend request sent!');else showAlert(d.error);});
+  .then(r=>r.json()).then(d=>{if(d.ok)showAlert('Friend request sent!');else showAlert(d.error);})
+  .catch(function(err){console.error('Friend request error',err);showAlert('Failed to send request');});
 }
 let popupResolve=null;
 function showPopup(title,msg,icon,confirmLabel,confirmClass){

@@ -66,7 +66,7 @@ class CustomUser(AbstractUser):
     openrouter_api_key = models.CharField(max_length=200, blank=True, default='')
 
     # Model Selections
-    groq_model = models.CharField(max_length=100, blank=True, default='llama3-70b-8192')
+    groq_model = models.CharField(max_length=100, blank=True, default='llama-3.3-70b-versatile')
     gemini_model = models.CharField(max_length=100, blank=True, default='gemini-1.5-flash')
     openrouter_model = models.CharField(max_length=100, blank=True, default='openai/gpt-4o-mini')
 

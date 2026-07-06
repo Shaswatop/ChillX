@@ -237,10 +237,10 @@ function resetScore(){
 
 // ── Multiplayer postMessage API ──
 function sendProgress(data){
-  window.parent.postMessage({type:'progress', data:data}, '*');
+  try { window.parent.postMessage({type:'progress', data:data}, '*'); } catch(e) {}
 }
 function sendComplete(data){
-  window.parent.postMessage({type:'complete', data:data}, '*');
+  try { window.parent.postMessage({type:'complete', data:data}, '*'); } catch(e) {}
 }
 window.addEventListener('message', function(e){
   var msg = e.data || {};
@@ -262,7 +262,7 @@ window.addEventListener('message', function(e){
     resetGame();
   }
 });
-window.parent.postMessage({type:'ready'}, '*');
+try { window.parent.postMessage({type:'ready'}, '*'); } catch(e) {}
 
 init()
 </script>

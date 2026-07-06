@@ -555,7 +555,7 @@ body, .app, .menu, .hud, .settings-panel, .results-card {
     <div class="result" id="submitResult"></div>
     <div>
       <button class="btn btn-submit" id="submitBtn" onclick="submitAimScore()">✓ Submit Score</button>
-      <button class="btn btn-back" onclick="window.location.href='/challenges/'">← Back</button>
+      <button class="btn btn-back" onclick="window.location.href='{% url "challenges" %}'">← Back</button>
     </div>
   </div>
 </div>
@@ -592,7 +592,8 @@ function submitAimScore(){
   xhr.setRequestHeader('X-CSRFToken',getCSRF())
   xhr.onload=function(){
     if(xhr.status===200){
-      var d=JSON.parse(xhr.responseText)
+      var d;
+      try { d = JSON.parse(xhr.responseText); } catch(e) { console.error('JSON parse error', e); return; }
       document.getElementById('submitResult').textContent=d.passed?'✓ Completed! +'+d.xp+' XP, Rs '+d.coins:'Failed — '+lastScore+'/'+challengeTarget
       document.getElementById('submitResult').className='result '+(d.passed?'passed':'failed')
       document.getElementById('submitBtn').disabled=true;document.getElementById('submitBtn').style.opacity=0.5

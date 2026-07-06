@@ -176,6 +176,7 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;background:radial-grad
     <div class="title"><i class="fas fa-question-circle"></i>AI QUIZ</div>
     <div class="streak" id="streakDisplay"></div>
     <div class="score-hud" id="scoreHud">0 / 0</div>
+    <div class="timer" id="timerDisplay" style="font-family:'Black Ops One',cursive;font-size:.8rem;color:#172033;background:#fff;border:1px solid rgba(37,99,235,.12);padding:4px 10px;border-radius:999px;min-width:40px;text-align:center;transition:all .3s">10s</div>
     <label class="taunt-toggle" id="tauntToggle">
       <input type="checkbox" id="tauntToggleInput">
       <span class="taunt-slider"></span>
@@ -281,6 +282,8 @@ var resultsScore=document.getElementById('resultsScore')
 var resultsDetail=document.getElementById('resultsDetail')
 var isRevealMode=false
 var timerInterval=null
+var secondsLeft=10
+var timerEl=document.getElementById('timerDisplay')
 var currentTopic=''
 var revealArea=document.getElementById('revealArea')
 var showAnswerBtn=document.getElementById('showAnswerBtn')
@@ -295,6 +298,42 @@ var guessResult=document.getElementById('guessResult')
 var guessFeedback=document.getElementById('guessFeedback')
 var guessAnswerReveal=document.getElementById('guessAnswerReveal')
 var guessOr=document.getElementById('guessOr')
+
+function startTimer(){
+  clearInterval(timerInterval)
+  secondsLeft=10
+  if(timerEl){timerEl.textContent='10s';timerEl.classList.remove('warning')}
+  timerInterval=setInterval(function(){
+    secondsLeft--
+    if(timerEl){
+      timerEl.textContent=secondsLeft+'s'
+      timerEl.classList.toggle('warning',secondsLeft<=3)
+    }
+    if(secondsLeft<=0){
+      clearInterval(timerInterval)
+      handleTimeout()
+    }
+  },1000)
+}
+
+function handleTimeout(){
+  if(answered)return
+  answered=true
+  playSound(220,0.2)
+  streak=0
+  updateStreak()
+  var q=questions[currentQ]
+  var allBtns=optionsContainer.querySelectorAll('.opt-btn')
+  allBtns.forEach(function(b){b.disabled=true})
+  allBtns.forEach(function(b){
+    if(b.textContent===q.answer)b.classList.add('reveal-correct')
+  })
+  explanationText.textContent=q.explanation
+  explanationText.classList.add('show')
+  updateSelfProgress()
+  sendProgress({score: score, target: total || 10, percent_complete: Math.min(100, Math.round((currentQ+1) / (total || 10) * 100))});
+  setTimeout(function(){advanceQuiz()},1200)
+}
 
 function getTopic(){
   var active=topicPicker.querySelector('.active')
@@ -443,6 +482,7 @@ function showMCQQuestion(){
     btn.addEventListener('click',function(){selectOption(btn,opt,q)})
     optionsContainer.appendChild(btn)
   })
+  startTimer()
 }
 
 function selectOption(btn,selected,q){
@@ -487,7 +527,7 @@ function advanceQuiz(){
     var seenKey='qz_seen_'+currentTopic
     var seen=JSON.parse(localStorage.getItem(seenKey)||'[]')
     seen.push(questions[currentQ].question)
-    localStorage.setItem(seenKey,JSON.stringify(seen))
+    try{localStorage.setItem(seenKey,JSON.stringify(seen));}catch(e){}
   }
   currentQ++
   if(currentQ>=questions.length){showResults()}
@@ -593,7 +633,7 @@ function handleSelfEval(isCorrect){
   var seenKey='qz_seen_'+currentTopic
   var seen=JSON.parse(localStorage.getItem(seenKey)||'[]')
   seen.push(questions[currentQ].question)
-  localStorage.setItem(seenKey,JSON.stringify(seen))
+  try{localStorage.setItem(seenKey,JSON.stringify(seen));}catch(e){}
   correctBtn.disabled=true
   incorrectBtn.disabled=true
   if(!isRevealMode){if(isCorrect){score++} scoreHud.textContent=score+' / '+(currentQ+1); sendProgress({score: score, target: total || 10, percent_complete: Math.min(100, Math.round((currentQ+1) / (total || 10) * 100)), is_correct: isCorrect}); updateSelfProgress()}
@@ -606,6 +646,7 @@ incorrectBtn.addEventListener('click',function(){handleSelfEval(false)})
 nextBtn.addEventListener('click',advanceQuiz)
 
 function showResults(){
+  clearInterval(timerInterval)
   quizCard.classList.remove('active')
   resultsCard.classList.add('active')
   var pct=Math.round((score/questions.length)*100)
@@ -649,7 +690,7 @@ retryBtn.addEventListener('click',function(){
 })
 
 startBtn.addEventListener('click',loadQuestions)
-window.addEventListener('beforeunload',function(){window.currentQuizQuestions=null})
+window.addEventListener('beforeunload',function(){window.currentQuizQuestions=null;var m=setTimeout(function(){},0);for(var i=0;i<=m;i++)clearInterval(i);clearTimeout(m)})
 
 // Taunt toggle popup
 document.getElementById('tauntToggleInput').addEventListener('change',function(){
@@ -724,10 +765,10 @@ if(challengeId)setTimeout(submitResult,500)
 
 // ── Multiplayer postMessage API ──
 function sendProgress(data){
-  window.parent.postMessage({type:'progress', data:data}, '*');
+  try { window.parent.postMessage({type:'progress', data:data}, '*'); } catch(e) {}
 }
 function sendComplete(data){
-  window.parent.postMessage({type:'complete', data:data}, '*');
+  try { window.parent.postMessage({type:'complete', data:data}, '*'); } catch(e) {}
 }
 window.addEventListener('message', function(e){
   var msg = e.data || {};
@@ -776,7 +817,7 @@ window.addEventListener('message', function(e){
     }
   }
 });
-window.parent.postMessage({type:'ready'}, '*');
+try { window.parent.postMessage({type:'ready'}, '*'); } catch(e) {}
 </script>
 <div class="popup-overlay" id="popupOverlay" onclick="if(event.target===this)closePopup()">
   <div class="popup-box" id="popupBox">
@@ -819,3 +860,4 @@ function showAlert(msg){
 }
 </script>
 </body>
+</html>

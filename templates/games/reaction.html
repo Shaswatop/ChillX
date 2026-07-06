@@ -222,7 +222,7 @@ function submitResult(avg,best){
     var backBtn=document.createElement('button')
     backBtn.className='over-btn secondary'
     backBtn.textContent='\u2190 Back to Challenges'
-    backBtn.onclick=function(){window.location.href='/challenges/'}
+    backBtn.onclick=function(){window.location.href='{% url "challenges" %}'}
     document.getElementById('resultActions').appendChild(backBtn)
   }
   var xhr=new XMLHttpRequest()
@@ -230,9 +230,10 @@ function submitResult(avg,best){
   xhr.setRequestHeader('Content-Type','application/x-www-form-urlencoded')
   xhr.setRequestHeader('X-CSRFToken',getCSRF())
    xhr.onload=function(){
-     if(xhr.status===200){
-       var d=JSON.parse(xhr.responseText)
-       if(d.passed&&d.status==='completed'){
+      if(xhr.status===200){
+        var d;
+        try { d = JSON.parse(xhr.responseText); } catch(e) { console.error('JSON parse error', e); return; }
+        if(d.passed&&d.status==='completed'){
          document.getElementById('resultStatus').textContent='\u2713 Completed! +'+d.xp+' XP, Rs '+d.coins
          document.getElementById('resultStatus').className='over-result passed'
          document.getElementById('resultActions').innerHTML=''

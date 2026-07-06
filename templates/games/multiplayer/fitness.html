@@ -113,9 +113,20 @@ body>*{position:relative;z-index:1}
   .result-modal .grid{grid-template-columns:1fr}
   .words-box{padding:8px 10px;min-height:70px}
 }
+.opp-tracker{position:fixed;top:12px;right:12px;width:130px;background:#0d3b66;border:1px solid #1d4d6b;border-radius:10px;padding:6px 10px;z-index:1000;display:none}
+.opp-tracker.show{display:block}
+.op-label{font-size:.5rem;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.op-bar{height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;margin-bottom:6px}
+.op-bar-inner{height:100%;background:#7c5cfc;border-radius:2px;transition:width .3s;width:0%}
+.op-val{font-size:.65rem;color:rgba(255,255,255,0.4);font-weight:500}
 </style>
 </head>
 <body>
+<div class="opp-tracker" id="oppTracker">
+  <div class="op-label">Opponent</div>
+  <div class="op-bar"><div class="op-bar-inner" id="oppBar"></div></div>
+  <div class="op-val" id="oppVal">Waiting...</div>
+</div>
 <div class="chillx-header" id="chillxHeader">
   <div class="left">
     <a href="{% url 'dashboard' %}" class="chillx-brand"><img src="{% static 'LOGO.png' %}" alt="ChillX"></a>
@@ -334,6 +345,14 @@ function startBeep(cycleMs){
 }
 function stopBeep(){if(beepInterval){clearInterval(beepInterval);beepInterval=null}}
 
+function sendFitnessProgress(){
+  var pct=0
+  if(currentMode==='reps'){pct=Math.round(repCount/target*100)}
+  else if(currentMode==='time'){pct=Math.round(Math.min(100,elapsedMs/1000/target*100))}
+  else if(currentMode==='distance'){pct=Math.round(Math.min(100,(parseFloat(document.getElementById('distanceInput').value)||0)/target*100))}
+  sendProgress({reps: repCount, elapsed: Math.floor(elapsedMs/1000), target: target, mode: currentMode, percent_complete: pct, exercise: currentExercise})
+}
+
 // === UI RENDER ===
 function renderBodyParts(){
   var picker=document.getElementById('bodyPartPicker')
@@ -488,6 +507,7 @@ function tick(){
   var mm=Math.floor(s/60).toString().padStart(2,'0')
   var ss=(s%60).toString().padStart(2,'0')
   document.getElementById('stopwatch').textContent=mm+':'+ss
+  sendFitnessProgress()
   if(currentMode==='time'&&s>=target){
     finishExercise(true)
   }
@@ -498,6 +518,7 @@ function tapRep(){
   repCount++
   sfxCount()
   document.getElementById('repCounter').textContent=repCount+' / '+target
+  sendFitnessProgress()
   if(repCount>=target){
     document.getElementById('repCounter').classList.add('complete')
     finishExercise(true)
@@ -520,6 +541,7 @@ function finishExercise(passed){
   lastActual=actual
   if(finalPassed)sfxComplete();else sfxFail()
   showResultModal(finalPassed,actual)
+  sendComplete({reps: repCount, elapsed: Math.floor(elapsedMs/1000), actual: actual, target: target, mode: currentMode, passed: finalPassed, exercise: currentExercise})
   if(challengeId){
     var xhr=new XMLHttpRequest()
     xhr.open('POST','/challenges/verify-fitness/',true)
@@ -657,6 +679,32 @@ if(challengeId){
 }
 
 // Lazy-load: only the active image loads — others idle until selected
+
+// ── Multiplayer postMessage API ──
+function sendProgress(data){
+  try { window.parent.postMessage({type:'progress', data:data}, '*'); } catch(e) {}
+}
+function sendComplete(data){
+  try { window.parent.postMessage({type:'complete', data:data}, '*'); } catch(e) {}
+}
+window.addEventListener('message', function(e){
+  var msg = e.data || {};
+  if(msg.type === 'opponent_progress'){
+    var d = msg.data || {};
+    document.getElementById('oppBar').style.width = (d.percent_complete || 0) + '%';
+    document.getElementById('oppVal').textContent = (d.reps || 0) + ' / ' + (d.target || 20) + ' ' + (d.mode||'reps');
+    document.getElementById('oppTracker').classList.add('show');
+  } else if(msg.type === 'start'){
+    resetExercise();
+    startExercise();
+  }
+});
+window.addEventListener('beforeunload', function(){
+  var max = setTimeout(function(){}, 0);
+  for(var i = 0; i <= max; i++) clearInterval(i);
+  clearTimeout(max);
+});
+try { window.parent.postMessage({type:'ready'}, '*'); } catch(e) {}
 </script>
 <script>(function(){var h=document.getElementById('chillxHeader'),b=document.getElementById('hideHeaderBtn');if(!h||!b)return;b.addEventListener('click',function(){h.classList.toggle('hidden');b.innerHTML=h.classList.contains('hidden')?'<i class="fas fa-eye"></i>':'<i class="fas fa-eye-slash"></i>';});})();</script>
 </body>

@@ -10,6 +10,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.db.models import Q
 from django.core.cache import cache
 
@@ -334,7 +335,7 @@ FRAMES = [
 
 GROQ_MODELS = [
 
-    {'id': 'llama3-70b-8192', 'name': 'Llama 3 70B'},
+    {'id': 'llama-3.3-70b-versatile', 'name': 'Llama 3.3 70B'},
 
     {'id': 'llama3-8b-8192', 'name': 'Llama 3 8B'},
 
@@ -610,7 +611,7 @@ def settings_view(request):
 
         user.openrouter_api_key = request.POST.get('openrouter_api_key', '').strip()
 
-        user.groq_model = request.POST.get('groq_model', 'llama3-70b-8192')
+        user.groq_model = request.POST.get('groq_model', 'llama-3.3-70b-versatile')
 
         user.gemini_model = request.POST.get('gemini_model', 'gemini-1.5-flash')
 
@@ -2087,11 +2088,25 @@ def challenge_chat(request):
 
             user_content = f"[File attached: {file_type}]\n\n{message}" if message else "[File attached]"
 
+        prev_msgs = ChatMessage.objects.filter(user=request.user).order_by('-created_at')[:30]
+        history = [{"role": m.role, "content": m.content} for m in reversed(prev_msgs)]
+
         ChatMessage.objects.create(user=request.user, role='user', content=user_content)
+
+        custom_keys = {
+            "groq": getattr(request.user, 'groq_api_key', '') or None,
+            "gemini": getattr(request.user, 'gemini_api_key', '') or None,
+            "openrouter": getattr(request.user, 'openrouter_api_key', '') or None,
+        }
+        models = {
+            "groq": 'llama-3.3-70b-versatile',
+            "gemini": 'gemini-2.0-flash',
+            "openrouter": 'openai/gpt-4o-mini',
+        }
 
         reply = chat_response(
 
-            message, ctx, history=None,
+            message, ctx, history=history, custom_keys=custom_keys, models=models,
 
             ai_name=getattr(request.user, 'ai_name', 'ChillX') or 'ChillX',
 
@@ -2129,12 +2144,6 @@ def game_view(request, game_name):
 
         return render(request, 'dashboard/home.html', {'user': request.user})
 
-    # External redirects
-
-    if game_name == 'typing':
-
-        return redirect('https://monkeytype.com')
-
     stats, _ = UserGameStats.objects.get_or_create(user=request.user, game=game_name)
 
     return render(request, f'games/{game_name}.html', {
@@ -2145,8 +2154,7 @@ def game_view(request, game_name):
 
     })
 
-from django.views.decorators.clickjacking import xframe_options_sameorigin
-
+@login_required
 @xframe_options_sameorigin
 def multiplayer_game_view(request, game_name):
 
@@ -2163,10 +2171,6 @@ def multiplayer_game_view(request, game_name):
         'user': request.user,
 
     })
-
-@login_required
-
-@login_required
 
 @login_required
 @csrf_exempt
@@ -2587,12 +2591,15 @@ def user_stats_json(request):
     })
 
 
+@login_required
 def shop_page(request):
     return render(request, 'dashboard/shop.html')
 
+@login_required
 def inventory_view(request):
     return render(request, 'dashboard/inventory.html')
 
+@login_required
 def achievement_page(request):
     from .models import Achievement, UserAchievement, Title, UserTitle
     from .achievement_views import get_level_from_xp, get_tier_for_xp, get_xp_for_level

@@ -567,7 +567,7 @@ body, .app, .menu, .hud, .settings-panel, .results-card {
     <div class="result" id="submitResult"></div>
     <div>
       <button class="btn btn-submit" id="submitBtn" onclick="submitAimScore()">✓ Submit Score</button>
-      <button class="btn btn-back" onclick="window.location.href='/challenges/'">← Back</button>
+      <button class="btn btn-back" onclick="window.location.href='{% url "challenges" %}'">← Back</button>
     </div>
   </div>
 </div>
@@ -604,8 +604,9 @@ function submitAimScore(){
   xhr.setRequestHeader('X-CSRFToken',getCSRF())
   xhr.onload=function(){
     if(xhr.status===200){
-      var d=JSON.parse(xhr.responseText)
-      document.getElementById('submitResult').textContent=d.passed?'✓ Completed! +'+d.xp+' XP, Rs '+d.coins:'Failed — '+lastScore+'/'+challengeTarget
+       var d;
+       try { d = JSON.parse(xhr.responseText); } catch(e) { console.error('JSON parse error', e); return; }
+       document.getElementById('submitResult').textContent=d.passed?'✓ Completed! +'+d.xp+' XP, Rs '+d.coins:'Failed — '+lastScore+'/'+challengeTarget
       document.getElementById('submitResult').className='result '+(d.passed?'passed':'failed')
       document.getElementById('submitBtn').disabled=true;document.getElementById('submitBtn').style.opacity=0.5
        if(d.passed)setTimeout(function(){if(window.opener&&!window.opener.closed)window.opener.location.reload();window.close()},2000)
@@ -622,10 +623,10 @@ function getCSRF(){var n='csrftoken',m=document.cookie.match('(^|;)\\s*'+n+'\\s*
 // ── Multiplayer postMessage API ──
 var aimTarget = parseInt("{{ request.GET.target }}") || 100;
 function sendProgress(data){
-  window.parent.postMessage({type:'progress', data:data}, '*');
+  try { window.parent.postMessage({type:'progress', data:data}, '*'); } catch(e) {}
 }
 function sendComplete(data){
-  window.parent.postMessage({type:'complete', data:data}, '*');
+  try { window.parent.postMessage({type:'complete', data:data}, '*'); } catch(e) {}
 }
 // Progress polling — reads score from nested game iframe every 500ms
 var aimProgressTimer = setInterval(function(){
@@ -668,7 +669,12 @@ window.addEventListener('message', function(e){
     document.getElementById('aimFrame').contentWindow.postMessage({type:'start', challenge: msg.challenge || {}}, '*');
   }
 });
-window.parent.postMessage({type:'ready'}, '*');
+window.addEventListener('beforeunload', function(){
+  var max = setTimeout(function(){}, 0);
+  for(var i = 0; i <= max; i++) clearInterval(i);
+  clearTimeout(max);
+});
+try { window.parent.postMessage({type:'ready'}, '*'); } catch(e) {}
 </script>
 
 </body>

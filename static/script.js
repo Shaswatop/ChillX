@@ -26,6 +26,9 @@ let incomingCallerId=null;
 let incomingOffer=null;
 let incomingMissedTimeout=null;
 
+var _callDisconnectedTimer=null;
+var _callInts=[setInterval(checkIncomingCalls,5000)];
+
 function createPeerConnection(){
   pc=new RTCPeerConnection(STUN_SERVERS);
   localStream.getTracks().forEach(function(t){pc.addTrack(t,localStream);});
@@ -48,27 +51,34 @@ function createPeerConnection(){
   };
   pc.onicecandidate=function(e){
     if(e.candidate){
-      fetch('/chatx/call/signal/'+callPeerId+'/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken': getCSRFToken()},body:JSON.stringify({type:'ice',data:e.candidate})});
+      fetch('/chatx/call/signal/'+callPeerId+'/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken': getCSRFToken()},body:JSON.stringify({type:'ice',data:e.candidate})}).catch(function(e){console.error('sendIce error',e);});
     }
   };
   pc.onconnectionstatechange=function(){
-    if(pc&&pc.connectionState==='connected'){
+    if(!pc)return;
+    if(pc.connectionState==='connected'){
       document.getElementById('callStatus').textContent='Connected';
       if(callSetupTimeout){clearTimeout(callSetupTimeout);callSetupTimeout=null;}
-    }else if(pc&&(pc.connectionState==='disconnected'||pc.connectionState==='failed')){
+      if(_callDisconnectedTimer){clearTimeout(_callDisconnectedTimer);_callDisconnectedTimer=null;}
+      callStartTime=Date.now();
+      startCallTimer();
+    }else if(pc.connectionState==='disconnected'){
+      if(!_callDisconnectedTimer){
+        _callDisconnectedTimer=setTimeout(function(){
+          _callDisconnectedTimer=null;
+          if(pc&&pc.connectionState==='disconnected'){
+            showCallToast('Call ended');
+            endCall();
+          }
+        },5000);
+      }
+    }else if(pc.connectionState==='failed'){
       showCallToast('Call ended');
       endCall();
     }
   };
   pc.oniceconnectionstatechange=function(){
     if(pc&&pc.iceConnectionState==='failed'){endCall();}
-  };
-  pc.onnegotiationneeded=function(){
-    pc.createOffer().then(function(offer){
-      return pc.setLocalDescription(offer);
-    }).then(function(){
-      fetch('/chatx/call/signal/'+callPeerId+'/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken': getCSRFToken()},body:JSON.stringify({type:'offer',data:pc.localDescription.toJSON()})});
-    }).catch(function(e){console.error('negotiationneeded error',e);});
   };
 }
 
@@ -115,15 +125,13 @@ function startCall(video){
     pc.createOffer().then(function(offer){
       return pc.setLocalDescription(offer);
     }).then(function(){
-      fetch('/chatx/call/signal/'+callPeerId+'/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken': getCSRFToken()},body:JSON.stringify({type:'offer',data:pc.localDescription.toJSON()})});
+      fetch('/chatx/call/signal/'+callPeerId+'/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken': getCSRFToken()},body:JSON.stringify({type:'offer',data:pc.localDescription.toJSON()})}).catch(function(e){console.error('sendOffer error',e);});
     }).catch(function(e){
       console.error('createOffer error',e);
       showCallToast('Failed to create offer');
       endCall();
     });
-    callStartTime=Date.now();
     startPolling();
-    startCallTimer();
     callSetupTimeout=setTimeout(function(){
       if(pc&&pc.connectionState!=='connected'){
         showCallToast('Call timed out - no answer');
@@ -191,8 +199,10 @@ function startCallTimer(){
 // ── END CALL ──
 function endCall(){
   if(callSetupTimeout){clearTimeout(callSetupTimeout);callSetupTimeout=null;}
+  if(_callDisconnectedTimer){clearTimeout(_callDisconnectedTimer);_callDisconnectedTimer=null;}
   if(callPollInterval){clearInterval(callPollInterval);callPollInterval=null;}
   if(callTimer){clearInterval(callTimer);callTimer=null;}
+  document.getElementById('callDuration').textContent='00:00';
   if(pc){pc.close();pc=null;}
   if(localStream){localStream.getTracks().forEach(function(t){t.stop();});localStream=null;}
   if(screenStream){screenStream.getTracks().forEach(function(t){t.stop();});screenStream=null;}
@@ -325,8 +335,6 @@ function checkIncomingCalls(){
     });
   }).catch(function(e){console.error('checkIncomingCalls',e);});
 }
-var _callInts=[setInterval(checkIncomingCalls,5000)];
-
 function acceptCall(){
   document.getElementById('callIncoming').classList.remove('active');
   if(!incomingCallerId||!incomingOffer)return;
@@ -362,15 +370,13 @@ function acceptCall(){
     }).then(function(answer){
       return pc.setLocalDescription(answer);
     }).then(function(){
-      fetch('/chatx/call/signal/'+callPeerId+'/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken': getCSRFToken()},body:JSON.stringify({type:'answer',data:pc.localDescription.toJSON()})});
+      fetch('/chatx/call/signal/'+callPeerId+'/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken': getCSRFToken()},body:JSON.stringify({type:'answer',data:pc.localDescription.toJSON()})}).catch(function(e){console.error('sendAnswer error',e);});
     }).catch(function(e){
       console.error('acceptCall SDP error',e);
       showCallToast('Connection failed');
       endCall();
     });
-    callStartTime=Date.now();
     startPolling();
-    startCallTimer();
     incomingCallerId=null;
     incomingOffer=null;
   }).catch(function(err){
@@ -585,7 +591,7 @@ window.addEventListener('beforeunload',function(e){
     // Clear initial page intervals (tracked before script.js loaded)
     if(window.__spaIntervalIds){
       window.__spaIntervalIds.forEach(function(id){
-        if(_callInts.indexOf(id)<0)clearInterval(id);
+        if(_callInts.indexOf(id)>-1)clearInterval(id);
       });
       window.__spaIntervalIds=[];
     }

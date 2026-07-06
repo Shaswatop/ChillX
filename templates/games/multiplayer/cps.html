@@ -361,7 +361,7 @@ function submitResult(cps){
     var backBtn=document.createElement('button')
     backBtn.className='over-btn secondary'
     backBtn.textContent='← Back to Challenges'
-    backBtn.onclick=function(){window.location.href='/challenges/'}
+    backBtn.onclick=function(){window.location.href='{% url "challenges" %}'}
     document.getElementById('resultActions').appendChild(backBtn)
   }
   // Send result to server
@@ -370,9 +370,10 @@ function submitResult(cps){
   xhr.setRequestHeader('Content-Type','application/x-www-form-urlencoded')
   xhr.setRequestHeader('X-CSRFToken',getCSRF())
    xhr.onload=function(){
-     if(xhr.status===200){
-       var d=JSON.parse(xhr.responseText)
-       if(d.passed&&d.status==='completed'){
+      if(xhr.status===200){
+        var d;
+        try { d = JSON.parse(xhr.responseText); } catch(e) { console.error('JSON parse error', e); return; }
+        if(d.passed&&d.status==='completed'){
          document.getElementById('resultStatus').textContent='✓ Completed! +'+d.xp+' XP, Rs '+d.coins
          document.getElementById('resultStatus').className='over-result passed'
          document.getElementById('resultActions').innerHTML=''
@@ -407,14 +408,10 @@ function resetGame(){
 
 // ── Multiplayer postMessage API ──
 function sendProgress(data){
-  try {
-    console.log('CPS iframe sendProgress', data);
-  } catch(e) {}
-  window.parent.postMessage({type:'progress', data:data}, '*');
+  try { console.log('CPS iframe sendProgress', data); window.parent.postMessage({type:'progress', data:data}, '*'); } catch(e) {}
 }
 function sendComplete(data){
-  try { console.log('CPS iframe sendComplete', data); } catch(e) {}
-  window.parent.postMessage({type:'complete', data:data}, '*');
+  try { console.log('CPS iframe sendComplete', data); window.parent.postMessage({type:'complete', data:data}, '*'); } catch(e) {}
 }
 window.addEventListener('message', function(e){
   var msg = e.data || {};
@@ -443,7 +440,12 @@ window.addEventListener('message', function(e){
     startTest();
   }
 });
-window.parent.postMessage({type:'ready'}, '*');
+window.addEventListener('beforeunload', function(){
+  var max = setTimeout(function(){}, 0);
+  for(var i = 0; i <= max; i++) clearInterval(i);
+  clearTimeout(max);
+});
+try { window.parent.postMessage({type:'ready'}, '*'); } catch(e) {}
 
 init()
 </script>

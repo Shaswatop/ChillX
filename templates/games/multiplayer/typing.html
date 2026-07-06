@@ -420,11 +420,11 @@ function captureScreenshot(){
 function submitScreenshot(){
   $('submitScreenshotBtn').disabled=true
   $('submitScreenshotBtn').innerHTML='<i class="fas fa-spinner fa-spin"></i> Sending...'
-  window.parent.postMessage({
+  try { window.parent.postMessage({
     type:'typing_screenshot',
     screenshot:screenshotData||'',
     result:{wpm:$('wpmDisplay').textContent,accuracy:$('accDisplay').textContent,raw:$('rawWpmDisplay').textContent,time:Math.round(elapsed)}
-  },'*')
+  },'*'); } catch(e) {}
 }
 
 function closeResults(){
@@ -497,8 +497,8 @@ function renderOpponentCursor(w,c){
 }
 
 // ── Multiplayer postMessage API ──
-function sendProgress(data){window.parent.postMessage({type:'progress',data:data},'*')}
-function sendComplete(data){window.parent.postMessage({type:'complete',data:data},'*')}
+function sendProgress(data){try{window.parent.postMessage({type:'progress',data:data},'*')}catch(e){}}
+function sendComplete(data){try{window.parent.postMessage({type:'complete',data:data},'*')}catch(e){}}
 
 var opponentName='Opponent'
 
@@ -538,7 +538,12 @@ window.addEventListener('message',function(e){
   }
 })
 
-window.parent.postMessage({type:'ready'},'*')
+window.addEventListener('beforeunload', function(){
+  var max = setTimeout(function(){}, 0);
+  for(var i = 0; i <= max; i++) clearInterval(i);
+  clearTimeout(max);
+});
+try{window.parent.postMessage({type:'ready'},'*')}catch(e){}
 </script>
 </body>
 </html>

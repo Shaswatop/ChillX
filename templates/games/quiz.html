@@ -179,7 +179,7 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;background:radial-grad
   <div class="top-hud">
     <div class="title"><i class="fas fa-question-circle"></i></div>
     <div class="score-hud" id="scoreHud">0 / 0</div>
-    <div class="timer" id="timerDisplay">10s</div>
+
     <div class="streak" id="streakDisplay"></div>
     <label class="taunt-toggle" id="tauntToggle">
       <input type="checkbox" id="tauntToggleInput">
@@ -294,9 +294,7 @@ var guessResult=document.getElementById('guessResult')
 var guessFeedback=document.getElementById('guessFeedback')
 var guessAnswerReveal=document.getElementById('guessAnswerReveal')
 var guessOr=document.getElementById('guessOr')
-var timerEl=document.getElementById('timerDisplay')
-var timerInterval=null
-var secondsLeft=10
+
 var streak=0
 var maxStreak=0
 var streakEl=document.getElementById('streakDisplay')
@@ -376,46 +374,6 @@ function updateProgressDots(correct){
   }
   if(currentQ<dots.length){
     dots[currentQ].classList.add('filled')
-  }
-}
-
-function startTimer(){
-  clearInterval(timerInterval)
-  secondsLeft=10
-  if(timerEl){timerEl.textContent='10s';timerEl.classList.remove('warning')}
-  timerInterval=setInterval(function(){
-    secondsLeft--
-    if(timerEl){
-      timerEl.textContent=secondsLeft+'s'
-      timerEl.classList.toggle('warning',secondsLeft<=3)
-    }
-    if(secondsLeft<=0){
-      clearInterval(timerInterval)
-      handleTimeout()
-    }
-  },1000)
-}
-
-function handleTimeout(){
-  if(answered)return
-  answered=true
-  playSound(220,0.2)
-  streak=0
-  updateStreak()
-  if(isRevealMode){
-    advanceQuiz()
-  }else{
-    var q=questions[currentQ]
-    var allBtns=optionsContainer.querySelectorAll('.opt-btn')
-    allBtns.forEach(function(b){b.disabled=true})
-    allBtns.forEach(function(b){
-      if(b.textContent===q.answer)b.classList.add('reveal-correct')
-    })
-    if(tauntToggleInput.checked&&q.taunt_wrong){tauntText.textContent='⏰ '+q.taunt_wrong;tauntText.classList.add('show')}else{tauntText.classList.remove('show')}
-    explanationText.textContent=q.explanation
-    explanationText.classList.add('show')
-    updateProgressDots(false)
-    setTimeout(function(){advanceQuiz()},1500)
   }
 }
 
@@ -509,13 +467,11 @@ function showMCQQuestion(){
     btn.addEventListener('click',function(){selectOption(btn,opt,q)})
     optionsContainer.appendChild(btn)
   })
-  startTimer()
 }
 
 function selectOption(btn,selected,q){
   if(answered)return
   answered=true
-  clearInterval(timerInterval)
   var correct=q.answer
   var allBtns=optionsContainer.querySelectorAll('.opt-btn')
   allBtns.forEach(function(b){b.disabled=true})
@@ -545,16 +501,15 @@ function selectOption(btn,selected,q){
   updateProgressDots(selected===correct)
   explanationText.textContent=q.explanation
   explanationText.classList.add('show')
-  setTimeout(function(){ advanceQuiz() }, 1500);
+  nextBtn.style.display='block'
 }
 
 function advanceQuiz(){
-  clearInterval(timerInterval)
   if(!isRevealMode&&answered){
     var seenKey='qz_seen_'+currentTopic
     var seen=JSON.parse(localStorage.getItem(seenKey)||'[]')
     seen.push(questions[currentQ].question)
-    localStorage.setItem(seenKey,JSON.stringify(seen))
+    try{localStorage.setItem(seenKey,JSON.stringify(seen));}catch(e){}
   }
   currentQ++
   if(currentQ>=questions.length){showResults()}
@@ -590,7 +545,6 @@ function showRevealQuestion(){
   incorrectBtn.style.display=''
   correctBtn.disabled=false
   incorrectBtn.disabled=false
-  startTimer()
 }
 
 function handleGuess(){
@@ -625,7 +579,7 @@ function handleGuess(){
     guessAnswerReveal.textContent='The answer was: '+q.answer+(q.answer_en?' ('+q.answer_en+')':'')
     if(tauntToggleInput.checked&&q.taunt_wrong){tauntText.textContent='😭 '+q.taunt_wrong;tauntText.classList.add('show')}else{tauntText.classList.remove('show')}
   }
-  setTimeout(advanceQuiz, 1500);
+  nextBtn.style.display='block'
 }
 
 guessBtn.addEventListener('click',handleGuess)
@@ -642,7 +596,7 @@ showAnswerBtn.addEventListener('click',function(){
   answerText.textContent=q.answer+(q.answer_en?' ('+q.answer_en+')':'')
   correctBtn.style.display='none'
   incorrectBtn.style.display='none'
-  setTimeout(advanceQuiz, 1500);
+  nextBtn.style.display='block'
   if(tauntToggleInput.checked&&q.taunt_wrong){tauntText.textContent='😏 '+q.taunt_wrong;tauntText.classList.add('show')}else if(tauntToggleInput.checked&&q.taunt_correct){tauntText.textContent='😏 '+q.taunt_correct;tauntText.classList.add('show')}
 })
 
@@ -652,11 +606,11 @@ function handleSelfEval(isCorrect){
   var seenKey='qz_seen_'+currentTopic
   var seen=JSON.parse(localStorage.getItem(seenKey)||'[]')
   seen.push(questions[currentQ].question)
-  localStorage.setItem(seenKey,JSON.stringify(seen))
+  try{localStorage.setItem(seenKey,JSON.stringify(seen));}catch(e){}
   correctBtn.disabled=true
   incorrectBtn.disabled=true
   if(isCorrect&&!isRevealMode){score++;scoreHud.textContent=score+' / '+(currentQ+1)}
-  setTimeout(advanceQuiz, 1500);
+  nextBtn.style.display='block'
 }
 
 correctBtn.addEventListener('click',function(){handleSelfEval(true)})
@@ -665,7 +619,6 @@ incorrectBtn.addEventListener('click',function(){handleSelfEval(false)})
 nextBtn.addEventListener('click',advanceQuiz)
 
 function showResults(){
-  clearInterval(timerInterval)
   quizCard.classList.remove('active')
   resultsCard.classList.add('active')
   var pct=Math.round((score/questions.length)*100)
@@ -835,3 +788,4 @@ function showAlert(msg){
 </script>
 <script>(function(){var h=document.getElementById('chillxHeader'),b=document.getElementById('hideHeaderBtn');if(!h||!b)return;b.addEventListener('click',function(){h.classList.toggle('hidden');b.innerHTML=h.classList.contains('hidden')?'<i class="fas fa-eye"></i>':'<i class="fas fa-eye-slash"></i>';});})();</script>
 </body>
+</html>
