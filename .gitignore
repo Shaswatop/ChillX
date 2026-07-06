@@ -45,3 +45,10 @@ PROJECT_REPORT.md
 
 # Generated reports
 REPORTS/
+
+# Dead build/utility scripts (one-time use only)
+compile_babel.js
+compile_shop.js
+convert_riddles.js
+package.json
+package-lock.json
