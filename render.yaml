@@ -7,6 +7,15 @@
 #   4. After first deploy, set CORS_ALLOWED_ORIGINS + CSRF_TRUSTED_ORIGINS to
 #      your real domain (Render fills the onrender.com default automatically).
 #
+# FREE-TIER CAVEATS (all three services are on the free plan):
+#   • Web service spins down after 15 min without traffic (~1 min to wake).
+#     Multiplayer WebSockets will disconnect while sleeping — the browser
+#     reconnect logic handles it, but expect a slow first hit.
+#   • Free PostgreSQL expires and is DELETED 30 days after creation. Data is
+#     NOT persistent — upgrade to a paid DB or back up before then.
+#   • Free Redis (Key Value) has no disk persistence; room state resets on
+#     restart (acceptable — rooms are transient by design).
+#
 # NOTE: AI keys (GROQ/GEMINI) are OPTIONAL — the app generates challenges
 # and answers chat locally when no key is set, so it works out of the box.
 # Enter them when prompted during Blueprint creation (or later in the
@@ -16,7 +25,7 @@ services:
   - type: web
     name: chillx
     runtime: python
-    plan: starter
+    plan: free
     healthCheckPath: /
     buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
     preDeployCommand: python manage.py migrate --noinput && python manage.py seed_shop && python manage.py seed_achievements
@@ -64,6 +73,6 @@ services:
 
 databases:
   - name: chillx-db
-    plan: basic-256mb
+    plan: free
     databaseName: chillx
     user: chillx
