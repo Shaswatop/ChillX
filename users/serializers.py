@@ -5,6 +5,9 @@ from django.contrib.auth.password_validation import validate_password
 User = get_user_model()
 
 
+# Validates + saves a new signup (checks passwords match, creates user).
+# If removed, account registration stops working.
+# Used by RegisterView in users/views.py.
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, validators=[validate_password])
     password2 = serializers.CharField(write_only=True)
@@ -24,6 +27,9 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 
+# Turns a user object into JSON for the profile/register responses.
+# If removed, profile data can't be sent to the frontend.
+# Used by RegisterView and ProfileView in users/views.py.
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User

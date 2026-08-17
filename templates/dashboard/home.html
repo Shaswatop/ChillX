@@ -43,7 +43,7 @@
   --section-bg: #fff;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-html,body{width:100%;min-height:100%;overflow-x:hidden;overflow-y:auto;font-family:'Poppins',sans-serif;}
+html,body{width:100%;min-height:100%;overflow-x:hidden;overflow-y:auto;font-family:'Poppins',sans-serif;-webkit-overflow-scrolling:touch;}
 body{
   background:url('/static/BG.png') center/cover no-repeat #f0f2f5;
   background-attachment:fixed;
@@ -576,6 +576,8 @@ body{
 .icon-btn:hover .icon-caption{color:#4a9ec4;}
 
 /* ── LEFT PANEL — icon only, no card background ── */
+.menu-toggle{display:none;}
+.left-panel-backdrop{display:none;}
 .left-panel{
   position:fixed;left:28px;top:50%;transform:translateY(-50%);
   z-index:50;display:flex;flex-direction:column;gap:14px;
@@ -771,17 +773,62 @@ body{
   .nav-btn{font-size:0.95rem;letter-spacing:1px;}
 }
 @media(max-width:600px){
-  .topbar{padding:6px 10px;height:58px;}
+  .topbar{height:auto;flex-wrap:wrap;padding:8px 10px;gap:4px;align-items:flex-start;}
+  .topbar-profile-group{margin-top:0;width:100%;}
+  .profile-section{min-width:0;max-width:100%;}
   .profile-name{display:none;}
   .currency-value{font-size:0.7rem;}
   .currency-icon{width:24px;height:24px;font-size:0.75rem;}
+  .currency-icon img{width:22px !important;height:22px !important;}
   .icon-btn{width:34px;height:34px;font-size:0.85rem;}
-  .left-panel{display:none;}
+  .icon-btn .icon-caption{display:none;}
+  .left-panel{
+    display:flex;
+    left:0;top:0;bottom:0;
+    transform:translateX(-110%);
+    transition:transform 0.25s ease;
+    background:linear-gradient(180deg,#134166,#0d3b66);
+    border-right:1px solid rgba(74,158,196,0.35);
+    padding:76px 16px 20px;
+    overflow-y:auto;
+    gap:10px;
+    z-index:95;
+    box-shadow:4px 0 24px rgba(0,0,0,0.35);
+  }
+  .left-panel.open{transform:translateX(0);}
+  .left-panel-backdrop{
+    position:fixed;inset:0;background:rgba(0,0,0,0.45);
+    z-index:94;display:none;
+  }
+  .left-panel-backdrop.show{display:block;}
+  .menu-toggle{
+    display:flex;
+    width:38px;height:38px;border-radius:10px;
+    align-items:center;justify-content:center;
+    background:rgba(74,158,196,0.15);
+    border:1px solid rgba(74,158,196,0.3);
+    color:#fff;font-size:1.1rem;cursor:pointer;
+    flex:0 0 auto;
+  }
   .nav-btn{font-size:0.85rem;gap:8px;}
   .nav-btn i{font-size:1.2rem;}
   .bottom-nav{height:64px;}
   .start-btn{flex:0 0 130px;height:50px;margin:7px 8px 7px 4px;font-size:1.1rem;letter-spacing:2px;gap:6px;}
   .start-btn i{font-size:1rem;}
+}
+@media(max-width:420px){
+  .menu-toggle{width:34px;height:34px;}
+  .topbar-right{width:100%;justify-content:flex-end;gap:6px;flex-wrap:wrap;}
+  .currency-pill{padding:3px 7px 3px 4px !important;height:30px;gap:4px;}
+  .currency-add{width:18px;height:18px;font-size:0.65rem;}
+  .start-btn{flex:0 0 110px;font-size:1rem;gap:4px;}
+  .bottom-nav{height:58px;}
+  .nav-btn i{font-size:1.1rem;}
+  .preview-card{padding:10px !important;gap:10px !important;}
+  .preview-avatar,.profile-avatar{width:56px !important;height:56px !important;}
+  .preview-power{font-size:0.95rem;}
+  .nav-btn{min-width:0;font-size:0;gap:0;letter-spacing:0;padding:0 4px;}
+  .nav-btn i{margin:0;}
 }
 
 /* ── NEW FLEX EFFECT KEYFRAMES ── */
@@ -1263,6 +1310,8 @@ body{
   <div class="profile-badges-row" id="profileBadges"></div>
   </div>
   <div class="topbar-right">
+    <button class="menu-toggle" title="Menu" onclick="toggleLeftPanel()"><i class="fas fa-bars"></i></button>
+    <div class="left-panel-backdrop" id="leftPanelBackdrop" onclick="toggleLeftPanel(false)"></div>
     <div class="currency-pill" title="{{ player.coins|default:'0' }} rupees" onclick="window.location.href='{% url 'shop' %}'">
       <div class="currency-icon cash-icon">
         <img src="{% static 'cash.png' %}" alt="money" style="width:32px;height:32px;object-fit:contain;">
@@ -1343,6 +1392,23 @@ document.addEventListener('keydown',function(e){
     var m=document.getElementById('userMenu');
     if(m)m.style.display='none';
     closeModal();
+  }
+});
+
+// ── MOBILE LEFT PANEL TOGGLE ──
+var leftPanelBackdrop = document.getElementById('leftPanelBackdrop');
+function toggleLeftPanel(force){
+  var panel = document.querySelector('.left-panel');
+  if(!panel) return;
+  var show = typeof force === 'boolean' ? force : !panel.classList.contains('open');
+  panel.classList.toggle('open', show);
+  if(leftPanelBackdrop) leftPanelBackdrop.classList.toggle('show', show);
+}
+document.addEventListener('click',function(e){
+  var panel = document.querySelector('.left-panel');
+  var toggle = document.querySelector('.menu-toggle');
+  if(panel && panel.classList.contains('open') && toggle && !toggle.contains(e.target) && !panel.contains(e.target)){
+    toggleLeftPanel(false);
   }
 });
 

@@ -2,6 +2,9 @@ from django.template.loader import render_to_string
 from django.urls import resolve, Resolver404
 
 
+# Injects the AI chat widget at the bottom of challenge and quiz pages.
+# If removed, the floating AI chat won't show on those pages.
+# Change the widget template at templates/ai_chat_widget.html.
 class AiChatWidgetMiddleware:
     """Inject the AI chat widget into all HTML responses for authenticated users."""
 

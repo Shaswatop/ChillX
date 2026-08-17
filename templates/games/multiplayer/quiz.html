@@ -242,7 +242,7 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;background:radial-grad
 
 <div id="challengeResult" style="display:none;margin-top:12px;padding:12px;border-radius:10px;font-size:.8rem;font-weight:500;background:#1a1a2e;border:1px solid rgba(74,158,196,.2);color:rgba(214,232,245,0.8)"></div>
 
-<div class="overlay" id="popupOverlay"></div>
+<div class="overlay" id="tauntOverlay"></div>
 <div class="taunt-popup" id="tauntPopup">
   <div class="taunt-popup-icon">😈</div>
   <div class="taunt-popup-text">You will regret that!<br>THIS WAY IT'S MUCH FUN NA? 🔥</div>
@@ -262,6 +262,9 @@ var maxStreak=0
 var audioCtx=null
 var isMultiplayer=false
 var opponentName='Opponent'
+var mpAnswerPending=null
+var mpAnswerTimer=null
+var mpChosenBtn=null
 var streakEl=document.getElementById('streakDisplay')
 
 var topicPicker=document.getElementById('topicPicker')
@@ -319,6 +322,17 @@ function startTimer(){
 function handleTimeout(){
   if(answered)return
   answered=true
+  if(isMultiplayer){
+    var qT=questions[currentQ]
+    var btnsT=optionsContainer.querySelectorAll('.opt-btn')
+    btnsT.forEach(function(b){b.disabled=true})
+    mpChosenBtn=null
+    mpAnswerPending=(qT.qid!==undefined?qT.qid:currentQ)
+    window.parent.postMessage({type:'answer', data:{index: mpAnswerPending, answer: ''}}, '*')
+    clearTimeout(mpAnswerTimer)
+    mpAnswerTimer=setTimeout(function(){ advanceQuiz() }, 4000)
+    return
+  }
   playSound(220,0.2)
   streak=0
   updateStreak()
@@ -489,6 +503,16 @@ function selectOption(btn,selected,q){
   if(answered)return
   answered=true
   clearInterval(timerInterval)
+  if(isMultiplayer){
+    var allBtnsMp=optionsContainer.querySelectorAll('.opt-btn')
+    allBtnsMp.forEach(function(b){b.disabled=true})
+    mpChosenBtn=btn
+    mpAnswerPending=(q.qid!==undefined?q.qid:currentQ)
+    window.parent.postMessage({type:'answer', data:{index: mpAnswerPending, answer: selected}}, '*')
+    clearTimeout(mpAnswerTimer)
+    mpAnswerTimer=setTimeout(function(){ advanceQuiz() }, 4000)
+    return
+  }
   var correct=q.answer
   var allBtns=optionsContainer.querySelectorAll('.opt-btn')
   allBtns.forEach(function(b){b.disabled=true})
@@ -523,6 +547,10 @@ function selectOption(btn,selected,q){
 }
 
 function advanceQuiz(){
+  clearTimeout(mpAnswerTimer)
+  mpAnswerTimer=null
+  mpAnswerPending=null
+  mpChosenBtn=null
   if(!isRevealMode&&answered){
     var seenKey='qz_seen_'+currentTopic
     var seen=JSON.parse(localStorage.getItem(seenKey)||'[]')
@@ -696,16 +724,16 @@ window.addEventListener('beforeunload',function(){window.currentQuizQuestions=nu
 document.getElementById('tauntToggleInput').addEventListener('change',function(){
   if(this.checked){
     document.getElementById('tauntPopup').classList.add('show')
-    document.getElementById('popupOverlay').classList.add('show')
+    document.getElementById('tauntOverlay').classList.add('show')
   }
 })
 document.getElementById('popupCloseBtn').addEventListener('click',function(){
   document.getElementById('tauntPopup').classList.remove('show')
-  document.getElementById('popupOverlay').classList.remove('show')
+  document.getElementById('tauntOverlay').classList.remove('show')
 })
-document.getElementById('popupOverlay').addEventListener('click',function(){
+document.getElementById('tauntOverlay').addEventListener('click',function(){
   document.getElementById('tauntPopup').classList.remove('show')
-  document.getElementById('popupOverlay').classList.remove('show')
+  document.getElementById('tauntOverlay').classList.remove('show')
 })
 
 // ── Challenge auto-submit ──
@@ -788,12 +816,50 @@ window.addEventListener('message', function(e){
       document.getElementById('oppAvatar').innerHTML = '<i class="fas fa-user"></i>';
     }
     document.getElementById('oppInfo').style.display = 'flex';
+  } else if(msg.type === 'answer_result'){
+    if(mpAnswerPending !== null && msg.index === mpAnswerPending){
+      clearTimeout(mpAnswerTimer)
+      mpAnswerTimer = null
+      var allBtns = optionsContainer.querySelectorAll('.opt-btn')
+      allBtns.forEach(function(b){ b.disabled = true })
+      var isCorrect = !!msg.correct
+      var matchedBtn = null
+      allBtns.forEach(function(b){ if(b.textContent === msg.correct_answer) matchedBtn = b })
+      if(isCorrect){
+        score++
+        streak++
+        if(streak > maxStreak)maxStreak = streak
+        updateStreak()
+        scoreHud.textContent = score+' / '+(currentQ+1)
+        playSound(880,0.12)
+        if(matchedBtn)matchedBtn.classList.add('correct')
+        if(tauntToggleInput.checked && msg.taunt){tauntText.textContent = '😂 '+msg.taunt;tauntText.classList.add('show')}else{tauntText.classList.remove('show')}
+      }else{
+        streak = 0
+        updateStreak()
+        playSound(220,0.2)
+        quizCard.classList.remove('shake')
+        void quizCard.offsetWidth
+        quizCard.classList.add('shake')
+        if(mpChosenBtn)mpChosenBtn.classList.add('wrong')
+        if(matchedBtn)matchedBtn.classList.add('reveal-correct')
+        if(tauntToggleInput.checked && msg.taunt){tauntText.textContent = '😭 '+msg.taunt;tauntText.classList.add('show')}else{tauntText.classList.remove('show')}
+      }
+      explanationText.textContent = msg.explanation || ''
+      explanationText.classList.add('show')
+      updateSelfProgress()
+      sendProgress({score: score, target: total || 10, percent_complete: Math.min(100, Math.round((currentQ+1) / (total || 10) * 100)), is_correct: isCorrect})
+      mpAnswerPending = null
+      mpChosenBtn = null
+      setTimeout(function(){ advanceQuiz() }, 1500)
+    }
   } else if(msg.type === 'start'){
     var c = msg.challenge || {};
     isMultiplayer = true;
     if(c.questions && c.questions.length > 0){
-      questions = c.questions.map(function(q){
+      questions = c.questions.map(function(q, qi){
         return {
+          qid: (q.qid !== undefined ? q.qid : qi),
           question: q.q || q.question,
           options: q.opts || q.options || [],
           answer: q.opts ? q.opts[q.ans] : (q.options ? q.options[q.ans] : q.answer)

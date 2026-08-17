@@ -12,8 +12,8 @@
 html,body{width:100%;height:100%;margin:0;padding:0;background:#000;overflow:hidden;touch-action:none}
 .exit-btn{position:fixed;top:10px;right:14px;z-index:50;width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;font-size:.65rem;text-decoration:none}
 .exit-btn:hover{background:rgba(0,0,0,0.7);color:#fff}
-.game-wrap{position:fixed;top:0;left:0;width:100vw;height:100vh;overflow:hidden}
-#gameCanvas{display:block;image-rendering:pixelated;background:#5c94fc}
+.game-wrap{position:fixed;top:0;left:0;width:100vw;height:100vh;height:100dvh;overflow:hidden}
+#gameCanvas{display:block;image-rendering:pixelated;background:#5c94fc;position:absolute;left:0;top:0}
 .hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;padding:6px 8px;pointer-events:none;z-index:10;align-items:flex-start}
 .hud-left{display:flex;align-items:center;gap:7px}
 .hud-item{font-family:'Black Ops One',cursive;font-size:.6rem;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,0.6);background:rgba(0,0,0,0.3);padding:3px 7px;border-radius:4px;border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:3px}
@@ -31,7 +31,7 @@ html,body{width:100%;height:100%;margin:0;padding:0;background:#000;overflow:hid
 .mobile-controls .jump-btn{width:72px;height:72px;font-size:1.1rem;background:rgba(74,158,196,0.25);border-color:rgba(74,158,196,0.5)}
 @media(pointer:coarse){.mobile-controls{display:flex}}
 @media(pointer:coarse)and(max-height:500px){.mobile-controls button{width:48px;height:48px;font-size:1rem}.mobile-controls .jump-btn{width:56px;height:56px}.mobile-controls{bottom:4px;padding:0 8px}}
-.rotate-overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0a1929;z-index:99999;display:none;flex-direction:column;align-items:center;justify-content:center;gap:20px;color:#e0e0e0;font-family:'Poppins',sans-serif}
+.rotate-overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;height:100dvh;background:#0a1929;z-index:99999;display:none;flex-direction:column;align-items:center;justify-content:center;gap:20px;color:#e0e0e0;font-family:'Poppins',sans-serif}
 .rotate-overlay .icon{font-size:3rem;animation:rotatePhone 2s ease-in-out infinite}
 @keyframes rotatePhone{0%,100%{transform:rotate(0deg)}50%{transform:rotate(90deg)}}
 .rotate-overlay p{font-size:1rem;text-align:center;max-width:260px;opacity:.7}
@@ -214,7 +214,7 @@ function buildLevel1(){
   bgElements = [];
   for(var i=0; i<20; i++) bgElements.push({ x: i*180+20, y: 370, w:70,h:30, type:'bush' });
   platforms = [].concat(
-    makeGround([[0,30,23],[0,30,24]]), // full ground
+    makeGround([[0,90,23],[0,90,24]]), // full ground — no pits, no falling
     // Brick runs: [startXTile, yTile, count]
     makeBricks([12,19,5, 18,17,4, 25,18,3, 32,16,5, 42,18,4, 50,17,6, 60,19,4, 68,16,3]),
     // Question blocks with brick fills: [xTile, yTile, content, totalWidthInBlocks]
@@ -231,7 +231,7 @@ function buildLevel1(){
     { x:tx(38), y:ty(22), w:26,h:26, vx:-0.9, alive:true, variant:'goomba', ai:'patrol' },
     { x:tx(46), y:ty(22), w:26,h:26, vx:-0.8, alive:true, variant:'koopa', ai:'patrol' },
     { x:tx(56), y:ty(22), w:26,h:26, vx:-0.9, alive:true, variant:'goomba', ai:'patrol' },
-    { x:tx(64), y:ty(22), w:26,h:26, vx:-1, alive:true, variant:'goomba', ai:'chaser' },
+    { x:tx(64), y:ty(22), w:26,h:26, vx:-1, alive:true, variant:'goomba', ai:'patrol' },
   ];
   flag = { x: tx(85), y: ty(16), w:10, h:100 };
 }
@@ -242,7 +242,7 @@ function buildLevel2(){
   bgElements = [];
   for(var i=0; i<18; i++) bgElements.push({ x: i*170+10, y: 380-Math.random()*30, w:60,h:50, type:'tree' });
   platforms = [].concat(
-    makeGround([[0,8,23],[0,8,24],[10,18,23],[10,18,24],[20,28,23],[20,28,24],[30,38,23],[30,38,24],[40,48,23],[40,48,24],[50,60,23],[50,60,24],[62,80,23],[62,80,24]]),
+    makeGround([[0,82,23],[0,82,24]]), // full ground — no pits, no falling
     makeBricks([10,19,4, 16,17,3, 22,18,5, 30,16,4, 38,18,3, 44,16,5, 52,18,4, 58,17,3, 64,19,4]),
     makeQuestion([12,19,'coin',3, 20,18,'mushroom',3, 32,16,'coin',3, 42,16,'coin',4, 50,18,'coin',3]),
     makePipes([[180,460,2], [560,460,3], [960,460,2], [1300,460,3]]),
@@ -257,7 +257,7 @@ function buildLevel2(){
     { x:tx(34), y:ty(22), w:26,h:26, vx:-0.9, alive:true, variant:'spiky', ai:'patrol' },
     { x:tx(44), y:ty(22), w:26,h:26, vx:-0.8, alive:true, variant:'goomba', ai:'patrol' },
     { x:tx(54), y:ty(22), w:26,h:26, vx:-0.9, alive:true, variant:'koopa', ai:'jumper' },
-    { x:tx(65), y:ty(22), w:26,h:26, vx:-1, alive:true, variant:'goomba', ai:'chaser' },
+    { x:tx(65), y:ty(22), w:26,h:26, vx:-1, alive:true, variant:'goomba', ai:'patrol' },
     { x:tx(72), y:ty(19), w:26,h:26, vx:-1.2, alive:true, variant:'flying', ai:'patrol' },
   ];
   flag = { x: tx(79), y: ty(16), w:10, h:100 };
@@ -269,7 +269,7 @@ function buildLevel3(){
   bgElements = [];
   for(var i=0; i<25; i++) bgElements.push({ x: i*100+10, y: 440, w:50,h:8, type:'lava' });
   platforms = [].concat(
-    makeGround([[0,8,23],[0,8,24],[12,18,23],[12,18,24],[22,28,23],[22,28,24],[32,38,23],[32,38,24],[42,50,23],[42,50,24],[52,60,23],[52,60,24],[62,72,23],[62,72,24]]),
+    makeGround([[0,77,23],[0,77,24]]), // full ground — no pits, no falling
     makeBricks([10,19,3, 16,17,4, 24,18,3, 30,16,5, 40,18,4, 48,16,3, 56,17,5, 64,19,3]),
     makeQuestion([12,19,'mushroom',3, 22,18,'coin',3, 34,16,'coin',3, 44,18,'coin',3, 52,17,'coin',3]),
     makePipes([[200,460,2], [500,460,3], [900,460,2], [1200,460,3]]),
@@ -281,7 +281,7 @@ function buildLevel3(){
   enemies = [
     { x:tx(14), y:ty(22), w:26,h:26, vx:-0.9, alive:true, variant:'spiky', ai:'patrol' },
     { x:tx(24), y:ty(22), w:26,h:26, vx:-0.9, alive:true, variant:'goomba', ai:'patrol' },
-    { x:tx(34), y:ty(22), w:26,h:26, vx:-1, alive:true, variant:'goomba', ai:'chaser' },
+    { x:tx(34), y:ty(22), w:26,h:26, vx:-1, alive:true, variant:'goomba', ai:'patrol' },
     { x:tx(44), y:ty(22), w:26,h:26, vx:-0.9, alive:true, variant:'spiky', ai:'patrol' },
     { x:tx(54), y:ty(22), w:26,h:26, vx:-1, alive:true, variant:'goomba', ai:'patrol' },
     { x:tx(60), y:ty(22), w:26,h:26, vx:-1.1, alive:true, variant:'koopa', ai:'jumper' },
@@ -296,7 +296,7 @@ function buildLevel4(){
   bgElements = [];
   for(var i=0; i<30; i++) bgElements.push({ x: i*120+10, y: 380+(i%3)*20, w:20,h:20, type:'window' });
   platforms = [].concat(
-    makeGround([[0,6,23],[0,6,24],[10,16,23],[10,16,24],[20,28,23],[20,28,24],[30,38,23],[30,38,24],[40,48,23],[40,48,24],[50,60,23],[50,60,24],[62,76,23],[62,76,24]]),
+    makeGround([[0,77,23],[0,77,24]]), // full ground — no pits, no falling
     makeBricks([8,19,4, 14,17,3, 22,18,5, 30,16,4, 38,18,3, 44,16,5, 52,18,4, 58,17,3, 64,19,4]),
     makeQuestion([10,19,'coin',3, 20,18,'mushroom',3, 32,16,'coin',3, 42,16,'coin',4, 50,18,'coin',3]),
     makePipes([[160,460,2], [480,460,3], [800,460,2], [1100,460,3]]),
@@ -308,11 +308,11 @@ function buildLevel4(){
   enemies = [
     { x:tx(12), y:ty(22), w:26,h:26, vx:-0.9, alive:true, variant:'goomba', ai:'patrol' },
     { x:tx(18), y:ty(22), w:26,h:26, vx:-1, alive:true, variant:'spiky', ai:'patrol' },
-    { x:tx(26), y:ty(22), w:26,h:26, vx:-1, alive:true, variant:'goomba', ai:'chaser' },
+    { x:tx(26), y:ty(22), w:26,h:26, vx:-1, alive:true, variant:'goomba', ai:'patrol' },
     { x:tx(36), y:ty(22), w:26,h:26, vx:-0.9, alive:true, variant:'goomba', ai:'patrol' },
     { x:tx(44), y:ty(22), w:26,h:26, vx:-1, alive:true, variant:'spiky', ai:'jumper' },
     { x:tx(54), y:ty(22), w:26,h:26, vx:-1.1, alive:true, variant:'koopa', ai:'jumper' },
-    { x:tx(62), y:ty(22), w:26,h:26, vx:-1.2, alive:true, variant:'goomba', ai:'chaser' },
+    { x:tx(62), y:ty(22), w:26,h:26, vx:-1.2, alive:true, variant:'goomba', ai:'patrol' },
     { x:tx(70), y:ty(19), w:26,h:26, vx:-1.4, alive:true, variant:'flying', ai:'patrol' },
   ];
   flag = { x: tx(75), y: ty(16), w:10, h:100 };
@@ -535,17 +535,6 @@ function update(){
     if(e.ai === 'patrol'){
       e.x += e.vx;
       if(Math.random() < 0.005) e.vx *= -1;
-      if(e.x < 10 || e.x > (flag ? flag.x - 40 : 2000)) e.vx *= -1;
-    } else if(e.ai === 'chaser'){
-      var dx = player.x - e.x;
-      var dist = Math.abs(dx);
-      if(dist < 250 && dist > 10){
-        e.vx = (dx > 0 ? 1 : -1) * Math.min(Math.abs(e.vx) * 1.8, 3.2);
-      } else {
-        e.vx = (e.vx > 0 ? 1 : -1) * Math.abs(e.vx);
-        if(Math.random() < 0.005) e.vx *= -1;
-      }
-      e.x += e.vx;
       if(e.x < 10 || e.x > (flag ? flag.x - 40 : 2000)) e.vx *= -1;
     } else if(e.ai === 'jumper'){
       e.x += e.vx;
@@ -791,7 +780,7 @@ function loseLife(){
       document.getElementById('deathCoin').textContent = 'Score: ' + G.score;
       document.getElementById('restartOverlay').classList.add('show');
       document.querySelector('.game-wrap').classList.remove('hit-flash');
-    }, 600);
+    }, 250);
   } else {
     G.invincible = true; G.invTimer = 90;
     player.vy = -7; player.vx = player.facing > 0 ? -5 : 5;
@@ -997,8 +986,7 @@ function draw(){
       ctx.fillStyle = '#fff'; ctx.fillRect(e.x+5, e.y+5, 5, 5); ctx.fillRect(e.x+16, e.y+5, 5, 5);
       ctx.fillStyle = '#222'; ctx.fillRect(e.x+7+d, e.y+7, 3, 3); ctx.fillRect(e.x+18+d, e.y+7, 3, 3);
     }
-    if(e.ai === 'chaser'){ ctx.fillStyle='#ff6b6b'; ctx.fillRect(e.x+e.w-4, e.y-3, 4, 4); }
-    else if(e.ai === 'jumper'){ ctx.fillStyle='#4ade80'; ctx.fillRect(e.x, e.y-3, 4, 4); }
+    if(e.ai === 'jumper'){ ctx.fillStyle='#4ade80'; ctx.fillRect(e.x, e.y-3, 4, 4); }
   }
 
   // Flag
@@ -1132,10 +1120,31 @@ function drawBonusRoom(){
 
 function gameLoop(){ update(); draw(); requestAnimationFrame(gameLoop); }
 function resizeCanvas(){
-  canvas.style.width = window.innerWidth + 'px';
-  canvas.style.height = window.innerHeight + 'px';
+  // Use the visual viewport so the canvas fills the area the user can
+  // actually see — plain innerHeight includes the browser URL bar/ribbon,
+  // which on phones pushes the game off-screen and shrinks it.
+  var iw = window.innerWidth, ih = window.innerHeight;
+  var vv = window.visualViewport;
+  if(vv && vv.width && vv.height){ iw = vv.width; ih = vv.height; }
+  // Keep the 800x500 landscape ratio — letterbox instead of stretching so
+  // the player/world stay visible and undistorted on phones.
+  var scale = Math.min(iw / W, ih / H);
+  var cw = Math.floor(W * scale), ch = Math.floor(H * scale);
+  canvas.style.width = cw + 'px';
+  canvas.style.height = ch + 'px';
+  canvas.style.left = Math.floor((iw - cw) / 2) + 'px';
+  canvas.style.top = Math.floor((ih - ch) / 2) + 'px';
+  var overlay = document.querySelector('.rotate-overlay');
+  if(overlay){
+    var coarse = (window.matchMedia && window.matchMedia('(pointer:coarse)').matches);
+    var landscape = iw >= ih;
+    if(coarse && !landscape) overlay.style.display = 'flex';
+    else overlay.style.display = 'none';
+  }
 } 
+if(window.visualViewport)window.visualViewport.addEventListener('resize', resizeCanvas);
 window.addEventListener('resize', resizeCanvas);
+window.addEventListener('orientationchange', function(){ setTimeout(resizeCanvas, 200); });
 resizeCanvas();
 document.addEventListener('keydown', function(e){
   if(e.key === 'r' || e.key === 'R'){ if(G.gameOver || G.won) restartGame(); }

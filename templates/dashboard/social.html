@@ -35,7 +35,7 @@
 @keyframes fadeRotateIn{from{opacity:0;transform:rotate(2deg) scale(1.05)}to{opacity:1;transform:rotate(0) scale(1)}}
 :root{--bg:#f0f2f5;--bg-light:#e8eaed;--card:#fff;--card-hover:#f5f6f8;--card-light:#fafbfc;--text:#2a2a3a;--text-sec:rgba(42,42,58,0.5);--border:rgba(0,0,0,0.08);--accent:#5cc4d8;--accent2:#4db8cc;--accent-light:#7dd8ea;--accent-dark:#3a9aae;--accent-grad:linear-gradient(135deg,#5cc4d8,#3a9aae);--input:rgba(0,0,0,0.04);--comment-bg:#fafbfc;--positive:#2d9e5e;--glow:0 0 30px rgba(92,196,216,0.10);--fb-primary:#5cc4d8;--fb-hover:#f5f6f8;--fb-text:#2a2a3a;--fb-card:#fff;--fb-border:rgba(0,0,0,0.08);--fb-input:rgba(0,0,0,0.04);--fb-text-sec:rgba(42,42,58,0.5);--fb-bg:#f0f2f5;--fb-like:#2d9e5e;--fb-comment-bg:#fafbfc;--fb-white:#fff;--fb-secondary:#e8eaed;--fb-tertiary:#d8dadf;}
 *{margin:0;padding:0;box-sizing:border-box;}
-html,body{width:100%;height:100%;overflow:hidden;}
+html,body{width:100%;height:100%;overflow:hidden;background:#f0f2f5;}
 body{background:var(--bg);font-family:'Poppins','Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:var(--text);}
 body::before{
   content:'';position:fixed;inset:0;z-index:-1;
@@ -90,9 +90,9 @@ body>*{position:relative;z-index:1;}
 .cp-action-btn{width:36px;height:36px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;background:transparent;font-size:1rem;transition:all .2s;}
 .cp-action-btn:hover{background:var(--card-hover);transform:scale(1.1);}
 /* ── LAYOUT ── */
-.social-wrap{position:fixed;top:104px;left:0;right:0;bottom:0;display:flex;justify-content:center;overflow:hidden;}
-.feed{width:100%;max-width:860px;display:flex;flex-direction:column;min-width:0;position:relative;}
-.feed-scroll{flex:1;overflow-y:auto;padding:12px 8px 20px;}
+.social-wrap{position:fixed;top:104px;left:0;right:0;bottom:0;display:flex;justify-content:center;overflow:hidden;-ms-overflow-style:none;scrollbar-width:none;}
+.feed{width:100%;max-width:860px;display:flex;flex-direction:column;min-width:0;position:relative;padding-bottom:20px;height:100%;}
+.feed-scroll{flex:1;min-height:0;overflow-y:auto;padding:12px 8px 20px;-ms-overflow-style:none;scrollbar-width:none;-webkit-overflow-scrolling:touch;background:#f0f2f5;overscroll-behavior:contain;}
 .feed-scroll::-webkit-scrollbar{width:6px;}
 .feed-scroll::-webkit-scrollbar-thumb{background:var(--card-hover);border-radius:4px;}
 /* ── CONTACTS DRAWER ── */
@@ -464,6 +464,10 @@ body>*{position:relative;z-index:1;}
 @media(max-width:480px){
   .story-card{width:90px;height:140px;}
   .cp-actions{display:none;}
+  .tab-bar{top:54px;height:40px;padding:0 6px;gap:2px;justify-content:flex-start;overflow-x:auto;}
+  .tab-btn{flex:0 0 auto;padding:6px 10px;font-size:.72rem;gap:4px;}
+  .top-nav{padding:0 8px;}
+  .nav-center{display:none;}
 }
 /* ── Upload Layers ── */
 .se-upload-layer{position:absolute;cursor:move;pointer-events:auto;z-index:3;}
@@ -644,10 +648,10 @@ body>*{position:relative;z-index:1;}
             {% endif %}
           </div>
           {% if post.proof_image %}
-          <img class="post-proof" src="{{ post.proof_image }}" alt="Proof image" loading="lazy">
+          <img class="post-proof" src="{% url 'social_post_image' post.id %}" alt="Proof image" loading="lazy">
           {% endif %}
           {% if post.proof_video %}
-          <video class="post-proof" src="{{ post.proof_video }}" controls loading="lazy"></video>
+          <video class="post-proof" src="{{ post.proof_video }}" controls preload="none"></video>
           {% endif %}
           {% if post.proof_text %}
            <div class="post-desc" style="padding:8px 16px;background:var(--card);font-size:.75rem;">{{ post.proof_text|linebreaksbr }}</div>
@@ -884,10 +888,10 @@ body>*{position:relative;z-index:1;}
           <div id="seMusicSearchMode">
             <div class="se-music-upload-wrap">
               <button class="se-music-upload-btn" onclick="document.getElementById('seAudioUpload').click()"><i class="fas fa-upload"></i> Upload Music</button>
-              <input type="file" id="seAudioUpload" accept="audio/*" style="display:none;" onchange="seUploadAudio(this)">
+              <input type="file" id="seAudioUpload" accept="audio/*,.mp3,.wav,.ogg,.m4a,.aac,.flac,.opus,audio/mpeg,audio/mp4,audio/x-m4a,audio/wav,audio/ogg,audio/aac,audio/flac" style="display:none;" onchange="seUploadAudio(this)">
             </div>
             <div class="se-music-url-wrap">
-              <input type="text" class="se-music-url-input" id="seMusicUrl" placeholder="Paste audio URL (mp3, wav, ogg...)" onkeydown="if(event.key==='Enter')seFetchUrlMusic()">
+              <input type="text" class="se-music-url-input" id="seMusicUrl" placeholder="Paste audio URL (mp3, wav, m4a, ogg...)" onkeydown="if(event.key==='Enter')seFetchUrlMusic()">
               <button class="se-music-url-go" onclick="seFetchUrlMusic()"><i class="fas fa-arrow-right"></i></button>
             </div>
             <div class="se-music-search-area">
@@ -1116,7 +1120,9 @@ function showStory(){
   // Play music separately (not embedded in video)
   svStopMusic();
   if(ts.music_url){
-    const ma=new Audio(ts.music_url);
+    const ma=new Audio(sePlayableUrl(ts.music_url));
+    ma._seBlobUrl=window._sePendingBlobUrl||null;
+    window._sePendingBlobUrl=null;
     ma.loop=false;
     const icon=document.getElementById('svMute').querySelector('i');
     ma.addEventListener('loadedmetadata',function(){
@@ -1235,8 +1241,33 @@ function svStopMusic(){
   var a=window._svMusicAudio;
   if(a){
     if(a._svLoopFn){a.removeEventListener('timeupdate',a._svLoopFn);}
-    a.pause();window._svMusicAudio=null;
+    a.pause();
+    if(a._seBlobUrl){try{URL.revokeObjectURL(a._seBlobUrl);}catch(e){}}
+    window._svMusicAudio=null;
   }
+}
+
+// iOS Safari can't play large base64 data: URLs in audio elements (documented
+// ~2MB limit for media data URLs) — m4a files are usually bigger than that, so
+// local music silently fails to play on iPhone. Convert data: URLs to Blob
+// object URLs for playback (the base64 stays in the DB, only the in-memory
+// play URL changes). If removed, local music playback breaks on mobile.
+function sePlayableUrl(url){
+  if(url&&url.indexOf('data:')===0){
+    try{
+      const parts=url.split(',');
+      const mime=(parts[0].match(/:(.*?);/)||[])[1]||'audio/mpeg';
+      const bin=atob(parts[1]);
+      const bytes=new Uint8Array(bin.length);
+      for(let i=0;i<bin.length;i++){bytes[i]=bin.charCodeAt(i);}
+      const blob=new Blob([bytes],{type:mime});
+      const blobUrl=URL.createObjectURL(blob);
+      // remember on the element that will use it so svStopMusic can revoke it
+      window._sePendingBlobUrl=blobUrl;
+      return blobUrl;
+    }catch(e){return url;}
+  }
+  return url;
 }
 function svToggleMute(){
   const vid=document.querySelector('#svContent video');
@@ -1852,19 +1883,43 @@ function seLoadTrending(){
   seTrendingOffset = 0;
   const list = document.getElementById('seMusicList');
   list.innerHTML = '<div style="color:rgba(255,255,255,0.3);text-align:center;padding:20px;font-size:.8rem;">Loading trending...</div>';
-  fetch('https://api.jamendo.com/v3.0/tracks/?client_id=f5e82817&format=json&limit=20&order=popularity_week&offset=0')
-    .then(function(r){return r.json();})
-    .then(function(data){
-      if(!data.results||!data.results.length){
-        list.innerHTML = '<div style="color:rgba(255,255,255,0.3);text-align:center;padding:20px;font-size:.8rem;">No music found</div>';
-        return;
-      }
-      seTrendingOffset = 20;
-      seRenderJamendoResults(data.results, true);
-    })
-    .catch(function(){
-      list.innerHTML = '<div style="color:rgba(255,255,255,0.3);text-align:center;padding:20px;font-size:.8rem;">Search for music above</div>';
-    });
+  // The Jamendo popularity_week feed is flaky and sometimes returns an
+  // empty result set; retry up to 3 times before giving up. Also fall back
+  // to a plain search so users always see some music on mobile.
+  function fetchTrending(attempt){
+    fetch('https://api.jamendo.com/v3.0/tracks/?client_id=f5e82817&format=json&limit=20&order=popularity_week&offset=0')
+      .then(function(r){return r.json();})
+      .then(function(data){
+        if(data.results&&data.results.length){
+          seTrendingOffset = 20;
+          seRenderJamendoResults(data.results, true);
+          return;
+        }
+        if(attempt < 3){
+          setTimeout(function(){fetchTrending(attempt + 1);}, 600);
+          return;
+        }
+        // Fall back to a broad search so the list is never empty
+        list.innerHTML = '<div style="color:rgba(255,255,255,0.3);text-align:center;padding:20px;font-size:.8rem;">Loading popular...</div>';
+        fetch('https://api.jamendo.com/v3.0/tracks/?client_id=f5e82817&format=json&limit=20&order=popularity_total&offset=0')
+          .then(function(r2){return r2.json();})
+          .then(function(d2){
+            if(d2.results&&d2.results.length){
+              seTrendingOffset = 20;
+              seRenderJamendoResults(d2.results, true);
+            }else{
+              list.innerHTML = '<div style="color:rgba(255,255,255,0.3);text-align:center;padding:20px;font-size:.8rem;">Search for music above</div>';
+            }
+          })
+          .catch(function(){
+            list.innerHTML = '<div style="color:rgba(255,255,255,0.3);text-align:center;padding:20px;font-size:.8rem;">Search for music above</div>';
+          });
+      })
+      .catch(function(){
+        list.innerHTML = '<div style="color:rgba(255,255,255,0.3);text-align:center;padding:20px;font-size:.8rem;">Search for music above</div>';
+      });
+  }
+  fetchTrending(0);
 }
 
 function seLoadMoreTrending(){
@@ -2056,28 +2111,37 @@ function seFetchUrlMusic() {
 function seUploadAudio(input) {
   if (!input.files||!input.files[0]) return;
   const file = input.files[0];
-  if (seAudioUrl) { URL.revokeObjectURL(seAudioUrl); }
-  seAudioUrl = URL.createObjectURL(file);
   const title = file.name.replace(/\.[^/.]+$/, '');
-  seSetTrimmerMode(title, 'Upload', '<i class="fas fa-music" style="font-size:1.4rem;color:rgba(255,255,255,0.8);"></i>');
-  seMusicState = { source:'local', audioUrl:seAudioUrl, title, artist:'Upload', thumb:'', duration:0, start:0, end:15 };
-  seMtUpdateDisplay();
-  if (seAudioPlayer) { seAudioPlayer.pause(); seAudioPlayer = null; }
-  const tmp = new Audio(seAudioUrl);
-  tmp.addEventListener('loadedmetadata', function onMeta() {
-    tmp.removeEventListener('loadedmetadata', onMeta);
-    const dur = tmp.duration;
-    if (!dur||isNaN(dur)) return;
-    seMusicState.duration = dur;
-    const end = Math.min(15, dur);
-    seMusicState.end = end;
-    document.getElementById('seMtDuration').textContent = '/ ' + seFormatTime(dur);
-    const max = Math.floor(dur);
-    document.getElementById('seMtStart').max = max;
-    document.getElementById('seMtEnd').max = max;
-    document.getElementById('seMtEnd').value = Math.floor(end);
+  // Read the file as a base64 data URL instead of a blob: URL. Blob URLs
+  // only live for the current page session — a story saved with a blob URL
+  // plays no audio after a reload or for other users. Data URLs persist in
+  // the story's text_style just like the image/video fields.
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const dataUrl = ev.target.result;
+    if (seAudioUrl && seAudioUrl.indexOf('blob:') === 0) { URL.revokeObjectURL(seAudioUrl); }
+    seAudioUrl = dataUrl;
+    seSetTrimmerMode(title, 'Upload', '<i class="fas fa-music" style="font-size:1.4rem;color:rgba(255,255,255,0.8);"></i>');
+    seMusicState = { source:'local', audioUrl:dataUrl, title, artist:'Upload', thumb:'', duration:0, start:0, end:15 };
     seMtUpdateDisplay();
-  });
+    if (seAudioPlayer) { seAudioPlayer.pause(); seAudioPlayer = null; }
+    const tmp = new Audio(dataUrl);
+    tmp.addEventListener('loadedmetadata', function onMeta() {
+      tmp.removeEventListener('loadedmetadata', onMeta);
+      const dur = tmp.duration;
+      if (!dur||isNaN(dur)) return;
+      seMusicState.duration = dur;
+      const end = Math.min(15, dur);
+      seMusicState.end = end;
+      document.getElementById('seMtDuration').textContent = '/ ' + seFormatTime(dur);
+      const max = Math.floor(dur);
+      document.getElementById('seMtStart').max = max;
+      document.getElementById('seMtEnd').max = max;
+      document.getElementById('seMtEnd').value = Math.floor(end);
+      seMtUpdateDisplay();
+    });
+  };
+  reader.readAsDataURL(file);
   input.value = '';
 }
 
@@ -2114,7 +2178,9 @@ function seMtPreview() {
     return;
   }
   if (!seAudioPlayer) {
-    seAudioPlayer = new Audio(seMusicState.audioUrl);
+    seAudioPlayer = new Audio(sePlayableUrl(seMusicState.audioUrl));
+    seAudioPlayer._seBlobUrl=window._sePendingBlobUrl||null;
+    window._sePendingBlobUrl=null;
     seAudioPlayer.addEventListener('timeupdate', seAudioLoop);
   }
   seAudioPlayer.currentTime = seMusicState.start;
@@ -2156,7 +2222,9 @@ function seMtAddToStory() {
   };
   seCreateMusicSticker();
   if (!seAudioPlayer) {
-    seAudioPlayer = new Audio(seMusicState.audioUrl);
+    seAudioPlayer = new Audio(sePlayableUrl(seMusicState.audioUrl));
+    seAudioPlayer._seBlobUrl=window._sePendingBlobUrl||null;
+    window._sePendingBlobUrl=null;
     seAudioPlayer.addEventListener('timeupdate', seAudioLoop);
   }
   seAudioPlayer.currentTime = seMusicState.start;
@@ -2697,7 +2765,7 @@ function seDragMove(e){
   else if(seDrag.type==='sticker'){const s=seState.stickers.find(s=>s.id===seDrag.id);if(s){s.x=x;s.y=y;}}
   else if(seDrag.type==='upload'){const u=seState.uploads.find(u=>u.id===seDrag.id);if(u){u.x=x;u.y=y;}}
 }
-function seDragMoveTouch(e){e.preventDefault();if(!seDrag||!e.touches[0])return;seDragMove({clientX:e.touches[0].clientX});}
+function seDragMoveTouch(e){if(!seDrag||!e.touches[0])return;e.preventDefault();seDragMove({clientX:e.touches[0].clientX});}
 function seDragEnd(){seDrag=null;}
 
 // ── Drawing ──

@@ -8,15 +8,21 @@ from channels.db import database_sync_to_async
 from django.core.cache import cache
 from django.contrib.auth import get_user_model
 from home.models import Challenge
-from home.ai_service import check_cpp_code, generate_coding_problem
+from home.ai_service import check_cpp_code, generate_coding_problem, _groq_request, _gemini_request, _openrouter_request
 
 User = get_user_model()
 
 
+# Makes a random 6 character room code (letters + numbers).
+# If removed, players can't create rooms at all.
+# Used in views.py when a new multiplayer room is made.
 def generate_room_code():
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
 
 
+# Turns a player level into a rank name (Beginner, Skilled, etc).
+# If removed, ranks show up empty everywhere.
+# Called in connect when a player joins a room.
 def get_rank(level):
     if level >= 100: return 'God'
     if level >= 75: return 'Legend'
@@ -30,6 +36,9 @@ def get_rank(level):
 
 class MultiplayerConsumer(AsyncWebsocketConsumer):
 
+# Runs when a player opens the websocket to a room.
+# If removed, nobody can join any multiplayer room.
+# WebSocket connects from templates/multiplayer.html.
     async def connect(self):
         self.room_code = self.scope['url_route']['kwargs']['room_code'].upper()
         self.room_group_name = f'multiplayer_{self.room_code}'
@@ -91,6 +100,9 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
             }
         )
 
+# Runs when a player leaves or loses connection.
+# If removed, dead players stay in rooms and matches break.
+# Handles the 10 second forfeit and room cleanup.
     async def disconnect(self, close_code):
         room = cache.get(f'room_{self.room_code}')
         if room:
@@ -100,7 +112,7 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
                     break
 
             if room['status'] == 'active':
-                # For scored games (typing, quiz), if both submitted or remaining player already submitted, resolve now
+                # For scored games, resolve now if both players already submitted
                 scored_games = {'typing': ('typing_results', self._resolve_typing_winner), 'quiz': ('quiz_results', self._resolve_quiz_winner)}
                 ct = room.get('challenge_type', '')
                 if ct in scored_games:
@@ -110,7 +122,11 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
                             asyncio.create_task(resolver(room))
                             cache.set(f'room_{self.room_code}', room, timeout=3600)
                             return
-                        other = next((p for p in room['players'] if p['user_id'] != self.user.id), None)
+                        other = None
+                        for p in room['players']:
+                            if p['user_id'] != self.user.id:
+                                other = p
+                                break
                         if other and str(other['user_id']) in room[rkey]:
                             asyncio.create_task(resolver(room))
                             cache.set(f'room_{self.room_code}', room, timeout=3600)
@@ -120,11 +136,14 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
                 room['disconnect_time'] = time.time()
                 cache.set(f'room_{self.room_code}', room, timeout=3600)
 
+# Waits 10s then makes the remaining player the winner.
+# If removed, a match just hangs when someone disconnects.
+# Scheduled from disconnect().
                 async def forfeit_after_delay():
                     await asyncio.sleep(10)
                     current_room = cache.get(f'room_{self.room_code}')
                     if current_room and current_room.get('disconnected_player_id') == self.user.id and current_room['status'] == 'active':
-                        # Don't forfeit if disconnected player already submitted a scored result
+                        # Don't forfeit if the player already submitted a scored result
                         if ct in scored_games:
                             rkey, _ = scored_games[ct]
                             if rkey in current_room and str(self.user.id) in current_room[rkey]:
@@ -156,7 +175,11 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
                 asyncio.create_task(forfeit_after_delay())
 
             elif room['status'] == 'waiting':
-                all_disconnected = all(not p['connected'] for p in room['players'])
+                all_disconnected = True
+                for p in room['players']:
+                    if p['connected']:
+                        all_disconnected = False
+                        break
                 if all_disconnected or len(room['players']) < 2:
                     cache.delete(f'room_{self.room_code}')
                     return
@@ -175,6 +198,9 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
 
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
+# Routes incoming websocket messages to their handlers.
+# If removed, the server ignores everything players send.
+# Message types come from templates/multiplayer.html.
     async def receive(self, text_data):
         data = json.loads(text_data)
         msg_type = data.get('type')
@@ -185,6 +211,8 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
             await self.handle_progress_update(data)
         elif msg_type == 'challenge_complete':
             await self.handle_challenge_complete(data)
+        elif msg_type == 'answer':
+            await self.handle_answer(data)
         elif msg_type == 'start_countdown':
             await self.handle_start_countdown(data)
         elif msg_type == 'update_settings':
@@ -198,6 +226,9 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
         elif msg_type == 'reset_room':
             await self.handle_reset_room(data)
 
+# Lets the room creator reset the room back to the lobby.
+# If removed, Play Again can never work after a match.
+# Triggered by the "reset_room" websocket message.
     async def handle_reset_room(self, data):
         room = cache.get(f'room_{self.room_code}')
         if not room:
@@ -207,25 +238,30 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
             return
         room['status'] = 'waiting'
         room.pop('challenge', None)
+        room.pop('quiz_answers', None)
+        room.pop('quiz_record', None)
         for p in room['players']:
             p['is_ready'] = False
         cache.set(f'room_{self.room_code}', room)
+        player_data = []
+        for pl in room['players']:
+            player_data.append({
+                'user_id': pl['user_id'],
+                'username': pl['username'],
+                'display_name': pl.get('display_name', pl['username']),
+                'avatar': pl.get('avatar', ''),
+                'level': pl.get('level', 1),
+                'rank': pl.get('rank', 'Beginner'),
+                'is_ready': pl.get('is_ready', False),
+                'connected': pl.get('connected', False),
+            })
         for p in room['players']:
             if p['connected']:
                 await self.channel_layer.send(
                     p['channel_name'],
                     {
                         'type': 'room_reset',
-                        'players': [{
-                            'user_id': pl['user_id'],
-                            'username': pl['username'],
-                            'display_name': pl.get('display_name', pl['username']),
-                            'avatar': pl.get('avatar', ''),
-                            'level': pl.get('level', 1),
-                            'rank': pl.get('rank', 'Beginner'),
-                            'is_ready': pl.get('is_ready', False),
-                            'connected': pl.get('connected', False),
-                        } for pl in room['players']],
+                        'players': player_data,
                         'challenge_type': room['challenge_type'],
                         'custom_settings': room.get('custom_settings'),
                     }
@@ -240,6 +276,9 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
             }
         )
 
+# Lets the creator switch the game type in the lobby.
+# If removed, the lobby game picker does nothing.
+# Triggered by "update_challenge_type" from the lobby UI.
     async def handle_update_challenge_type(self, data):
         room = cache.get(f'room_{self.room_code}')
         if not room:
@@ -248,7 +287,7 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
         if not is_creator:
             return
         new_type = data.get('challenge_type')
-        if new_type not in ('typing','quiz','cps','aim3d','reaction','memory','runner','tictactoe'):
+        if new_type not in ('typing','quiz','cps','aim3d','reaction','memory','runner','tictactoe','coding'):
             return
         room['challenge_type'] = new_type
         room['custom_settings'] = {}
@@ -271,12 +310,18 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
             }
         )
 
+# Sends the new challenge type to this websocket.
+# If removed, players never learn the room switched games.
+# Called by the channel layer group broadcast.
     async def challenge_type_update(self, event):
         await self.send(text_data=json.dumps({
             'type': 'challenge_type_update',
             'challenge_type': event['challenge_type'],
         }))
 
+# Saves the custom game settings chosen by the creator.
+# If removed, custom settings are ignored.
+# Triggered by "update_settings" from the lobby UI.
     async def handle_update_settings(self, data):
         room = cache.get(f'room_{self.room_code}')
         if not room:
@@ -295,12 +340,18 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
             }
         )
 
+# Sends updated custom settings to this websocket.
+# If removed, players don't get the new settings.
+# Called by the channel layer group broadcast.
     async def settings_update(self, event):
         await self.send(text_data=json.dumps({
             'type': 'settings_update',
             'settings': event['settings'],
         }))
 
+# Marks a player ready and starts the countdown when all are ready.
+# If removed, games can never start (nobody can be marked ready).
+# The message type "ready" is sent from templates/multiplayer.html.
     async def handle_ready(self, data):
         room = cache.get(f'room_{self.room_code}')
         if not room:
@@ -324,27 +375,49 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
             }
         )
 
-        all_ready = all(p['is_ready'] for p in room['players'])
+        all_ready = True
+        for p in room['players']:
+            if not p['is_ready']:
+                all_ready = False
+                break
         if all_ready and len(room['players']) >= 2 and room['status'] == 'waiting':
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {'type': 'begin_countdown', 'challenge_type': room['challenge_type']}
             )
 
+# Checks if everyone is ready and kicks off the countdown.
+# If removed, the host button to start does nothing.
+# Triggered by "start_countdown" from the lobby.
     async def handle_start_countdown(self, data):
         room = cache.get(f'room_{self.room_code}')
         if not room or room['status'] != 'waiting':
             return
-        all_ready = all(p['is_ready'] for p in room['players'])
+        all_ready = True
+        for p in room['players']:
+            if not p['is_ready']:
+                all_ready = False
+                break
         if all_ready and len(room['players']) >= 2:
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {'type': 'begin_countdown', 'challenge_type': room['challenge_type']}
             )
 
+# Runs the 3-2-1 countdown then generates and sends the challenge.
+# If removed, the game never actually starts.
+# Called by the channel layer group broadcast.
     async def begin_countdown(self, event):
         room = cache.get(f'room_{self.room_code}')
         if not room or room['status'] != 'waiting':
+            return
+        # Only the room creator runs the countdown and generates the challenge.
+        # Every player's consumer receives this broadcast; without this gate a
+        # non-creator instance can set status='countdown' first, causing the
+        # creator's instance to return on the 'waiting' guard above and the
+        # room to stall at "Starting game" forever.
+        is_creator = room['players'] and room['players'][0]['user_id'] == self.user.id
+        if not is_creator:
             return
         room['status'] = 'countdown'
         cache.set(f'room_{self.room_code}', room, timeout=3600)
@@ -362,22 +435,48 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
         )
         await asyncio.sleep(0.3)
 
+        room = cache.get(f'room_{self.room_code}')
+        if not room or room['status'] != 'countdown':
+            return
+
         challenge_type = event.get('challenge_type', 'typing')
         settings = room.get('custom_settings', {})
         challenge_data = await self._generate_challenge(challenge_type, settings, room)
+        # _generate_challenge stores the per-question answer keys on the
+        # passed-in room dict. LocMemCache pickles values, so every get
+        # returns a fresh copy — the mutation on `room` above does NOT
+        # survive unless we carry it over to the fresh room below. Without
+        # this, quiz_answers is missing, handle_answer bails, the iframe
+        # never gets an answer_result, clicks look dead and the score
+        # always comes out 0.
+        generated_quiz_answers = room.get('quiz_answers')
         if challenge_data is None:
-            challenge_data = {
-                'type': 'typing',
-                'passage': 'The quick brown fox jumps over the lazy dog.',
-                'target_wpm': 40,
-                'duration': 30,
-            }
+            # The challenge couldn't be generated (e.g. every AI provider
+            # failed for quiz). Abort gracefully — reset the room to the
+            # lobby instead of silently swapping in a static fallback.
+            room = cache.get(f'room_{self.room_code}')
+            if not room:
+                return
+            room['status'] = 'waiting'
+            for p in room['players']:
+                p['is_ready'] = False
+            cache.set(f'room_{self.room_code}', room, timeout=3600)
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'room_error',
+                    'message': 'Could not generate this challenge right now. Please try again.',
+                }
+            )
+            return
 
         room = cache.get(f'room_{self.room_code}')
         if not room:
             return
         room['status'] = 'active'
         room['challenge'] = challenge_data
+        if generated_quiz_answers:
+            room['quiz_answers'] = generated_quiz_answers
         room['challenge_type'] = challenge_type
         room['started_at'] = time.time()
         cache.set(f'room_{self.room_code}', room, timeout=3600)
@@ -393,6 +492,9 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
             }
         )
 
+# Forwards a player's progress to their opponents in real time.
+# If removed, opponents can't see each other's progress.
+# Triggered by "progress_update" from the game iframe.
     async def handle_progress_update(self, data):
         room = cache.get(f'room_{self.room_code}')
         if not room or room['status'] != 'active':
@@ -404,6 +506,11 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
                 sender = p
                 break
 
+        if sender:
+            from_username = sender['display_name']
+        else:
+            from_username = self.user.username
+
         for p in room['players']:
             if p['user_id'] != self.user.id and p['connected']:
                 await self.channel_layer.send(
@@ -412,10 +519,13 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
                         'type': 'opponent_progress',
                         'progress': data.get('progress', {}),
                         'from_user_id': self.user.id,
-                        'from_username': sender['display_name'] if sender else self.user.username,
+                        'from_username': from_username,
                     }
                 )
 
+# Routes a finished game to the right winner resolver.
+# If removed, finishing a match does nothing.
+# Triggered by "challenge_complete" from the game iframe.
     async def handle_challenge_complete(self, data):
         room = cache.get(f'room_{self.room_code}')
         if not room or room['status'] == 'finished':
@@ -442,6 +552,9 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
         else:
             await self._handle_instant_complete(room, data)
 
+# Saves a player's result and checks if everyone is done.
+# If removed, no game can be resolved.
+# Called by the _handle_*_complete methods.
     async def _store_result_and_check(self, room, data, result_key, resolver_method):
         if result_key not in room:
             room[result_key] = {}
@@ -454,14 +567,25 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
         room[result_key][my_id] = entry
         cache.set(f'room_{self.room_code}', room, timeout=3600)
 
-        connected = [p for p in room['players'] if p['connected']]
-        all_done = all(str(p['user_id']) in room[result_key] for p in connected)
+        connected = []
+        for p in room['players']:
+            if p['connected']:
+                connected.append(p)
+
+        all_done = True
+        for p in connected:
+            if str(p['user_id']) not in room[result_key]:
+                all_done = False
+                break
 
         if not all_done:
             asyncio.create_task(self._scored_timeout_wait(self.room_code, result_key, resolver_method))
             return False
         return True
 
+# Waits 60s then forces a result if the opponent never finishes.
+# If removed, a match can hang forever waiting.
+# Scheduled from _store_result_and_check.
     async def _scored_timeout_wait(self, room_code, result_key, resolver_method):
         await asyncio.sleep(60)
         room = cache.get(f'room_{room_code}')
@@ -471,31 +595,95 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
             return
         await resolver_method(room)
 
+# Stores typing results and resolves the winner.
+# If removed, typing matches never end.
+# Called when a typing challenge is completed.
     async def _handle_typing_complete(self, room, data):
         ready = await self._store_result_and_check(room, data, 'typing_results', self._resolve_typing_winner)
         if ready:
             await self._resolve_typing_winner(room)
 
+# Stores quiz results and resolves the winner.
+# If removed, quiz matches never end.
+# Called when a quiz challenge is completed.
     async def _handle_quiz_complete(self, room, data):
+        # The server tracks every answer in quiz_record, so the score is
+        # authoritative. Falls back to the client score if no answers were
+        # validated (legacy clients).
+        quiz_record = room.get('quiz_record', {}).get(str(self.user.id))
+        if quiz_record:
+            data['result']['score'] = int(sum(1 for v in quiz_record.values() if v))
         ready = await self._store_result_and_check(room, data, 'quiz_results', self._resolve_quiz_winner)
         if ready:
             await self._resolve_quiz_winner(room)
 
+# Validates a single quiz answer and replies privately with the result.
+# If removed, multiplayer quiz answers are never checked.
+# Triggered by "answer" from the quiz iframe.
+    async def handle_answer(self, data):
+        room = cache.get(f'room_{self.room_code}')
+        if not room or room['status'] != 'active':
+            return
+        quiz_answers = room.get('quiz_answers')
+        if not quiz_answers:
+            return
+        index = str(data.get('index'))
+        chosen = data.get('answer')
+        entry = quiz_answers.get(index)
+        if not entry:
+            return
+        correct = entry.get('answer') == chosen
+        quiz_record = room.setdefault('quiz_record', {})
+        per_user = quiz_record.setdefault(str(self.user.id), {})
+        per_user[index] = bool(correct)
+        cache.set(f'room_{self.room_code}', room, timeout=3600)
+        await self.channel_layer.send(
+            self.channel_name,
+            {
+                'type': 'answer_result',
+                'index': int(index),
+                'correct': correct,
+                'correct_answer': entry.get('answer'),
+                'correct_answer_en': entry.get('answer_en', ''),
+                'explanation': entry.get('explanation', ''),
+                'taunt': entry.get('taunt_correct') if correct else entry.get('taunt_wrong'),
+            }
+        )
+
+# Sends a per-question answer result to this websocket.
+# If removed, the quiz iframe never learns if an answer was right.
+# Called by the channel layer direct send.
+    async def answer_result(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'answer_result',
+            'index': event.get('index'),
+            'correct': event.get('correct'),
+            'correct_answer': event.get('correct_answer'),
+            'correct_answer_en': event.get('correct_answer_en', ''),
+            'explanation': event.get('explanation', ''),
+            'taunt': event.get('taunt', ''),
+        }))
+
+# Stores CPS results and resolves the winner.
+# If removed, CPS matches never end.
+# Called when a CPS challenge is completed.
     async def _handle_cps_complete(self, room, data):
         ready = await self._store_result_and_check(room, data, 'cps_results', self._resolve_cps_winner)
         if ready:
             await self._resolve_cps_winner(room)
 
+# Picks the winner of a CPS match (highest CPS, lowest time).
+# If removed, CPS matches never end.
+# Called from _handle_cps_complete and the timeout.
     async def _resolve_cps_winner(self, room):
         if 'cps_results' not in room or not room['cps_results']:
             return
             
         results = list(room['cps_results'].values())
         
-        # Ensure CPS is properly converted to float and add for debugging
         for r in results:
-            r['user_id'] = int(r.get('user_id', 0))  # Ensure user_id is int
-            # Try multiple field names for CPS value
+            r['user_id'] = int(r.get('user_id', 0))
+            # Try a few field names for the CPS value
             cps_val = r.get('cps') or r.get('score') or r.get('current_score') or 0
             try:
                 r['cps_float'] = float(cps_val)
@@ -509,13 +697,17 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
             else:
                 r['time_float'] = 999999
         
-        # Sort by: HIGHEST CPS first (descending), then LOWEST time (ascending)  
-        results.sort(key=lambda r: (-r.get('cps_float', 0), r.get('time_float', 999999)))
+# Sort key for CPS results (highest CPS first).
+# If removed, the sort in _resolve_cps_winner breaks.
+# Only used in _resolve_cps_winner.
+        def cps_sort_key(r):
+            return (-r.get('cps_float', 0), r.get('time_float', 999999))
+
+        results.sort(key=cps_sort_key)
         
         if not results:
             return
             
-        # Pick the winner (should be highest CPS)
         winner = results[0]
         winner_id = winner['user_id']
         room['winner_id'] = winner_id
@@ -524,9 +716,18 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
         cache.set(f'room_{self.room_code}', room, timeout=3600)
         await self._send_game_over(room, winner_id)
 
+# Picks the typing winner by wpm, then accuracy, then time.
+# If removed, typing matches never end.
+# Called from _handle_typing_complete.
     async def _resolve_typing_winner(self, room):
         results = list(room['typing_results'].values())
-        results.sort(key=lambda r: (-float(r.get('wpm', 0)), -float(r.get('accuracy', 0)), float(r.get('time', 0))))
+# Sort key for typing results.
+# If removed, the sort in _resolve_typing_winner breaks.
+# Only used in _resolve_typing_winner.
+        def typing_sort_key(r):
+            return (-float(r.get('wpm', 0)), -float(r.get('accuracy', 0)), float(r.get('time', 0)))
+
+        results.sort(key=typing_sort_key)
         winner = results[0]
         winner_id = winner['user_id']
         room['winner_id'] = winner_id
@@ -535,42 +736,79 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
         cache.set(f'room_{self.room_code}', room, timeout=3600)
         await self._send_game_over(room, winner_id)
 
+# Picks the quiz winner by score, then time.
+# If removed, quiz matches never end.
+# Called from _handle_quiz_complete.
     async def _resolve_quiz_winner(self, room):
         results = list(room['quiz_results'].values())
-        results.sort(key=lambda r: (-int(r.get('score', 0)), float(r.get('completion_time') or 999999), int(r.get('total', 1))))
+# Sort key for quiz results.
+# If removed, the sort in _resolve_quiz_winner breaks.
+# Only used in _resolve_quiz_winner.
+        def quiz_sort_key(r):
+            return (-int(r.get('score', 0)), float(r.get('completion_time') or 999999), int(r.get('total', 1)))
+
+        results.sort(key=quiz_sort_key)
         winner = results[0]
         winner_id = winner['user_id']
         room['winner_id'] = winner_id
         room['winner_username'] = winner['username']
+        # Tie handling: any player with the SAME top score also wins (e.g.
+        # both answered nothing → both 0). Only break the tie on score, not
+        # on time — an unanswered quiz shouldn't crown a random winner.
+        top_score = int(winner.get('score', 0))
+        winner_ids = [winner_id]
+        for r in results[1:]:
+            if int(r.get('score', 0)) == top_score:
+                winner_ids.append(r['user_id'])
+            else:
+                break
         room['status'] = 'finished'
         cache.set(f'room_{self.room_code}', room, timeout=3600)
-        await self._send_game_over(room, winner_id)
+        await self._send_game_over(room, winner_id, winner_ids)
 
+# Stores aim3d results and resolves the winner.
+# If removed, aim3d matches never end.
+# Called when an aim3d challenge is completed.
     async def _handle_aim3d_complete(self, room, data):
         ready = await self._store_result_and_check(room, data, 'aim3d_results', self._resolve_aim3d_winner)
         if ready:
             await self._resolve_aim3d_winner(room)
 
+# Stores reaction results and resolves the winner.
+# If removed, reaction matches never end.
+# Called when a reaction challenge is completed.
     async def _handle_reaction_complete(self, room, data):
         ready = await self._store_result_and_check(room, data, 'reaction_results', self._resolve_reaction_winner)
         if ready:
             await self._resolve_reaction_winner(room)
 
+# Stores memory results and resolves the winner.
+# If removed, memory matches never end.
+# Called when a memory challenge is completed.
     async def _handle_memory_complete(self, room, data):
         ready = await self._store_result_and_check(room, data, 'memory_results', self._resolve_memory_winner)
         if ready:
             await self._resolve_memory_winner(room)
 
+# Stores runner results and resolves the winner.
+# If removed, runner matches never end.
+# Called when a runner challenge is completed.
     async def _handle_runner_complete(self, room, data):
         ready = await self._store_result_and_check(room, data, 'runner_results', self._resolve_runner_winner)
         if ready:
             await self._resolve_runner_winner(room)
 
+# Stores tictactoe results and resolves the winner.
+# If removed, tictactoe matches never end.
+# Called when a tictactoe challenge is completed.
     async def _handle_tictactoe_complete(self, room, data):
         ready = await self._store_result_and_check(room, data, 'tictactoe_results', self._resolve_tictactoe_winner)
         if ready:
             await self._resolve_tictactoe_winner(room)
 
+# Picks the aim3d winner (highest score, lowest time).
+# If removed, aim3d matches never end.
+# Called from _handle_aim3d_complete.
     async def _resolve_aim3d_winner(self, room):
         if 'aim3d_results' not in room or not room['aim3d_results']:
             return
@@ -579,7 +817,14 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
             r['user_id'] = int(r.get('user_id', 0))
             r['score_float'] = float(r.get('current_score') or r.get('score', 0))
             r['time_float'] = float(r.get('completion_time') or 999999)
-        results.sort(key=lambda r: (-r.get('score_float', 0), r.get('time_float', 999999)))
+
+# Sort key for aim3d results.
+# If removed, the sort in _resolve_aim3d_winner breaks.
+# Only used in _resolve_aim3d_winner.
+        def aim3d_sort_key(r):
+            return (-r.get('score_float', 0), r.get('time_float', 999999))
+
+        results.sort(key=aim3d_sort_key)
         if not results:
             return
         winner = results[0]
@@ -590,6 +835,9 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
         cache.set(f'room_{self.room_code}', room, timeout=3600)
         await self._send_game_over(room, winner_id)
 
+# Picks the reaction winner (lowest avg time).
+# If removed, reaction matches never end.
+# Called from _handle_reaction_complete.
     async def _resolve_reaction_winner(self, room):
         if 'reaction_results' not in room or not room['reaction_results']:
             return
@@ -598,7 +846,14 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
             r['user_id'] = int(r.get('user_id', 0))
             r['avg_float'] = float(r.get('avg_time') or r.get('avg', 9999))
             r['time_float'] = float(r.get('completion_time') or 999999)
-        results.sort(key=lambda r: (r.get('avg_float', 9999), r.get('time_float', 999999)))
+
+# Sort key for reaction results.
+# If removed, the sort in _resolve_reaction_winner breaks.
+# Only used in _resolve_reaction_winner.
+        def reaction_sort_key(r):
+            return (r.get('avg_float', 9999), r.get('time_float', 999999))
+
+        results.sort(key=reaction_sort_key)
         if not results:
             return
         winner = results[0]
@@ -609,6 +864,9 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
         cache.set(f'room_{self.room_code}', room, timeout=3600)
         await self._send_game_over(room, winner_id)
 
+# Picks the memory winner (highest level, lowest time).
+# If removed, memory matches never end.
+# Called from _handle_memory_complete.
     async def _resolve_memory_winner(self, room):
         if 'memory_results' not in room or not room['memory_results']:
             return
@@ -617,7 +875,14 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
             r['user_id'] = int(r.get('user_id', 0))
             r['level_int'] = int(r.get('level', r.get('current_level', 0)) or 0)
             r['time_float'] = float(r.get('completion_time') or 999999)
-        results.sort(key=lambda r: (-r.get('level_int', 0), r.get('time_float', 999999)))
+
+# Sort key for memory results.
+# If removed, the sort in _resolve_memory_winner breaks.
+# Only used in _resolve_memory_winner.
+        def memory_sort_key(r):
+            return (-r.get('level_int', 0), r.get('time_float', 999999))
+
+        results.sort(key=memory_sort_key)
         if not results:
             return
         winner = results[0]
@@ -628,6 +893,9 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
         cache.set(f'room_{self.room_code}', room, timeout=3600)
         await self._send_game_over(room, winner_id)
 
+# Picks the runner winner (highest score, lowest time).
+# If removed, runner matches never end.
+# Called from _handle_runner_complete.
     async def _resolve_runner_winner(self, room):
         if 'runner_results' not in room or not room['runner_results']:
             return
@@ -636,7 +904,14 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
             r['user_id'] = int(r.get('user_id', 0))
             r['score_float'] = float(r.get('score', r.get('current_score', 0)) or 0)
             r['time_float'] = float(r.get('completion_time') or 999999)
-        results.sort(key=lambda r: (-r.get('score_float', 0), r.get('time_float', 999999)))
+
+# Sort key for runner results.
+# If removed, the sort in _resolve_runner_winner breaks.
+# Only used in _resolve_runner_winner.
+        def runner_sort_key(r):
+            return (-r.get('score_float', 0), r.get('time_float', 999999))
+
+        results.sort(key=runner_sort_key)
         if not results:
             return
         winner = results[0]
@@ -647,6 +922,9 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
         cache.set(f'room_{self.room_code}', room, timeout=3600)
         await self._send_game_over(room, winner_id)
 
+# Picks the tictactoe winner (most wins, lowest time).
+# If removed, tictactoe matches never end.
+# Called from _handle_tictactoe_complete.
     async def _resolve_tictactoe_winner(self, room):
         if 'tictactoe_results' not in room or not room['tictactoe_results']:
             return
@@ -655,7 +933,14 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
             r['user_id'] = int(r.get('user_id', 0))
             r['wins_int'] = int(r.get('wins', 0) or 0)
             r['time_float'] = float(r.get('completion_time') or 999999)
-        results.sort(key=lambda r: (-r.get('wins_int', 0), r.get('time_float', 999999)))
+
+# Sort key for tictactoe results.
+# If removed, the sort in _resolve_tictactoe_winner breaks.
+# Only used in _resolve_tictactoe_winner.
+        def tictactoe_sort_key(r):
+            return (-r.get('wins_int', 0), r.get('time_float', 999999))
+
+        results.sort(key=tictactoe_sort_key)
         if not results:
             return
         winner = results[0]
@@ -666,6 +951,9 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
         cache.set(f'room_{self.room_code}', room, timeout=3600)
         await self._send_game_over(room, winner_id)
 
+# Handles games that end instantly (first one done wins).
+# If removed, those games never end.
+# Called from handle_challenge_complete.
     async def _handle_instant_complete(self, room, data):
         winner_key = f'room_winner_{self.room_code}'
         winner_claim = {
@@ -685,6 +973,9 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
 
         await self._send_game_over(room, winner_id)
 
+# Updates a player's stats after a match (plays, wins, best score).
+# If removed, stats never update on the profile.
+# Runs in a thread from _send_game_over.
     def _update_game_stats(self, user_id, game, result_data, won):
         from .models import UserGameStats
         from django.utils import timezone
@@ -695,7 +986,7 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
                 stats.wins += 1
             else:
                 stats.losses += 1
-            # Extract primary and secondary scores based on game type
+            # Pull primary/secondary score based on game type
             score_map = {
                 'typing': (result_data.get('wpm', 0), result_data.get('accuracy', 0)),
                 'quiz': (result_data.get('score', 0), result_data.get('total', 0)),
@@ -719,11 +1010,19 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
         except Exception:
             pass
 
-    async def _send_game_over(self, room, winner_id):
+# Sends the game_over message with rewards to every player.
+# If removed, nobody gets XP/coins or sees results.
+# Called by all the _resolve_*_winner methods.
+    async def _send_game_over(self, room, winner_id, winner_ids=None):
         fresh = cache.get(f'room_{self.room_code}')
         if fresh:
             room = fresh
         players = room['players']
+        # Support ties: winner_ids is a list of all winners (equal top score).
+        # Callers that don't pass it keep the old single-winner behaviour.
+        if not winner_ids:
+            winner_ids = [winner_id]
+        winner_set = set(winner_ids)
         xp_base = 50
         coin_base = 10
         xp_winner = int(xp_base * 1.5)
@@ -732,31 +1031,12 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
         coins_loser = 0
 
         for p in players:
-            if p['user_id'] == winner_id:
+            if p['user_id'] in winner_set:
                 await self._award_xp_coins(p['user_id'], xp_winner, coins_winner)
             else:
                 await self._award_xp_coins(p['user_id'], xp_loser, coins_loser)
 
         ctype = room.get('challenge_type', '')
-        result_key_map = {
-            'typing': 'typing_results', 'quiz': 'quiz_results',
-            'cps': 'cps_results', 'reaction': 'reaction_results',
-            'memory': 'memory_results', 'aim3d': 'aim3d_results',
-            'runner': 'runner_results', 'tictactoe': 'tictactoe_results',
-        }
-        result_key = result_key_map.get(ctype)
-        results = room.get(result_key, {}) if result_key else {}
-        await asyncio.gather(*[
-            asyncio.to_thread(
-                self._update_game_stats,
-                p['user_id'], ctype,
-                results.get(str(p['user_id']), {}),
-                p['user_id'] == winner_id,
-            )
-            for p in players if ctype
-        ])
-
-        # Determine result key from challenge_type to include final scores in game_over
         result_key_map = {
             'typing': 'typing_results',
             'quiz': 'quiz_results',
@@ -767,12 +1047,30 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
             'runner': 'runner_results',
             'tictactoe': 'tictactoe_results',
         }
-        ctype = room.get('challenge_type', '')
         result_key = result_key_map.get(ctype)
-        results = room.get(result_key, {}) if result_key else {}
+        results = {}
+        if result_key:
+            results = room.get(result_key, {})
+
+        if ctype:
+            for p in players:
+                player_result = results.get(str(p['user_id']), {})
+                await asyncio.to_thread(
+                    self._update_game_stats,
+                    p['user_id'],
+                    ctype,
+                    player_result,
+                    p['user_id'] in winner_set,
+                )
 
         for p in room['players']:
-            is_winner = p['user_id'] == winner_id
+            is_winner = p['user_id'] in winner_set
+            if is_winner:
+                xp_to_send = xp_winner
+                coins_to_send = coins_winner
+            else:
+                xp_to_send = xp_loser
+                coins_to_send = coins_loser
             p_id_str = str(p['user_id'])
             self_result_data = results.get(p_id_str, {})
             opponent_result_data = {}
@@ -790,8 +1088,10 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
                     'challenge_type': ctype,
                     'reason': 'completed',
                     'won': is_winner,
-                    'xp': xp_winner if is_winner else xp_loser,
-                    'coins': coins_winner if is_winner else coins_loser,
+                    'is_tie': len(winner_set) > 1,
+                    'winner_ids': list(winner_set),
+                    'xp': xp_to_send,
+                    'coins': coins_to_send,
                     'xp_winner': xp_winner,
                     'coins_winner': coins_winner,
                     'xp_loser': xp_loser,
@@ -802,6 +1102,9 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
                 }
             )
 
+# Checks submitted C++ code and declares the winner if it passes.
+# If removed, the coding challenge can't be won.
+# Triggered by "submit_code" from the coding game.
     async def handle_coding_submit(self, data):
         room = cache.get(f'room_{self.room_code}')
         if not room or room['status'] == 'finished':
@@ -849,6 +1152,12 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
                 }
             for p in room['players']:
                 is_winner = p['user_id'] == winner_id
+                if is_winner:
+                    xp_to_send = xp_winner
+                    coins_to_send = coins_winner
+                else:
+                    xp_to_send = xp_loser
+                    coins_to_send = coins_loser
                 self_result = coding_results.get(str(p['user_id']), {})
                 opponent_result = {}
                 for op in room['players']:
@@ -863,8 +1172,8 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
                         'winner_username': room.get('winner_username', ''),
                         'reason': 'completed',
                         'won': is_winner,
-                        'xp': xp_winner if is_winner else xp_loser,
-                        'coins': coins_winner if is_winner else coins_loser,
+                        'xp': xp_to_send,
+                        'coins': coins_to_send,
                         'xp_winner': xp_winner,
                         'coins_winner': coins_winner,
                         'xp_loser': xp_loser,
@@ -887,6 +1196,9 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
                 'feedback': feedback or 'Your code has errors. Try again!',
             }))
 
+# Stores typing screenshots for verification.
+# If removed, screenshot checks never work.
+# Triggered by "typing_screenshot" from the typing game.
     async def handle_typing_verify(self, data):
         room = cache.get(f'room_{self.room_code}')
         if not room or room['status'] == 'finished':
@@ -932,6 +1244,9 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
                 'message': f'Waiting for opponent... ({submitted}/{players_in_room})',
             }))
 
+# Builds the challenge object for a game type (passage, quiz, etc).
+# If removed, no challenge can ever start.
+# Called from begin_countdown.
     async def _generate_challenge(self, challenge_type, settings=None, room=None):
         settings = settings or {}
         if challenge_type == 'typing':
@@ -953,106 +1268,36 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
             }
 
         elif challenge_type == 'quiz':
-            QUIZ_BANK = {
-                'general': [
-                    {'q': 'What is the capital of France?', 'opts': ['London','Berlin','Paris','Madrid'], 'ans': 2},
-                    {'q': 'How many continents are there?', 'opts': ['5','6','7','8'], 'ans': 2},
-                    {'q': 'What color are bananas when ripe?', 'opts': ['Red','Green','Yellow','Blue'], 'ans': 2},
-                    {'q': 'Which animal is known as the King of the Jungle?', 'opts': ['Tiger','Lion','Elephant','Bear'], 'ans': 1},
-                    {'q': 'How many legs does a dog have?', 'opts': ['2','4','6','8'], 'ans': 1},
-                    {'q': 'What do bees produce?', 'opts': ['Milk','Honey','Wax','Silk'], 'ans': 1},
-                    {'q': 'Which planet is closest to the Sun?', 'opts': ['Venus','Mercury','Earth','Mars'], 'ans': 1},
-                    {'q': 'What is the opposite of hot?', 'opts': ['Warm','Cool','Cold','Freezing'], 'ans': 2},
-                    {'q': 'How many days in a week?', 'opts': ['5','6','7','8'], 'ans': 2},
-                    {'q': 'What shape has 3 sides?', 'opts': ['Square','Circle','Triangle','Rectangle'], 'ans': 2},
-                ],
-                'science': [
-                    {'q': 'What is H2O?', 'opts': ['Oxygen','Hydrogen','Water','Salt'], 'ans': 2},
-                    {'q': 'What planet is known as the Red Planet?', 'opts': ['Venus','Mars','Jupiter','Saturn'], 'ans': 1},
-                    {'q': 'What force keeps us on the ground?', 'opts': ['Magnetism','Friction','Gravity','Inertia'], 'ans': 2},
-                    {'q': 'What gas do plants absorb?', 'opts': ['Oxygen','Nitrogen','CO2','Helium'], 'ans': 2},
-                    {'q': 'What is the speed of light approx?', 'opts': ['300 km/s','300,000 km/s','3,000 km/s','30,000 km/s'], 'ans': 1},
-                    {'q': 'What element is needed for fire?', 'opts': ['Nitrogen','Oxygen','Hydrogen','Carbon'], 'ans': 1},
-                    {'q': 'What organ pumps blood?', 'opts': ['Lungs','Brain','Heart','Liver'], 'ans': 2},
-                    {'q': 'What is the hardest natural substance?', 'opts': ['Gold','Iron','Diamond','Platinum'], 'ans': 2},
-                    {'q': 'What planet has the most moons?', 'opts': ['Jupiter','Saturn','Uranus','Neptune'], 'ans': 1},
-                    {'q': 'What type of rock is formed from lava?', 'opts': ['Sedimentary','Metamorphic','Igneous','Fossil'], 'ans': 2},
-                ],
-                'history': [
-                    {'q': 'Who was the first US President?', 'opts': ['Adams','Jefferson','Washington','Lincoln'], 'ans': 2},
-                    {'q': 'What year did WWII end?', 'opts': ['1943','1944','1945','1946'], 'ans': 2},
-                    {'q': 'Which ancient civilization built pyramids?', 'opts': ['Greek','Roman','Egyptian','Persian'], 'ans': 2},
-                    {'q': 'What ship sank on its maiden voyage in 1912?', 'opts': ['Lusitania','Titanic','Bismarck','Victory'], 'ans': 1},
-                    {'q': 'Who discovered America in 1492?', 'opts': ['Vasco da Gama','Columbus','Magellan','Cook'], 'ans': 1},
-                    {'q': 'What wall divided Berlin?', 'opts': ['Great Wall','Berlin Wall','Iron Wall',"Hadrian's Wall"], 'ans': 1},
-                    {'q': 'Which empire was ruled by Genghis Khan?', 'opts': ['Ottoman','Roman','Mongol','Persian'], 'ans': 2},
-                    {'q': 'What ancient wonder was in Babylon?', 'opts': ['Colossus','Hanging Gardens','Lighthouse','Temple'], 'ans': 1},
-                    {'q': 'Who painted the Mona Lisa?', 'opts': ['Raphael','Michelangelo','Da Vinci','Donatello'], 'ans': 2},
-                    {'q': 'What civilization invented the wheel?', 'opts': ['Egyptian','Greek','Mesopotamian','Chinese'], 'ans': 2},
-                ],
-                'technology': [
-                    {'q': 'What does CPU stand for?', 'opts': ['Central Process Unit','Central Processing Unit','Computer Process Unit','Core Processing Unit'], 'ans': 1},
-                    {'q': 'Who founded Microsoft?', 'opts': ['Jobs','Gates','Zuckerberg','Musk'], 'ans': 1},
-                    {'q': 'What does HTML stand for?', 'opts': ['HyperText Markup Language','HighText Machine Language','HyperTool Markup Language','HomeTool Markup Language'], 'ans': 0},
-                    {'q': 'What is 8 bits called?', 'opts': ['Kilobyte','Megabyte','Byte','Gigabyte'], 'ans': 2},
-                    {'q': 'What programming language is used for iOS apps?', 'opts': ['Java','Kotlin','Swift','Dart'], 'ans': 2},
-                    {'q': 'What does RAM stand for?', 'opts': ['Read Access Memory','Random Access Memory','Run Access Mode','Read All Memory'], 'ans': 1},
-                    {'q': 'What year was the iPhone first released?', 'opts': ['2005','2006','2007','2008'], 'ans': 2},
-                    {'q': 'What does CSS style?', 'opts': ['Structure','Content','Design','Data'], 'ans': 2},
-                    {'q': 'What protocol powers the web?', 'opts': ['FTP','SMTP','HTTP','TCP'], 'ans': 2},
-                    {'q': 'What is Python?', 'opts': ['Snake','Game','Programming Language','Database'], 'ans': 2},
-                ],
-                'riddles': [
-                    {'q': 'What has keys but can\'t open locks?', 'opts': ['A map','A piano','A computer','A book'], 'ans': 1},
-                    {'q': 'What can travel around the world while staying in a corner?', 'opts': ['A stamp','A plane','A ship','A car'], 'ans': 0},
-                    {'q': 'What gets wetter the more it dries?', 'opts': ['A sponge','A towel','A mop','Rain'], 'ans': 1},
-                    {'q': 'What has a head and a tail but no body?', 'opts': ['A snake','A coin','A needle','A pencil'], 'ans': 1},
-                    {'q': 'What has hands but can\'t clap?', 'opts': ['A statue','A clock','A mannequin','A doll'], 'ans': 1},
-                    {'q': 'What can you break even if you never pick it up?', 'opts': ['A promise','A glass','A record','A bone'], 'ans': 0},
-                    {'q': 'What goes up but never comes down?', 'opts': ['A balloon','Smoke','Age','A rocket'], 'ans': 2},
-                    {'q': 'What has a neck but no head?', 'opts': ['A giraffe','A bottle','A shirt','A guitar'], 'ans': 1},
-                    {'q': 'What building has the most stories?', 'opts': ['A skyscraper','A library','A museum','A theater'], 'ans': 1},
-                    {'q': 'What can you catch but not throw?', 'opts': ['A ball','A fish','A cold','A frisbee'], 'ans': 2},
-                ],
-                'gk': [
-                    {'q': 'What is the largest ocean on Earth?', 'opts': ['Atlantic','Indian','Arctic','Pacific'], 'ans': 3},
-                    {'q': 'What is the longest river in the world?', 'opts': ['Amazon','Nile','Mississippi','Yangtze'], 'ans': 1},
-                    {'q': 'Which country has the largest population?', 'opts': ['USA','India','China','Indonesia'], 'ans': 1},
-                    {'q': 'What is the tallest mountain in the world?', 'opts': ['K2','Everest','Kangchenjunga','Lhotse'], 'ans': 1},
-                    {'q': 'Which planet is known as the Morning Star?', 'opts': ['Mars','Venus','Mercury','Jupiter'], 'ans': 1},
-                    {'q': 'What is the smallest country in the world?', 'opts': ['Monaco','Vatican City','San Marino','Liechtenstein'], 'ans': 1},
-                    {'q': 'Which language has the most native speakers?', 'opts': ['English','Mandarin','Spanish','Hindi'], 'ans': 1},
-                    {'q': 'What is the largest desert in the world?', 'opts': ['Sahara','Arabian','Gobi','Antarctic'], 'ans': 3},
-                    {'q': 'Which country invented paper?', 'opts': ['Japan','India','China','Egypt'], 'ans': 2},
-                    {'q': 'What is the most abundant gas in Earth\'s atmosphere?', 'opts': ['Oxygen','CO2','Nitrogen','Hydrogen'], 'ans': 2},
-                ],
-                'gau_hani_katha': [
-                    {'q': 'In Nepali folklore, what is a "Gau" traditionally?', 'opts': ['A river','A village','A mountain','A temple'], 'ans': 1},
-                    {'q': 'What is "Hani Katha" in Nepali tradition?', 'opts': ['A sad story','A joke tale','A folk tale','A war story'], 'ans': 2},
-                    {'q': 'Which animal is sacred in Nepali culture?', 'opts': ['Cow','Tiger','Elephant','Peacock'], 'ans': 0},
-                    {'q': 'What is the traditional Nepali greeting?', 'opts': ['Namaste','Salam','Hello','Jai Nepal'], 'ans': 0},
-                    {'q': 'Which flower is the national flower of Nepal?', 'opts': ['Lotus','Rhododendron','Marigold','Rose'], 'ans': 1},
-                    {'q': 'What is the main festival of Nepal?', 'opts': ['Diwali','Dashain','Tihar','Holi'], 'ans': 1},
-                    {'q': 'What is "Momo" in Nepali cuisine?', 'opts': ['Bread','Dumpling','Rice','Curry'], 'ans': 1},
-                    {'q': 'Which mountain is known as "Sagarmatha" in Nepal?', 'opts': ['K2','Everest','Annapurna','Lhotse'], 'ans': 1},
-                    {'q': 'What is the traditional Nepali topi called?', 'opts': ['Pagri','Topi','Dhaka','Pheta'], 'ans': 1},
-                    {'q': 'Which animal is believed to be the vehicle of Lord Shiva?', 'opts': ['Elephant','Bull','Peacock','Lion'], 'ans': 1},
-                ],
-            }
             topic = settings.get('topic', 'mixed')
-            question_count = settings.get('question_count', 5)
-            if topic == 'mixed':
-                topic = random.choice(list(QUIZ_BANK.keys()))
-            if topic not in QUIZ_BANK:
-                topic = random.choice(list(QUIZ_BANK.keys()))
-            available = QUIZ_BANK[topic]
-            count = min(question_count, len(available))
-            questions = random.sample(available, count)
+            question_count = int(settings.get('question_count', 5) or 5)
+            if question_count > 10:
+                question_count = 10
+            questions = await self._generate_quiz_questions(topic, question_count)
+            if not questions:
+                return None
+            sanitized = []
+            quiz_answers = {}
+            for idx, q in enumerate(questions):
+                opts = q.get('options') or q.get('opts') or []
+                sanitized.append({
+                    'q': q.get('question') or q.get('q'),
+                    'opts': opts,
+                    'qid': idx,
+                })
+                quiz_answers[str(idx)] = {
+                    'answer': q.get('answer'),
+                    'answer_en': q.get('answer_en', ''),
+                    'explanation': q.get('explanation', ''),
+                    'taunt_correct': q.get('taunt_correct', ''),
+                    'taunt_wrong': q.get('taunt_wrong', ''),
+                }
+            if room is not None:
+                room['quiz_answers'] = quiz_answers
             return {
                 'type': 'quiz',
                 'topic': topic,
-                'questions': questions,
-                'question_count': count,
+                'questions': sanitized,
+                'question_count': len(sanitized),
             }
 
         elif challenge_type == 'cps':
@@ -1160,7 +1405,10 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
                 ]
                 pool = {'easy': easy_fallbacks, 'medium': medium_fallbacks, 'hard': hard_fallbacks}
                 pool = pool.get(difficulty, easy_fallbacks)
-                available = [p for p in pool if p not in history]
+                available = []
+                for p in pool:
+                    if p not in history:
+                        available.append(p)
                 if not available:
                     available = pool
                 problem = random.choice(available)
@@ -1177,9 +1425,83 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
                 'difficulty': difficulty,
             }
 
+
+# Generates quiz questions for multiplayer. Tries the AI fallback chain
+# (groq -> gemini -> openrouter). Returns None when every provider fails so
+# the caller can abort the game start gracefully — never serves a static bank.
+# If removed, multiplayer quiz questions can never be generated.
+    async def _generate_quiz_questions(self, topic, count):
+        topics_map = {
+            'gk': 'general knowledge (countries, history, science, geography)',
+            'tech': 'technology, AI, programming, full forms, computer science',
+            'nepali_riddles': 'Nepali Gau Khane Katha riddles in Devnagari script (Nepali language) with double meanings and witty wordplay',
+            'riddles': 'funny riddles with double meanings and witty wordplay in the style of Nepali Gau Khane Katha',
+            'nepal': 'Nepal (history, geography, culture, famous figures)',
+            'mixed': 'mix of general knowledge, technology, riddles, world trivia, and Nepal GK',
+        }
+        topic_desc = topics_map.get(topic, 'general knowledge')
+        is_nepali = topic == 'nepali_riddles'
+        prompt = f"""Generate {count} multiple-choice quiz questions about {topic_desc}.
+Each question MUST be a JSON object with these exact keys:
+- "question": the question text (string)
+- "options": an array of exactly 4 answer choices (strings)
+- "answer": the correct answer (string, must be one of the 4 options)
+- "answer_en": the answer in simple English transliteration (string)
+- "explanation": a brief 1-sentence explanation (string)
+- "language": "ne" for Nepali riddles, "en" otherwise
+- "taunt_correct": a playful roasting message when the player is RIGHT
+- "taunt_wrong": a funny roasting taunt when the player is WRONG
+Rules:
+- {"For Nepali riddles, write question and options in Devnagari Nepali." if is_nepali else ""}
+- Make questions decent and fun, not too easy
+- Exactly 4 unique options, answer must be one of the options
+- Vary difficulty within the set
+- Output ONLY a valid JSON array, no markdown, no prose"""
+        result = None
+        try:
+            result = _groq_request([{'role': 'user', 'content': prompt}], model='llama3-8b-8192', temperature=0.9, max_tokens=4096)
+            if not result:
+                result = _groq_request([{'role': 'user', 'content': prompt}], temperature=0.9, max_tokens=4096)
+            if not result:
+                result = _gemini_request(prompt)
+            if not result:
+                result = _openrouter_request([{'role': 'user', 'content': prompt}], temperature=0.9, max_tokens=4096)
+            questions = self._parse_quiz_questions(result)
+            if questions:
+                return questions
+        except Exception:
+            pass
         return None
 
+# Parses and validates the AI quiz JSON response.
+# If removed, malformed AI answers crash the quiz generator.
+# Only used in _generate_quiz_questions.
+    def _parse_quiz_questions(self, result):
+        try:
+            cleaned = result.strip()
+            if cleaned.startswith('```'):
+                cleaned = cleaned.split('\n', 1)[1]
+                cleaned = cleaned.rsplit('```', 1)[0]
+            questions = json.loads(cleaned.strip())
+            if not isinstance(questions, list):
+                raise ValueError('Not a list')
+            for q in questions:
+                for k in ('question', 'options', 'answer', 'explanation'):
+                    if k not in q:
+                        raise ValueError('Missing keys')
+                if len(q['options']) != 4:
+                    raise ValueError('Need exactly 4 options')
+                if q['answer'] not in q['options']:
+                    q['answer'] = q['options'][0]
+            random.shuffle(questions)
+            return questions
+        except (json.JSONDecodeError, ValueError, KeyError):
+            return None
+
     @database_sync_to_async
+# Adds XP and coins to a player's account.
+# If removed, players never get rewards.
+# Runs in a thread from _send_game_over.
     def _award_xp_coins(self, user_id, xp, coins):
         try:
             user = User.objects.get(id=user_id)
@@ -1193,9 +1515,13 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
         except User.DoesNotExist:
             pass
 
+# Makes a clean copy of the player list for sending out.
+# If removed, raw player data leaks in messages.
+# Used in many broadcast messages.
     def _sanitize_players(self, players):
-        return [
-            {
+        sanitized = []
+        for p in players:
+            sanitized.append({
                 'user_id': p['user_id'],
                 'username': p['username'],
                 'display_name': p.get('display_name', p['username']),
@@ -1204,10 +1530,12 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
                 'rank': p.get('rank', 'Beginner'),
                 'is_ready': p.get('is_ready', False),
                 'connected': p.get('connected', False),
-            }
-            for p in players
-        ]
+            })
+        return sanitized
 
+# Sends the player list update to this websocket.
+# If removed, players won't see lobby changes.
+# Called by the channel layer group broadcast.
     async def player_update(self, event):
         await self.send(text_data=json.dumps({
             'type': 'player_update',
@@ -1215,12 +1543,18 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
             'status': event['status'],
         }))
 
+# Sends a countdown number to this websocket.
+# If removed, players see no countdown.
+# Called by the channel layer group broadcast.
     async def countdown_tick(self, event):
         await self.send(text_data=json.dumps({
             'type': 'countdown',
             'count': event['count'],
         }))
 
+# Sends the challenge data when the game begins.
+# If removed, the game never starts for this player.
+# Called by the channel layer group broadcast.
     async def challenge_start(self, event):
         await self.send(text_data=json.dumps({
             'type': 'challenge_start',
@@ -1229,6 +1563,9 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
             'players': event['players'],
         }))
 
+# Sends the reset room state to this websocket.
+# If removed, Play Again won't reset the client.
+# Called by the channel layer group broadcast.
     async def room_reset(self, event):
         await self.send(text_data=json.dumps({
             'type': 'room_reset',
@@ -1237,6 +1574,18 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
             'custom_settings': event.get('custom_settings'),
         }))
 
+# Sends a game-start failure to this websocket so clients return to the lobby.
+# If removed, players hang on a stalled "Starting game" screen.
+# Called by the channel layer group broadcast from begin_countdown.
+    async def room_error(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'room_error',
+            'message': event.get('message', 'Could not start the game.'),
+        }))
+
+# Sends an opponent's progress update to this websocket.
+# If removed, opponents can't see each other.
+# Called by the channel layer group broadcast.
     async def opponent_progress(self, event):
         if event['from_user_id'] != self.user.id:
             await self.send(text_data=json.dumps({
@@ -1246,5 +1595,8 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
                 'from_username': event['from_username'],
             }))
 
+# Sends the final game result to this websocket.
+# If removed, players never see the result screen.
+# Called by the channel layer group broadcast.
     async def game_over(self, event):
         await self.send(text_data=json.dumps(event))

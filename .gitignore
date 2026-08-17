@@ -52,3 +52,13 @@ compile_shop.js
 convert_riddles.js
 package.json
 package-lock.json
+
+# Agent / tool artifacts
+.opencode/
+.playwright-mcp/
+graphify-out/
+docs/
+staticfiles/
+*.png.orig
+incoming-call-a.png
+mobile-dashboard.png

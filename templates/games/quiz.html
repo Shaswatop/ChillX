@@ -247,7 +247,7 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;background:radial-grad
 
 <div id="challengeResult" style="display:none;margin-top:12px;padding:12px;border-radius:10px;font-size:.8rem;font-weight:500;background:#fff;border:1px solid rgba(37,99,235,.12);color:#172033"></div>
 
-<div class="overlay" id="popupOverlay"></div>
+<div class="overlay" id="tauntOverlay"></div>
 <div class="taunt-popup" id="tauntPopup">
   <div class="taunt-popup-icon">😈</div>
   <div class="taunt-popup-text">You will regret that!<br>THIS WAY IT'S MUCH FUN NA? 🔥</div>
@@ -640,6 +640,7 @@ function showResults(){
     if(maxStreak>=3)msg+=' 🔥 Best streak: '+maxStreak
     resultsDetail.textContent=msg
   }
+  if(challengeId&&!isRevealMode)setTimeout(submitResult,500)
 }
 
 retryBtn.addEventListener('click',function(){
@@ -679,16 +680,16 @@ document.addEventListener('keydown',function(e){
 document.getElementById('tauntToggleInput').addEventListener('change',function(){
   if(this.checked){
     document.getElementById('tauntPopup').classList.add('show')
-    document.getElementById('popupOverlay').classList.add('show')
+    document.getElementById('tauntOverlay').classList.add('show')
   }
 })
 document.getElementById('popupCloseBtn').addEventListener('click',function(){
   document.getElementById('tauntPopup').classList.remove('show')
-  document.getElementById('popupOverlay').classList.remove('show')
+  document.getElementById('tauntOverlay').classList.remove('show')
 })
-document.getElementById('popupOverlay').addEventListener('click',function(){
+document.getElementById('tauntOverlay').addEventListener('click',function(){
   document.getElementById('tauntPopup').classList.remove('show')
-  document.getElementById('popupOverlay').classList.remove('show')
+  document.getElementById('tauntOverlay').classList.remove('show')
 })
 
 // ── Challenge auto-submit ──
@@ -742,9 +743,6 @@ function submitResult(){
   }
   xhr.send('challenge_id='+challengeId+'&score='+score+'&target='+challengeTarget+'&total='+total)
 }
-
-// Auto-submit on game end
-if(challengeId)setTimeout(submitResult,500)
 </script>
 <div class="popup-overlay" id="popupOverlay" onclick="if(event.target===this)closePopup()">
   <div class="popup-box" id="popupBox">

@@ -2,6 +2,9 @@ from django.db import models
 from django.conf import settings
 
 
+# A daily challenge a user gets (typing, quiz, fitness, etc).
+# If removed, the challenges page and all verify_* views break.
+# Change fields here + run makemigrations to add/remove columns.
 class Challenge(models.Model):
     DIFFICULTIES = [
         ('easy', 'Easy'),
@@ -32,6 +35,13 @@ class Challenge(models.Model):
     is_long = models.BooleanField(default=False)
     link = models.URLField(max_length=500, blank=True, default='')
     game_key = models.CharField(max_length=30, blank=True, default='', help_text='In-app game this challenge links to (typing, reaction, cps, aim3d, memory, tictactoe, runner)')
+    objective = models.CharField(max_length=200, blank=True, default='', help_text='Structured objective, e.g. "reach the target"')
+    metric = models.CharField(max_length=50, blank=True, default='', help_text='Measured metric, e.g. wpm, accuracy, cps, ms, score')
+    target = models.FloatField(null=True, blank=True, help_text='Numeric target for the metric')
+    unit = models.CharField(max_length=20, blank=True, default='', help_text='Unit for the target, e.g. wpm, %, seconds, reps')
+    estimated_duration = models.CharField(max_length=50, blank=True, default='', help_text='Rough effort, e.g. "3 minutes"')
+    special_condition = models.TextField(blank=True, default='', help_text='Optional mechanic/special condition')
+    ai_meta = models.JSONField(blank=True, default=dict, help_text='Raw validated AI payload for auditing')
     created_at = models.DateField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUSES, default='pending')
@@ -48,6 +58,9 @@ class Challenge(models.Model):
         return f"[{self.category}] {self.title} ({self.difficulty})"
 
 
+# Stores a single chat line with the AI companion (challenge chat page).
+# If removed, the challenge chat history won't save.
+# Created from challenge_chat view in home/views.py.
 class ChatMessage(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='chat_messages')
     role = models.CharField(max_length=10)
@@ -58,8 +71,10 @@ class ChatMessage(models.Model):
         ordering = ['created_at']
 
 
+# Per-user stats for each mini-game (best score, plays, wins, losses, deaths).
+# If removed, the dashboard game stats and save_game_stats API break.
+# Written from the verify_* views and multiplayer results.
 class UserGameStats(models.Model):
-    """Per-user stats for each in-house mini-game (high scores, wins/losses, death counts, etc.)."""
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -88,8 +103,9 @@ class UserGameStats(models.Model):
         return f"{self.user_id} / {self.game}: {self.best_score}"
 
 
-# ── SHOP MODELS ──
-
+# Shop item a user can buy (boost, cosmetic, loot box, raffle ticket, etc).
+# If removed, the shop page and inventory break.
+# Seeded by the seed_shop command; buy logic in shop_views.py.
 class ShopItem(models.Model):
     CATEGORIES = [
         ('boosts', 'Boosts'),
@@ -135,6 +151,9 @@ class ShopItem(models.Model):
         return f"[{self.get_rarity_display()}] {self.name}"
 
 
+# Which shop items a user owns + whether it's active/equipped.
+# If removed, inventory page and equip/unequip break.
+# Created when a purchase succeeds in shop_views.py.
 class UserInventory(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='inventory')
     item = models.ForeignKey(ShopItem, on_delete=models.CASCADE)
@@ -150,6 +169,9 @@ class UserInventory(models.Model):
         return f"{self.user} owns {self.item.name}"
 
 
+# Records every shop purchase (who bought what for how much).
+# If removed, the "recent purchases" widget breaks.
+# Created in shop_views.py shop_buy.
 class Purchase(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='purchases')
     item = models.ForeignKey(ShopItem, on_delete=models.CASCADE)
@@ -163,6 +185,9 @@ class Purchase(models.Model):
         return f"{self.user} bought {self.item.name} for {self.coins_spent}"
 
 
+# A raffle event users can buy tickets for.
+# If removed, the raffle section of the shop breaks.
+# Managed from shop_views.py raffle endpoints.
 class Raffle(models.Model):
     prize_name = models.CharField(max_length=200)
     prize_value = models.CharField(max_length=100, blank=True)
@@ -178,6 +203,9 @@ class Raffle(models.Model):
         return f"Raffle: {self.prize_name}"
 
 
+# Tracks how many raffle tickets each user bought for a raffle.
+# If removed, buying/entering raffles stops working.
+# Created in shop_views.py raffle_buy.
 class RaffleTicket(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='raffle_tickets')
     raffle = models.ForeignKey(Raffle, on_delete=models.CASCADE, related_name='tickets')
@@ -188,8 +216,11 @@ class RaffleTicket(models.Model):
         return f"{self.user} x{self.quantity} tickets for {self.raffle.prize_name}"
 
 
-# ── SOCIAL / CHILLX MODELS ──
+# SOCIAL / CHILLX MODELS
 
+# A post a user shares on the ChillX social feed.
+# If removed, the social feed and share-results feature break.
+# Created via social_create_post in home/views.py.
 class SocialPost(models.Model):
     challenge = models.ForeignKey(Challenge, null=True, blank=True, on_delete=models.SET_NULL, related_name='social_posts')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='social_posts')
@@ -209,6 +240,9 @@ class SocialPost(models.Model):
         return f"[{self.category}] {self.title}"
 
 
+# A reply on a social post.
+# If removed, social_post comments break.
+# Created via social_comment view.
 class Comment(models.Model):
     post = models.ForeignKey(SocialPost, on_delete=models.CASCADE, related_name='comments')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -222,6 +256,9 @@ class Comment(models.Model):
         return f"{self.user} on {self.post.id}"
 
 
+# One upvote/downvote on a social post.
+# If removed, voting on posts stops working.
+# Created via social_vote view.
 class Vote(models.Model):
     post = models.ForeignKey(SocialPost, on_delete=models.CASCADE, related_name='votes')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -234,6 +271,9 @@ class Vote(models.Model):
         return f"{self.user} voted {self.value} on {self.post.id}"
 
 
+# Who follows who on the social feed.
+# If removed, the follow button stops working.
+# Created via toggle_follow view.
 class Follow(models.Model):
     follower = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='following_set')
     following = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='followers_set')
@@ -246,6 +286,9 @@ class Follow(models.Model):
         return f"{self.follower} follows {self.following}"
 
 
+# A friend request between two users (must be accepted).
+# If removed, the friend system breaks.
+# Created via send_friend_request / respond_friend_request views.
 class FriendRequest(models.Model):
     from_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='sent_friend_requests')
     to_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='received_friend_requests')
@@ -260,6 +303,9 @@ class FriendRequest(models.Model):
         return f"{self.from_user} → {self.to_user} ({self.status})"
 
 
+# A 24-hour story on the social feed (image/video/text).
+# If removed, the stories row breaks.
+# Created via create_story view.
 class Story(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='stories')
     image = models.TextField(blank=True)
@@ -275,8 +321,11 @@ class Story(models.Model):
         return f"Story by {self.user} at {self.created_at}"
 
 
-# ── CHATX MODEL ──
+# CHATX MODEL
 
+# A private chat message in ChatX (sender, receiver, text/image/video/file).
+# If removed, ChatX breaks entirely.
+# Created via send_message view; polled by get_messages.
 class Message(models.Model):
     sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='sent_messages')
     receiver = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='received_messages')
@@ -298,6 +347,9 @@ class Message(models.Model):
         return f"Msg {self.id} from {self.sender} to {self.receiver}"
 
 
+# One WebRTC signal (offer/answer/ICE/end) passed between callers.
+# If removed, voice/video calls break.
+# Created via send_call_signal / poll_call_signals views.
 class CallSignal(models.Model):
     caller = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='call_signals_sent')
     callee = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='call_signals_received')
@@ -317,6 +369,9 @@ class CallSignal(models.Model):
         return f"CallSignal {self.signal_type} from {self.caller} to {self.callee}"
 
 
+# A badge/achievement definition (name, tier, rewards, max progress).
+# If removed, the achievements page and rewards break.
+# Seeded by the seed_achievements command.
 class Achievement(models.Model):
     CATEGORY_CHOICES = [
         ('challenge', 'Challenge Milestones'),
@@ -351,6 +406,9 @@ class Achievement(models.Model):
         return self.name
 
 
+# A user's progress toward one achievement.
+# If removed, achievement progress tracking breaks.
+# Updated in achievement_views.py update_achievement_progress.
 class UserAchievement(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='achievements')
     achievement = models.ForeignKey(Achievement, on_delete=models.CASCADE, related_name='user_achievements')
@@ -365,6 +423,9 @@ class UserAchievement(models.Model):
         return f"{self.user} - {self.achievement} ({self.progress}/{self.achievement.max_progress})"
 
 
+# A display title users can unlock/equip based on XP.
+# If removed, the titles feature breaks.
+# Seeded by seed_achievements; equipped via equip_title view.
 class Title(models.Model):
     TIER_CHOICES = [
         ('beginner', 'Beginner'),
@@ -387,6 +448,9 @@ class Title(models.Model):
         return self.name
 
 
+# Links a user to a title they've unlocked/equipped.
+# If removed, equipping titles breaks.
+# Managed in achievement_views.py.
 class UserTitle(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='user_titles')
     title = models.ForeignKey(Title, on_delete=models.CASCADE, related_name='user_titles')

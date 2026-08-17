@@ -1681,6 +1681,8 @@ function ChallengeGame({
   onOpponentProgress,
   onSubmitCode,
   onTypingScreenshot,
+  onAnswer,
+  answerResult,
   players,
   userId
 }) {
@@ -1689,7 +1691,7 @@ function ChallengeGame({
   challengeRef.current = challenge;
   const supportedGames = ['typing', 'quiz', 'cps', 'aim3d', 'reaction', 'memory', 'runner', 'tictactoe'];
   const hasTemplate = supportedGames.includes(challengeType);
-  const iframeSrc = hasTemplate ? `/multiplayer-game/${challengeType}/?room=${roomCode}&target=${challenge?.target_level || challenge?.target_score || 10}` : null;
+  const iframeSrc = hasTemplate ? `/multiplayer-game/${challengeType}/?room=${roomCode}&target=${challenge?.target_level || challenge?.target_score || challenge?.target_avg || 10}` : null;
   const opponentName = players?.find(p => p.user_id !== userId)?.display_name || 'Opponent';
   const lastOpponentProgressRef = useRef(null);
   const startedRef = useRef(false);
@@ -1738,6 +1740,8 @@ function ChallengeGame({
         onProgress(msg.data);
       } else if (msg.type === 'complete') {
         onComplete(msg.data);
+      } else if (msg.type === 'answer') {
+        if (onAnswer) onAnswer(msg.data);
       } else if (msg.type === 'typing_screenshot' && onTypingScreenshot) {
         onTypingScreenshot(msg.screenshot, msg.result);
       } else if (msg.type === 'ready') {
@@ -1746,7 +1750,7 @@ function ChallengeGame({
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, [onProgress, onComplete, onTypingScreenshot, sendStart]);
+  }, [onProgress, onComplete, onTypingScreenshot, sendStart, onAnswer]);
   useEffect(() => {
     if (!iframeRef.current) return;
     const handleLoad = () => {
@@ -1773,6 +1777,19 @@ function ChallengeGame({
       } catch (e) {}
     }
   }, [onOpponentProgress, players, userId]);
+  const lastAnswerResultRef = useRef(null);
+  useEffect(() => {
+    if (!iframeRef.current || !answerResult) return;
+    try {
+      if (JSON.stringify(lastAnswerResultRef.current) !== JSON.stringify(answerResult)) {
+        lastAnswerResultRef.current = answerResult;
+        iframeRef.current.contentWindow.postMessage({
+          type: 'answer_result',
+          ...answerResult
+        }, '*');
+      }
+    } catch (e) {}
+  }, [answerResult]);
   if (challengeType === 'coding') {
     return /*#__PURE__*/React.createElement(CodingChallenge, {
       challenge: challenge,
@@ -2392,10 +2409,12 @@ function MultiplayerRoom({
   const [countdown, setCountdown] = useState(null);
   const [gameOver, setGameOver] = useState(null);
   const [dcBanner, setDcBanner] = useState(false);
+  const [roomError, setRoomError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [gamePlayers, setGamePlayers] = useState([]);
   const [lastOpponentProgress, setLastOpponentProgress] = useState(null);
   const [lastSelfProgress, setLastSelfProgress] = useState(null);
+  const [lastAnswerResult, setLastAnswerResult] = useState(null);
   const [customSettings, setCustomSettings] = useState(null);
   const [settingsVersion, setSettingsVersion] = useState(0);
   const [pendingSettings, setPendingSettings] = useState(null);
@@ -2560,6 +2579,13 @@ function MultiplayerRoom({
       setChallengeType(data.challenge_type || 'typing');
       setCustomSettings(data.custom_settings || null);
       setGameChallengeType(null);
+      setLastAnswerResult(null);
+    } else if (data.type === 'room_error') {
+      setGameOver(null);
+      setChallenge(null);
+      setGameChallengeType(null);
+      setView('room-lobby');
+      setRoomError(data.message || 'Could not start the game.');
     } else if (data.type === 'player_update') {
       if (data.status === 'finished' && !gameOver) {
         setDcBanner(true);
@@ -2590,6 +2616,8 @@ function MultiplayerRoom({
       window.dispatchEvent(new CustomEvent('code_result', {
         detail: data
       }));
+    } else if (data.type === 'answer_result') {
+      setLastAnswerResult(data);
     }
   }, [gameOver]);
   const {
@@ -2674,6 +2702,13 @@ function MultiplayerRoom({
     }));
     sendChallengeComplete(result);
   }, [sendChallengeComplete]);
+  const handleAnswer = useCallback(ans => {
+    sendRaw({
+      type: 'answer',
+      index: ans.index,
+      answer: ans.answer
+    });
+  }, [sendRaw]);
   const handleSubmitCode = useCallback(code => {
     sendRaw({
       type: 'submit_code',
@@ -2883,7 +2918,13 @@ function MultiplayerRoom({
       style: {
         color: '#ff4757'
       }
-    }, "Connecting...")), /*#__PURE__*/React.createElement("div", {
+    }, "Connecting...")), roomError && /*#__PURE__*/React.createElement("div", {
+      className: "room-error-banner"
+    }, roomError, /*#__PURE__*/React.createElement("button", {
+      onClick: function () {
+        return setRoomError(null);
+      }
+    }, "×")), /*#__PURE__*/React.createElement("div", {
       className: "players-row"
     }, players.map((p, i) => /*#__PURE__*/React.createElement(React.Fragment, {
       key: p.user_id
@@ -3258,7 +3299,10 @@ function MultiplayerRoom({
 
   // ── GAME OVER OVERLAY ──
   if (gameOver) {
-    const isWinner = gameOver.winner_id === user.id;
+    // Trust the server's per-player `won` flag (handles ties where both
+    // players win). Fall back to winner_id comparison for older messages.
+    const isWinner = typeof gameOver.won === 'boolean' ? gameOver.won : (gameOver.winner_id === user.id);
+    const isTie = !!gameOver.is_tie || (Array.isArray(gameOver.winner_ids) && gameOver.winner_ids.length > 1);
     const xp = isWinner ? gameOver.xp_winner || 0 : gameOver.xp_loser || 0;
     const coins = isWinner ? gameOver.coins_winner || 0 : gameOver.coins_loser || 0;
     const isQuiz = gameChallengeType === 'quiz';
@@ -3327,7 +3371,11 @@ function MultiplayerRoom({
     }, React.createElement('div', {
       className: 'game-over-box ' + theme,
       id: 'resultBox'
-    }, isWinner ? React.createElement('div', null, React.createElement('div', {
+    }, isTie ? React.createElement('div', null, React.createElement('div', {
+      className: 'go-badge win'
+    }, 'DRAW'), React.createElement('div', {
+      className: 'go-sub'
+    }, 'Tied score — everyone wins this round!')) : isWinner ? React.createElement('div', null, React.createElement('div', {
       className: 'go-badge win'
     }, 'VICTORY'), React.createElement('div', {
       className: 'go-sub'
@@ -3525,6 +3573,8 @@ function MultiplayerRoom({
     onOpponentProgress: lastOpponentProgress,
     onSubmitCode: handleSubmitCode,
     onTypingScreenshot: handleTypingScreenshot,
+    onAnswer: handleAnswer,
+    answerResult: lastAnswerResult,
     players: allPlayers,
     userId: user.id
   }))));

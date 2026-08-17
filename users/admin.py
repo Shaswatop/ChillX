@@ -3,6 +3,8 @@ from django.contrib.auth.admin import UserAdmin
 from .models import CustomUser
 
 
+# Admin page for users (only used from the Django /admin/ site).
+# If removed, users stop showing in admin.
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
     model = CustomUser

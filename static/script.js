@@ -48,6 +48,33 @@ function createPeerConnection(){
     }
     vid.play().catch(function(){});
     pipVid.play().catch(function(){});
+    // Show the remote avatar when the peer's camera is off (track muted/ended)
+    var stream=e.streams&&e.streams[0]?e.streams[0]:(vid.srcObject||null);
+    if(stream){
+      var vt=stream.getVideoTracks&&stream.getVideoTracks()[0];
+      var updateRemoteAvatar=function(){
+        var ov=document.getElementById('callRemoteAvatar');
+        if(!ov)return;
+        // Don't touch the avatar after the call ended — the peer's stream
+        // stopping fires onended asynchronously and would re-show it.
+        if(!pc||!callPeerId||!document.getElementById('callOverlay').classList.contains('active')){
+          ov.classList.remove('show');
+          return;
+        }
+        var active=vt&&!vt.muted&&vt.readyState==='live'&&vt.enabled!==false;
+        ov.classList.toggle('show',!active);
+      };
+      if(vt){
+        vt.onmute=updateRemoteAvatar;
+        vt.onunmute=updateRemoteAvatar;
+        vt.onended=updateRemoteAvatar;
+        updateRemoteAvatar();
+      }else{
+        // Audio-only call — show avatar instead of black video
+        var ov2=document.getElementById('callRemoteAvatar');
+        if(ov2)ov2.classList.add('show');
+      }
+    }
   };
   pc.onicecandidate=function(e){
     if(e.candidate){
@@ -108,13 +135,16 @@ function startCall(video){
   if(!window.currentChatUserId){showCallToast('Select a conversation first');return;}
   callIsVideo=video;
   callPeerId=window.currentChatUserId;
-  const name=document.getElementById('chatHeaderName')?document.getElementById('chatHeaderName').textContent:'User';
+  var nameEl=document.getElementById('chatHeaderName');
+  var name=(nameEl&&nameEl.textContent&&nameEl.textContent.trim())?nameEl.textContent.trim():'User';
   document.getElementById('callName').textContent=name;
   document.getElementById('callStatus').textContent='Calling...';
   var av=document.getElementById('callAvatar');
   var ha=document.getElementById('chatHeaderAvatar')?document.getElementById('chatHeaderAvatar').style.backgroundImage:'';
   av.style.backgroundImage=ha;
-  av.textContent=ha?'':name[0].toUpperCase();
+  av.textContent=ha?'':(name[0]||'?').toUpperCase();
+  var rov=document.getElementById('callRemoteAvatar');
+  if(rov){rov.style.backgroundImage=ha;rov.textContent=ha?'':(name[0]||'?').toUpperCase();rov.classList.add('show');}
   document.getElementById('callOverlay').classList.add('active');
   document.getElementById('remoteVideo').style.display='none';
   const constraints={audio:true,video:video};
@@ -172,6 +202,13 @@ function pollCallSignals(){
             pendingIceCandidates.push(cand);
           }
         }catch(e){console.error('poll ice parse',e);}
+      }else if(s.type==='cam'){
+        // Peer toggled their camera — show/hide the remote avatar.
+        var ov=document.getElementById('callRemoteAvatar');
+        if(ov){
+          if(s.data==='off'){ov.classList.add('show');}
+          else{ov.classList.remove('show');}
+        }
       }else if(s.type==='end'){
         endCall();
       }
@@ -203,6 +240,7 @@ function endCall(){
   if(callPollInterval){clearInterval(callPollInterval);callPollInterval=null;}
   if(callTimer){clearInterval(callTimer);callTimer=null;}
   document.getElementById('callDuration').textContent='00:00';
+  var cs=document.getElementById('callStatus');if(cs)cs.textContent='Call ended';
   if(pc){pc.close();pc=null;}
   if(localStream){localStream.getTracks().forEach(function(t){t.stop();});localStream=null;}
   if(screenStream){screenStream.getTracks().forEach(function(t){t.stop();});screenStream=null;}
@@ -210,6 +248,14 @@ function endCall(){
   document.getElementById('callIncoming').classList.remove('active');
   document.getElementById('callPip').classList.remove('active');
   document.body.style.overflow='';
+  // Clear the remote stream BEFORE hiding the avatar — stopping the stream
+  // fires onended on the remote track, whose updateRemoteAvatar() would
+  // re-add the 'show' class right after we removed it.
+  var rv=document.getElementById('remoteVideo');if(rv){rv.srcObject=null;rv.style.display='none';}
+  var lv=document.getElementById('localVideo');if(lv){lv.srcObject=null;}
+  var pv=document.getElementById('pipVideo');if(pv){pv.srcObject=null;}
+  var rov=document.getElementById('callRemoteAvatar');
+  if(rov)rov.classList.remove('show');
   callMinimized=false;
   pipActive=false;
   if(callPeerId){
@@ -219,9 +265,6 @@ function endCall(){
   incomingCallerId=null;
   incomingOffer=null;
   pendingIceCandidates=[];
-  var rv=document.getElementById('remoteVideo');if(rv){rv.srcObject=null;rv.style.display='none';}
-  var lv=document.getElementById('localVideo');if(lv){lv.srcObject=null;}
-  var pv=document.getElementById('pipVideo');if(pv){pv.srcObject=null;}
 }
 
 // ── TOGGLE MIC ──
@@ -241,6 +284,12 @@ function callToggleCam(){
   if(t){t.enabled=!t.enabled;
     document.getElementById('callToggleCam').classList.toggle('muted',!t.enabled);
     document.getElementById('callToggleCam').querySelector('i').className=t.enabled?'fas fa-video':'fas fa-video-slash';
+    // Setting enabled=false does NOT fire a mute event on the peer's remote
+    // track (the sender just transmits black frames), so tell the peer
+    // explicitly to show the avatar when the camera is off.
+    if(callPeerId){
+      fetch('/chatx/call/signal/'+callPeerId+'/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken': getCSRFToken()},body:JSON.stringify({type:'cam',data:t.enabled?'on':'off'})}).catch(function(){});
+    }
   }
 }
 
@@ -285,8 +334,28 @@ function minimizeCall(){
   document.getElementById('callPip').classList.add('active');
   var pipVid=document.getElementById('pipVideo');
   var rv=document.getElementById('remoteVideo');
-  if(rv&&rv.srcObject)pipVid.srcObject=rv.srcObject;
-  pipVid.play().catch(function(){});
+  var rov=document.getElementById('callRemoteAvatar');
+  if(rov&&rov.classList.contains('show')){
+    // Camera off — show avatar in the pip bubble instead of a black video
+    pipVid.style.display='none';
+    var pip=document.getElementById('callPip');
+    pip.style.backgroundImage=rov.style.backgroundImage||'';
+    pip.style.backgroundSize='cover';
+    pip.style.backgroundPosition='center';
+    if(!rov.style.backgroundImage) pip.textContent=rov.textContent||'';
+    pip.style.display='flex';
+    pip.style.alignItems='center';
+    pip.style.justifyContent='center';
+    pip.style.fontSize='2rem';
+    pip.style.color='#fff';
+  }else{
+    pipVid.style.display='';
+    var pip2=document.getElementById('callPip');
+    pip2.style.backgroundImage='';
+    pip2.textContent='';
+    if(rv&&rv.srcObject)pipVid.srcObject=rv.srcObject;
+    pipVid.play().catch(function(){});
+  }
   document.getElementById('callTogglePip').querySelector('i').className='fas fa-expand';
   document.getElementById('callTogglePip').title='Expand';
 }
@@ -294,6 +363,10 @@ function minimizeCall(){
 function expandCall(){
   callMinimized=false;
   document.getElementById('callPip').classList.remove('active');
+  var pipVid=document.getElementById('pipVideo');
+  if(pipVid)pipVid.style.display='';
+  var pip=document.getElementById('callPip');
+  if(pip){pip.style.backgroundImage='';pip.textContent='';}
   document.getElementById('callOverlay').classList.add('active');
   document.getElementById('callTogglePip').querySelector('i').className='fas fa-compress';
   document.getElementById('callTogglePip').title='Picture-in-Picture';
@@ -346,6 +419,8 @@ function acceptCall(){
   const av=document.getElementById('callAvatar');
   av.style.backgroundImage=document.getElementById('incomingAvatar').style.backgroundImage;
   av.textContent=document.getElementById('incomingAvatar').textContent;
+  var rov=document.getElementById('callRemoteAvatar');
+  if(rov){rov.style.backgroundImage=av.style.backgroundImage;rov.textContent=av.textContent;rov.classList.add('show');}
   document.getElementById('callOverlay').classList.add('active');
   document.getElementById('remoteVideo').style.display='none';
   const constraints={audio:true,video:callIsVideo};

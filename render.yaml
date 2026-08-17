@@ -1,0 +1,69 @@
+# Render Blueprint for ChillX — Django + Channels (Daphne) + PostgreSQL + Redis
+#
+# How to use:
+#   1. Push this repo to GitHub/GitLab.
+#   2. In Render: New → Blueprint → select the repo → Apply.
+#   3. Render creates the web service, PostgreSQL, and Redis, then deploys.
+#   4. After first deploy, set CORS_ALLOWED_ORIGINS + CSRF_TRUSTED_ORIGINS to
+#      your real domain (Render fills the onrender.com default automatically).
+#
+# NOTE: AI keys (GROQ/GEMINI) are OPTIONAL — the app generates challenges
+# and answers chat locally when no key is set, so it works out of the box.
+# Enter them when prompted during Blueprint creation (or later in the
+# dashboard) to unlock AI-generated content.
+
+services:
+  - type: web
+    name: chillx
+    runtime: python
+    plan: starter
+    healthCheckPath: /
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
+    preDeployCommand: python manage.py migrate --noinput && python manage.py seed_shop && python manage.py seed_achievements
+    # Daphne (not gunicorn/runserver) so WebSockets work.
+    startCommand: daphne -b 0.0.0.0 -p $PORT config.asgi:application
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      # Render health checks hit the instance directly; the onrender.com
+      # subdomain is dynamic. Wildcard is standard for Render — if you add a
+      # custom domain, set this to your exact domain instead.
+      - key: ALLOWED_HOSTS
+        value: "*"
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://*.onrender.com"
+      - key: CORS_ALLOWED_ORIGINS
+        value: "https://chillx.onrender.com"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: chillx-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: chillx-redis
+          property: connectionString
+      # Optional AI keys — leave blank and the app runs in offline mode.
+      - key: GROQ_KEY
+        sync: false
+      - key: GEMINI_KEY
+        sync: false
+      - key: OPENROUTER_KEY
+        sync: false
+
+  # Render Key Value = Redis. The web service connects over Render's
+  # private network (internal URL) which is always allowed in the same
+  # region, so the external ipAllowList is empty = no public access.
+  - type: keyvalue
+    name: chillx-redis
+    plan: free
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
+
+databases:
+  - name: chillx-db
+    plan: basic-256mb
+    databaseName: chillx
+    user: chillx

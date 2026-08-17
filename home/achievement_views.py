@@ -10,6 +10,9 @@ from .serializers import (
 )
 
 
+# Works out the tier name from total XP (beginner, gold, etc).
+# If removed, tier names and perks stop showing in the UI.
+# Called from user_xp_status.
 def get_tier_for_xp(xp):
     TIERS = [
         (0, 'beginner'), (1000, 'bronze'), (5000, 'silver'),
@@ -22,6 +25,9 @@ def get_tier_for_xp(xp):
     return tier
 
 
+# Turns XP into a level number using level ranges.
+# If removed, the level shown in the XP widget breaks.
+# Called from user_xp_status.
 def get_level_from_xp(xp):
     if xp <= 1000:
         return xp // 100 + 1
@@ -36,6 +42,9 @@ def get_level_from_xp(xp):
     return 75 + (xp - 91000) // 5000 + 1
 
 
+# Finds how much XP is needed to reach the next level.
+# If removed, progress to next level stops working.
+# Called from user_xp_status.
 def get_xp_for_level(level):
     if level <= 10:
         return level * 100
@@ -50,7 +59,9 @@ def get_xp_for_level(level):
     return 91000 + (level - 75) * 5000
 
 
-# ── GET /api/achievements/ ──
+# Returns all achievements for the achievements page.
+# If removed, the achievements list loads empty.
+# Used by the /api/achievements/ endpoint.
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def achievement_list(request):
@@ -59,7 +70,9 @@ def achievement_list(request):
     return Response(serializer.data)
 
 
-# ── GET /api/user/xp/ ──
+# Builds the XP status payload (level, tier, buffs, etc).
+# If removed, the XP widget on the dashboard breaks.
+# Used by the /api/user/xp/ endpoint.
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def user_xp_status(request):
@@ -86,6 +99,9 @@ def user_xp_status(request):
     })
 
 
+# Gives the perk list for a tier (xp boost, shop discount).
+# If removed, buffs don't show anywhere in the app.
+# Called from user_xp_status.
 def get_buffs_for_tier(tier):
     buffs_map = {
         'beginner': [
@@ -122,10 +138,14 @@ def get_buffs_for_tier(tier):
             {'icon': '🛡️', 'name': 'Streak Shield', 'value': 'Active', 'color': '#9d00ff'},
         ],
     }
-    return buffs_map.get(tier, buffs_map['beginner'])
+    if tier in buffs_map:
+        return buffs_map[tier]
+    return buffs_map['beginner']
 
 
-# ── GET /api/achievements/titles/ ──
+# Returns all titles the user can equip.
+# If removed, the titles list loads empty.
+# Used by the /api/achievements/titles/ endpoint.
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def title_list(request):
@@ -134,7 +154,9 @@ def title_list(request):
     return Response(serializer.data)
 
 
-# ── POST /api/achievements/equip-title/ ──
+# Equips a title for the user and unequips all others.
+# If removed, equipping titles breaks in the UI.
+# Used by the /api/achievements/equip-title/ endpoint.
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def equip_title(request):
@@ -150,29 +172,27 @@ def equip_title(request):
     except Title.DoesNotExist:
         return Response({'error': 'Title not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    # Ensure UserTitle record exists
     ut, created = UserTitle.objects.get_or_create(user=user, title=title)
     if not ut.unlocked and user.xp < title.min_xp:
         return Response({'error': 'Title not yet unlocked'}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Auto-unlock if eligible
     if not ut.unlocked:
         ut.unlocked = True
         ut.save()
 
-    # Unequip all other titles, equip this one
     UserTitle.objects.filter(user=user, equipped=True).update(equipped=False)
     ut.equipped = True
     ut.save()
 
-    # Update user's active title
     user.title = title.name
     user.save(update_fields=['title'])
 
     return Response({'success': True, 'title': title.name})
 
 
-# ── POST /api/achievements/progress/ ──
+# Adds progress to an achievement and unlocks it when done.
+# If removed, achievements never track progress or give rewards.
+# Used by the /api/achievements/progress/ endpoint.
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def update_achievement_progress(request):
@@ -197,22 +217,29 @@ def update_achievement_progress(request):
     if ua.progress >= achievement.max_progress:
         ua.unlocked = True
         ua.unlocked_at = timezone.now()
-        # Grant rewards
         user.xp += achievement.xp_reward
         user.coins += achievement.coin_reward
         user.save(update_fields=['xp', 'coins'])
 
     ua.save()
 
+    xp_gained = 0
+    coins_gained = 0
+    if ua.unlocked:
+        xp_gained = achievement.xp_reward
+        coins_gained = achievement.coin_reward
+
     return Response({
         'progress': ua.progress,
         'unlocked': ua.unlocked,
-        'xp_gained': achievement.xp_reward if ua.unlocked else 0,
-        'coins_gained': achievement.coin_reward if ua.unlocked else 0,
+        'xp_gained': xp_gained,
+        'coins_gained': coins_gained,
     })
 
 
-# ── POST /api/user/deduct-coins/ ──
+# Takes coins from the user if they have enough.
+# If removed, buying anything in the shop breaks.
+# Used by the /api/user/deduct-coins/ endpoint.
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def deduct_coins(request):

@@ -15,6 +15,9 @@ from .serializers import (
 from .ai_service import _gemini_request, _gemini_image_generate, _gemini_text_to_image
 
 
+# Returns the list of shop items as JSON, filterable by category/rarity.
+# If removed, the shop page shows nothing.
+# The JS in templates/dashboard/shop.html fetches /api/shop/items/.
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def shop_items(request):
@@ -29,6 +32,9 @@ def shop_items(request):
     return Response(serializer.data)
 
 
+# Returns the featured items row for the shop home section.
+# If removed, the featured banner is empty.
+# Fetched via /api/shop/items/featured/ in shop.html.
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def shop_featured(request):
@@ -37,6 +43,9 @@ def shop_featured(request):
     return Response(serializer.data)
 
 
+# Buys an item with coins or gems and saves the purchase.
+# If removed, nobody can buy anything in the shop.
+# Buy button posts to /api/shop/buy/ in shop.html.
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def shop_buy(request):
@@ -50,25 +59,36 @@ def shop_buy(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+# Returns every item the logged in user owns as a list.
+# If removed, the inventory page shows nothing.
+# The JS in templates/dashboard/inventory.html fetches /api/shop/inventory/.
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def shop_inventory(request):
     items = UserInventory.objects.filter(user=request.user)
-    data = [{
-        'id': inv.id,
-        'item_id': inv.item.id,
-        'name': inv.item.name,
-        'description': inv.item.description,
-        'icon': inv.item.icon,
-        'rarity': inv.item.rarity,
-        'category': inv.item.category,
-        'is_active': inv.is_active,
-        'purchased_at': inv.purchased_at.isoformat(),
-        'expires_at': inv.expires_at.isoformat() if inv.expires_at else None,
-    } for inv in items]
+    data = []
+    for inv in items:
+        item_data = {}
+        item_data['id'] = inv.id
+        item_data['item_id'] = inv.item.id
+        item_data['name'] = inv.item.name
+        item_data['description'] = inv.item.description
+        item_data['icon'] = inv.item.icon
+        item_data['rarity'] = inv.item.rarity
+        item_data['category'] = inv.item.category
+        item_data['is_active'] = inv.is_active
+        item_data['purchased_at'] = inv.purchased_at.isoformat()
+        if inv.expires_at:
+            item_data['expires_at'] = inv.expires_at.isoformat()
+        else:
+            item_data['expires_at'] = None
+        data.append(item_data)
     return Response(data)
 
 
+# Turns a flex item on or off (title, name/border/avatar effects).
+# If removed, users cant equip anything from the inventory.
+# Called from /api/shop/inventory/toggle/ with the inventory_id.
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def inventory_toggle(request):
@@ -155,7 +175,8 @@ def inventory_toggle(request):
     effect_key = None
 
     if inv.item.category == 'flex':
-        if name.startswith('Title:') or name == 'Custom Title' or name in ('Global Shoutout 24hr', 'Leaderboard Pin 24hr'):
+        if (name.startswith('Title:') or name == 'Custom Title'
+                or name in ('Global Shoutout 24hr', 'Leaderboard Pin 24hr')):
             slot = 'title'
         elif name in EFFECT_MAP:
             effect_key = EFFECT_MAP[name]
@@ -189,7 +210,9 @@ def inventory_toggle(request):
                 request.user.bg_effect = ''
             elif slot == 'bg':
                 request.user.bg_effect = ''
-            request.user.save(update_fields=['title', 'flex_effect', 'name_effect', 'avatar_border', 'bg_effect'])
+            request.user.save(update_fields=[
+                'title', 'flex_effect', 'name_effect', 'avatar_border', 'bg_effect'
+            ])
         else:
             same_slot_items = UserInventory.objects.filter(
                 user=request.user, item__category='flex', is_active=True
@@ -198,7 +221,8 @@ def inventory_toggle(request):
                 other_name = other.item.name
                 other_key = EFFECT_MAP.get(other_name, '')
                 other_slot = None
-                if other_name.startswith('Title:') or other_name == 'Custom Title' or other_name in ('Global Shoutout 24hr', 'Leaderboard Pin 24hr'):
+                if (other_name.startswith('Title:') or other_name == 'Custom Title'
+                        or other_name in ('Global Shoutout 24hr', 'Leaderboard Pin 24hr')):
                     other_slot = 'title'
                 elif other_key in NAME_EFFECTS:
                     other_slot = 'name'
@@ -241,6 +265,9 @@ def inventory_toggle(request):
     return Response({'is_active': inv.is_active})
 
 
+# Opens a lootbox and gives a random item based on crate rarity.
+# If removed, crates cant be opened and lootboxes are useless.
+# Called from the crate popup via /api/shop/crate/open/.
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def crate_open(request):
@@ -253,7 +280,9 @@ def crate_open(request):
             except UserInventory.DoesNotExist:
                 return Response({'error': 'Crate not found'}, status=status.HTTP_404_NOT_FOUND)
         elif item_id:
-            inv = UserInventory.objects.filter(user=request.user, item_id=item_id, item__category='lootbox').first()
+            inv = UserInventory.objects.filter(
+                user=request.user, item_id=item_id, item__category='lootbox'
+            ).first()
             if not inv:
                 return Response({'error': 'Crate not found in inventory'}, status=status.HTTP_404_NOT_FOUND)
         else:
@@ -274,14 +303,22 @@ def crate_open(request):
         weights = list(rarity_weights.values())
         chosen_rarity = random.choices(rarities, weights=weights, k=1)[0]
 
-        pool = list(ShopItem.objects.filter(category__in=['boosts', 'flex', 'cosmetics'], rarity=chosen_rarity).exclude(
-            id__in=UserInventory.objects.filter(user=request.user).values('item_id')
-        ))
+        owned_ids = UserInventory.objects.filter(user=request.user).values('item_id')
+        pool = ShopItem.objects.filter(
+            category__in=['boosts', 'flex', 'cosmetics'],
+            rarity=chosen_rarity,
+        ).exclude(id__in=owned_ids)
+        pool = list(pool)
         if not pool:
-            pool = list(ShopItem.objects.filter(category__in=['boosts', 'flex', 'cosmetics'], rarity=chosen_rarity))
+            pool = ShopItem.objects.filter(
+                category__in=['boosts', 'flex', 'cosmetics'],
+                rarity=chosen_rarity,
+            )
+            pool = list(pool)
 
         if not pool:
-            pool = list(ShopItem.objects.filter(rarity=chosen_rarity).exclude(category='lootbox'))
+            pool = ShopItem.objects.filter(rarity=chosen_rarity).exclude(category='lootbox')
+            pool = list(pool)
 
         if not pool:
             return Response({'error': 'No rewards available right now'}, status=status.HTTP_400_BAD_REQUEST)
@@ -292,12 +329,21 @@ def crate_open(request):
 
         return Response({
             'rarity': chosen_rarity,
-            'item': {'id': reward.id, 'name': reward.name, 'icon': reward.icon, 'rarity': reward.rarity, 'description': reward.description},
+            'item': {
+                'id': reward.id,
+                'name': reward.name,
+                'icon': reward.icon,
+                'rarity': reward.rarity,
+                'description': reward.description,
+            },
         })
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+# Saves an uploaded photo as the user's avatar (base64 PNG).
+# If removed, the avatar uploader breaks.
+# Posts the image data to /api/shop/avatar-upload/.
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def avatar_upload(request):
@@ -326,6 +372,9 @@ AI_ANIMATE_COST = 300
 AI_STYLES = ['anime', 'neon', 'vintage', 'glitch', 'oil', 'pop-art', 'cyberpunk', 'watercolor']
 
 
+# Makes an AI styled profile pic from a photo or text prompt, costs coins.
+# If removed, the AI profile pic feature in the shop is gone.
+# Shop JS calls /api/shop/ai-profile/ with the style and image.
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def ai_profile_pic(request):
@@ -337,9 +386,15 @@ def ai_profile_pic(request):
     text_only = request.data.get('text_only', False)
 
     if style not in AI_STYLES:
-        return Response({'error': f'Invalid style. Choose from: {", ".join(AI_STYLES)}'}, status=status.HTTP_400_BAD_REQUEST)
+        styles_list = ', '.join(AI_STYLES)
+        return Response(
+            {'error': f'Invalid style. Choose from: {styles_list}'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
-    total_cost = AI_STYLE_COST + (AI_ANIMATE_COST if animate else 0)
+    total_cost = AI_STYLE_COST
+    if animate:
+        total_cost += AI_ANIMATE_COST
     if user.coins < total_cost:
         return Response({'error': f'Need {total_cost} coins (have {user.coins})'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -371,7 +426,9 @@ def ai_profile_pic(request):
             if prompt:
                 gen_prompt = f'{prompt}. Style: {style}. {gen_prompt}'
             img_result = _gemini_text_to_image(gen_prompt)
-            used_gemini = img_result and isinstance(img_result, str) and len(img_result) > 100
+            used_gemini = False
+            if img_result and isinstance(img_result, str) and len(img_result) > 100:
+                used_gemini = True
             if not used_gemini:
                 return Response({'error': 'Image generation failed. The free API tier is rate-limited. Try uploading a photo instead.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             img_base64 = img_result
@@ -386,7 +443,9 @@ def ai_profile_pic(request):
             gen_prompt += ' Output only the transformed image with no text or labels.'
 
             img_result = _gemini_image_generate(raw_b64, gen_prompt)
-            used_gemini = img_result and isinstance(img_result, str) and len(img_result) > 100
+            used_gemini = False
+            if img_result and isinstance(img_result, str) and len(img_result) > 100:
+                used_gemini = True
 
             if not used_gemini:
                 return Response({'error': 'AI transformation unavailable (API rate limit). Try again later.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -394,42 +453,70 @@ def ai_profile_pic(request):
 
         if animate and used_gemini:
             img_bytes = base64.b64decode(img_base64)
-            src_img = Image.open(io.BytesIO(img_bytes)).convert('RGBA').resize((512, 512), Image.LANCZOS)
+            src_img = Image.open(io.BytesIO(img_bytes)).convert('RGBA')
+            src_img = src_img.resize((512, 512), Image.LANCZOS)
             frames = []
             for i in range(8):
                 frame = src_img.copy()
                 r, g, b, a = frame.split()
-                shift = (i / 8.0)
-                r = r.point(lambda x: min(255, int(x + shift * 30)))
-                g = g.point(lambda x: min(255, int(x - shift * 15)))
-                b = b.point(lambda x: min(255, int(x + shift * 20)))
+                shift = i / 8.0
+
+                def make_red(value):
+                    return min(255, int(value + shift * 30))
+
+                def make_green(value):
+                    return min(255, int(value - shift * 15))
+
+                def make_blue(value):
+                    return min(255, int(value + shift * 20))
+
+                r = r.point(make_red)
+                g = g.point(make_green)
+                b = b.point(make_blue)
                 frame = Image.merge('RGBA', (r, g, b, a))
                 enhancer = ImageEnhance.Brightness(frame)
                 frame = enhancer.enhance(1.0 + shift * 0.1)
                 frames.append(frame.convert('RGB'))
             gif_buffer = io.BytesIO()
-            frames[0].save(gif_buffer, format='GIF', save_all=True, append_images=frames[1:], duration=120, loop=0, optimize=False)
+            frames[0].save(
+                gif_buffer, format='GIF', save_all=True,
+                append_images=frames[1:], duration=120, loop=0, optimize=False,
+            )
             gif_buffer.seek(0)
             img_base64 = base64.b64encode(gif_buffer.read()).decode()
 
         user.coins -= total_cost
         user.save(update_fields=['coins'])
 
-        method_label = 'AI' if used_gemini else 'Local'
+        if used_gemini:
+            method_label = 'AI'
+        else:
+            method_label = 'Local'
+
+        if animate:
+            image_animated = img_base64
+            frame_count = 8
+        else:
+            image_animated = None
+            frame_count = 1
+
         return Response({
-            'image': img_base64 if not animate else (img_base64 if not animate else img_base64),
-            'image_animated': img_base64 if animate else None,
+            'image': img_base64,
+            'image_animated': image_animated,
             'coins_left': user.coins,
             'cost': total_cost,
             'style': style,
             'animated': animate,
             'ai_caption': f'{method_label} {style.title()}',
-            'ai_params': {'method': method_label, 'animated': animate, 'frames': 8 if animate else 1},
+            'ai_params': {'method': method_label, 'animated': animate, 'frames': frame_count},
         })
     except Exception as e:
         return Response({'error': f'Image generation failed: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+# Returns the user's coins, gems, and equipped effects for the header.
+# If removed, the currency bar and effect previews show nothing.
+# Header JS polls /api/shop/wallet/.
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def shop_wallet(request):
@@ -448,6 +535,9 @@ def shop_wallet(request):
     })
 
 
+# Serves the stored avatar image file (PNG or GIF) for any user.
+# If removed, avatars appear as broken images site-wide.
+# Used via /api/shop/avatar/?user_id=... in chat and comments.
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def avatar_image(request):
@@ -482,6 +572,9 @@ def avatar_image(request):
         return Response({'error': 'Invalid avatar'}, status=404)
 
 
+# Returns the currently active raffle if one is running.
+# If removed, the raffle banner on the shop page is empty.
+# Fetched via /api/shop/raffle/current/.
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def raffle_current(request):
@@ -492,6 +585,9 @@ def raffle_current(request):
     return Response(serializer.data)
 
 
+# Buys raffle tickets for the active raffle with coins.
+# If removed, users cant enter the raffle at all.
+# Raffle JS posts to /api/shop/raffle/buy/.
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def raffle_buy(request):
@@ -502,6 +598,9 @@ def raffle_buy(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+# Creates and equips a custom title for 2000 coins.
+# If removed, custom titles cant be bought or shown.
+# Titles tab posts to /api/shop/custom-title/.
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def custom_title_create(request):
@@ -514,45 +613,65 @@ def custom_title_create(request):
     if user.coins < cost:
         return Response({'error': f'Need {cost - user.coins} more coins.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    title_item, _ = ShopItem.objects.get_or_create(name='Custom Title', defaults={
-        'description': 'Your custom title',
-        'category': 'flex', 'rarity': 'legendary',
-        'price_coins': cost, 'icon': '✏️',
-    })
+    title_item, _ = ShopItem.objects.get_or_create(
+        name='Custom Title',
+        defaults={
+            'description': 'Your custom title',
+            'category': 'flex', 'rarity': 'legendary',
+            'price_coins': cost, 'icon': '✏️',
+        },
+    )
 
     user.coins -= cost
     user.custom_title = title_text
     user.save(update_fields=['coins', 'custom_title'])
 
-    inv, created = UserInventory.objects.get_or_create(user=user, item=title_item, defaults={'is_active': False})
+    inv, created = UserInventory.objects.get_or_create(
+        user=user, item=title_item, defaults={'is_active': False}
+    )
     if not created:
         inv.is_active = False
         inv.save(update_fields=['is_active'])
 
     # Deactivate other flex, activate this one
-    UserInventory.objects.filter(user=user, item__category='flex', is_active=True).exclude(id=inv.id).update(is_active=False)
+    UserInventory.objects.filter(
+        user=user, item__category='flex', is_active=True
+    ).exclude(id=inv.id).update(is_active=False)
     inv.is_active = True
     inv.save(update_fields=['is_active'])
     user.title = title_text
     user.flex_effect = 'title'
     user.save(update_fields=['title', 'flex_effect'])
 
-    return Response({'success': True, 'title': title_text, 'coins_left': user.coins, 'message': f'Custom title "{title_text}" activated!'})
+    return Response({
+        'success': True,
+        'title': title_text,
+        'coins_left': user.coins,
+        'message': f'Custom title "{title_text}" activated!',
+    })
 
 
+# Returns the user's last 3 purchases for the recent list.
+# If removed, the recent purchases section is blank.
+# Shop page fetches /api/shop/recent/.
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def recent_purchases(request):
     purchases = Purchase.objects.filter(user=request.user)[:3]
-    data = [{
-        'item': p.item.name,
-        'icon': p.item.icon,
-        'coins_spent': p.coins_spent,
-        'purchased_at': p.purchased_at.isoformat(),
-    } for p in purchases]
+    data = []
+    for p in purchases:
+        purchase_data = {}
+        purchase_data['item'] = p.item.name
+        purchase_data['icon'] = p.item.icon
+        purchase_data['coins_spent'] = p.coins_spent
+        purchase_data['purchased_at'] = p.purchased_at.isoformat()
+        data.append(purchase_data)
     return Response(data)
 
 
+# Redeems a promo code and grants free coins and diamonds.
+# If removed, promo codes stop working everywhere.
+# Promo input posts the code to /api/shop/promo/redeem/.
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def redeem_promo(request):

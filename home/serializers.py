@@ -4,6 +4,9 @@ from django.utils import timezone
 from .models import ShopItem, UserInventory, Purchase, Raffle, RaffleTicket, Achievement, UserAchievement, Title, UserTitle
 
 
+# Turns a shop item into JSON + checks if the user already owns it.
+# If removed, shop items can't be listed.
+# Used by shop_views.py shop_items/shop_featured.
 class ShopItemSerializer(serializers.ModelSerializer):
     sale_price = serializers.IntegerField(read_only=True)
     owned = serializers.SerializerMethodField()
@@ -19,6 +22,9 @@ class ShopItemSerializer(serializers.ModelSerializer):
         return False
 
 
+# Validates + completes a shop purchase (checks money, stock, ownership).
+# If removed, buying items from the shop breaks.
+# Used by shop_views.py shop_buy.
 class PurchaseSerializer(serializers.Serializer):
     item_id = serializers.IntegerField()
     currency = serializers.CharField(default='coins', required=False)
@@ -66,6 +72,9 @@ class PurchaseSerializer(serializers.Serializer):
         return item
 
 
+# Turns a raffle into JSON (tickets sold, user tickets, time left).
+# If removed, the raffle section breaks.
+# Used by shop_views.py raffle_current.
 class RaffleSerializer(serializers.ModelSerializer):
     total_tickets_sold = serializers.SerializerMethodField()
     user_tickets = serializers.SerializerMethodField()
@@ -91,6 +100,9 @@ class RaffleSerializer(serializers.ModelSerializer):
         return max(0, int(remaining.total_seconds()))
 
 
+# Validates + completes buying raffle tickets (checks limits + coins).
+# If removed, entering raffles breaks.
+# Used by shop_views.py raffle_buy.
 class RaffleBuySerializer(serializers.Serializer):
     raffle_id = serializers.IntegerField()
     quantity = serializers.IntegerField(min_value=1, max_value=10)
@@ -123,8 +135,11 @@ class RaffleBuySerializer(serializers.Serializer):
         return raffle
 
 
-# ── ACHIEVEMENT SERIALIZERS ──
+# ACHIEVEMENT SERIALIZERS
 
+# Turns an achievement into JSON with the user's progress/unlocked state.
+# If removed, the achievements page breaks.
+# Used by achievement_views.py achievement_list.
 class AchievementSerializer(serializers.ModelSerializer):
     unlocked = serializers.SerializerMethodField()
     progress = serializers.SerializerMethodField()
@@ -159,6 +174,9 @@ class AchievementSerializer(serializers.ModelSerializer):
             return None
 
 
+# Turns a title into JSON with the user's unlock/equip state.
+# If removed, the titles feature breaks.
+# Used by achievement_views.py title_list.
 class TitleSerializer(serializers.ModelSerializer):
     unlocked = serializers.SerializerMethodField()
     equipped = serializers.SerializerMethodField()
@@ -184,6 +202,9 @@ class TitleSerializer(serializers.ModelSerializer):
             return False
 
 
+# Validates the title id sent when equipping a title.
+# If removed, equip-title can't check the title exists.
+# Used by achievement_views.py equip_title.
 class EquipTitleSerializer(serializers.Serializer):
     title_id = serializers.IntegerField()
 
@@ -195,6 +216,9 @@ class EquipTitleSerializer(serializers.Serializer):
         return value
 
 
+# Validates the amount when deducting coins (for in-app purchases).
+# If removed, deduct-coins can't check the amount.
+# Used by achievement_views.py deduct_coins.
 class DeductCoinsSerializer(serializers.Serializer):
     amount = serializers.IntegerField(min_value=1)
     reason = serializers.CharField(max_length=255, required=False, default='')

@@ -417,6 +417,7 @@ let replyToId=null;
 let editMsgId=null;
 let pollInterval=null;
 let allMessages=[];
+let lastMsgSig='';
 let seenMessageIds=new Set();
 try{
   var sms=JSON.parse(localStorage.getItem('chatx_seen_msg_ids')||'[]');
@@ -469,6 +470,14 @@ function openChat(userId){
   document.querySelectorAll('.conv-item').forEach(el=>el.classList.remove('active'));
   const el=document.querySelector('.conv-item[onclick*="openChat('+userId+')"]');
   if(el)el.classList.add('active');
+  // Set the header name from the conversation item so calls work even before
+  // any messages exist (loadMessages only fills it when there's history).
+  if(el){
+    const n=el.querySelector('.conv-name');
+    if(n&&n.textContent){
+      document.getElementById('chatHeaderName').textContent=n.textContent.trim();
+    }
+  }
   // Show chat area
   document.getElementById('chatEmpty').style.display='none';
   document.getElementById('chatHeader').style.display='flex';
@@ -498,7 +507,11 @@ async function loadMessages(userId){
     const data=await res.json();
     allMessages=data.messages;
     detectNewInvites(data.messages);
-    renderMessages(data.messages);
+    const sig=data.messages.map(m=>m.id+':'+(m.edited?1:0)+(m.deleted?1:0)).join(',');
+    if(sig!==lastMsgSig){
+      lastMsgSig=sig;
+      renderMessages(data.messages);
+    }
     // Update header
     if(data.messages.length>0){
       const last=data.messages[data.messages.length-1];
@@ -760,32 +773,59 @@ function showToast(msg){
 }
 
 // ── INVITE NOTIFICATION ──
-function showInviteNotification(senderName, roomCode, senderId, hasAvatar){
-  if(window.seenInviteRoomCodes.has(roomCode))return;
-  if(window.declinedInvites.has(roomCode))return;
-  window.seenInviteRoomCodes.add(roomCode);
+function showInviteNotification(senderName, roomCode, senderId, hasAvatar, onClose){
+  // Dedup + declining are handled by the caller (detectNewInvites/queue),
+  // so this only builds and shows the popup.
   var avHtml=senderId&&hasAvatar?'<img src="/api/shop/avatar/?user_id='+senderId+'" style="width:48px;height:48px;border-radius:50%;object-fit:cover;margin:0 auto 12px;display:block;border:2px solid rgba(74,158,196,0.3)">':'<div style="width:48px;height:48px;border-radius:50%;background:rgba(74,158,196,0.15);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:1.4rem;color:var(--accent)"> '+escapeHtml(senderName[0]||'?')+'</div>';
+  var closed=false;
+  function closeIt(){
+    if(closed)return;
+    closed=true;
+    if(overlay.parentNode)overlay.remove();
+    if(onClose)onClose();
+  }
   const overlay=document.createElement('div');
   overlay.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.35);z-index:10000;display:flex;align-items:center;justify-content:center;';
   const box=document.createElement('div');
-  box.style.cssText='background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:16px;padding:28px 32px;max-width:380px;width:90%;text-align:center;font-family:"Poppins",sans-serif;box-shadow:0 20px 60px rgba(0,0,0,0.15);';
-  box.innerHTML='<div style="font-size:2rem;margin-bottom:12px">🎮</div>'+avHtml+'<div style="color:var(--accent);font-weight:700;font-size:.9rem;margin-bottom:6px">ARENA INVITE</div><div style="color:var(--text);font-size:.85rem;margin-bottom:16px"><strong style="color:#0d3b66">'+escapeHtml(senderName)+'</strong> invited you to a multiplayer match!</div><div style="display:flex;gap:10px;justify-content:center"><a href="/multiplayer/?room='+roomCode+'" target="_blank" style="padding:10px 24px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#00d4aa);color:#fff;text-decoration:none;font-size:.8rem;font-weight:600">Join Arena</a><button onclick="declineInvite(\''+roomCode+'\',this)" style="padding:10px 24px;border-radius:10px;background:rgba(0,0,0,0.06);border:none;color:var(--text-dim);cursor:pointer;font-size:.8rem;font-family:inherit">Decline</button></div>';
+  box.style.cssText='background:linear-gradient(180deg,#134166,#0d3b66);border:1px solid rgba(74,158,196,0.35);border-radius:16px;padding:28px 32px;max-width:380px;width:90%;text-align:center;font-family:"Poppins",sans-serif;box-shadow:0 8px 40px rgba(0,0,0,0.4),inset 0 1px 0 rgba(74,158,196,0.15);';
+  box.innerHTML='<div style="font-size:2rem;margin-bottom:12px">🎮</div>'+avHtml+'<div style="color:#4a9ec4;font-weight:700;font-size:.9rem;margin-bottom:6px;letter-spacing:1px">ARENA INVITE</div><div style="color:rgba(255,255,255,0.85);font-size:.85rem;margin-bottom:16px"><strong style="color:#fff">'+escapeHtml(senderName)+'</strong> invited you to a multiplayer match!</div><div style="display:flex;gap:10px;justify-content:center"><a href="/multiplayer/?room='+roomCode+'" target="_blank" style="padding:10px 24px;border-radius:10px;background:linear-gradient(180deg,#4a9ec4,#0d3b66);border:1px solid rgba(74,158,196,0.5);color:#fff;text-decoration:none;font-size:.8rem;font-weight:600">Join Arena</a><button onclick="declineInvite(\''+roomCode+'\',this)" style="padding:10px 24px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.65);cursor:pointer;font-size:.8rem;font-family:inherit">Decline</button></div>';
   overlay.appendChild(box);
   overlay.setAttribute('data-inv-overlay','');
-  overlay.addEventListener('click',function(e){if(e.target===overlay)overlay.remove();});
+  overlay.addEventListener('click',function(e){if(e.target===overlay)closeIt();});
   document.body.appendChild(overlay);
-  setTimeout(function(){if(overlay.parentNode)overlay.remove();},30000);
+  setTimeout(closeIt,30000);
 }
 
 function declineInvite(roomCode,btn){
-  var overlay=btn.closest('[data-inv-overlay]');
-  if(overlay)overlay.remove();
   window.declinedInvites.add(roomCode);
   try{
     localStorage.setItem('chatx_declined',JSON.stringify(Array.from(window.declinedInvites)));
   }catch(e){}
+  // Release the one-at-a-time lock so the next queued invite can show.
+  invitePopupOpen=false;
+  showNextQueuedInvite();
+  var overlay=btn.closest('[data-inv-overlay]');
+  if(overlay)overlay.remove();
 }
 
+var inviteWindowMs=15*60*1000;
+var inviteQueue=[];
+var invitePopupOpen=false;
+function isFreshInviteMsg(m){
+  if(!m||!m.timestamp)return false;
+  var t=new Date(m.timestamp).getTime();
+  if(isNaN(t))return false;
+  return (Date.now()-t)<=inviteWindowMs;
+}
+function showNextQueuedInvite(){
+  if(invitePopupOpen||!inviteQueue.length)return;
+  var inv=inviteQueue.shift();
+  invitePopupOpen=true;
+  showInviteNotification(inv.name,inv.code,inv.senderId,inv.hasAvatar,function(){
+    invitePopupOpen=false;
+    showNextQueuedInvite();
+  });
+}
 function detectNewInvites(messages){
   for(var i=messages.length-1;i>=0;i--){
     var m=messages[i];
@@ -793,9 +833,15 @@ function detectNewInvites(messages){
     if(seenMessageIds.has(m.id))continue;
     persistSeenMsgId(m.id);
     var match=m.content&&m.content.match(/Multiplayer Arena Invite! Room: (\w+)/);
-    if(match){
-      showInviteNotification(m.sender_name, match[1], m.sender_id, m.has_avatar);
-    }
+    if(!match)continue;
+    // Only pop invites sent recently — old ones are already seen/declined
+    // and would otherwise stack a popup for every historical invite.
+    if(!isFreshInviteMsg(m))continue;
+    if(window.seenInviteRoomCodes.has(match[1]))continue;
+    if(window.declinedInvites.has(match[1]))continue;
+    window.seenInviteRoomCodes.add(match[1]);
+    inviteQueue.push({name:m.sender_name,code:match[1],senderId:m.sender_id,hasAvatar:m.has_avatar});
+    showNextQueuedInvite();
   }
 }
 

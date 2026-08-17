@@ -2,6 +2,9 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 
+# The app's user model (email login + coins/xp/level/theme/etc).
+# If removed, the whole app breaks — AUTH_USER_MODEL points here.
+# Change settings.py AUTH_USER_MODEL if you ever replace this.
 class CustomUser(AbstractUser):
     email = models.EmailField(unique=True)
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)

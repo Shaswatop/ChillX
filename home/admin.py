@@ -2,6 +2,9 @@ from django.contrib import admin
 from .models import Challenge, ChatMessage, FriendRequest, CallSignal
 
 
+# Admin page for challenges (only used from the Django /admin/ site).
+# If removed, challenges stop showing in admin.
+# Change which columns show here.
 @admin.register(Challenge)
 class ChallengeAdmin(admin.ModelAdmin):
     list_display = [
@@ -35,6 +38,8 @@ class ChallengeAdmin(admin.ModelAdmin):
     )
 
 
+# Admin page for AI chat messages.
+# If removed, chat messages stop showing in admin.
 @admin.register(ChatMessage)
 class ChatMessageAdmin(admin.ModelAdmin):
     list_display = ['id', 'user', 'role', 'created_at', 'truncated']
@@ -47,6 +52,8 @@ class ChatMessageAdmin(admin.ModelAdmin):
     truncated.short_description = 'Content'
 
 
+# Admin page for friend requests.
+# If removed, friend requests stop showing in admin.
 @admin.register(FriendRequest)
 class FriendRequestAdmin(admin.ModelAdmin):
     list_display = ['id', 'from_user', 'to_user', 'status', 'created_at']
@@ -54,6 +61,8 @@ class FriendRequestAdmin(admin.ModelAdmin):
     search_fields = ['from_user__email', 'from_user__username', 'to_user__email', 'to_user__username']
 
 
+# Admin page for WebRTC call signals.
+# If removed, call signals stop showing in admin.
 @admin.register(CallSignal)
 class CallSignalAdmin(admin.ModelAdmin):
     list_display = ['id', 'caller', 'callee', 'signal_type', 'created_at']

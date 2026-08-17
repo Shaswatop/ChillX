@@ -184,18 +184,24 @@ function bootstrap() {
   renderModeCard();
   showMenu();
   startLoop();
+
+  if (state.screen !== "playing") {
+    if (new URLSearchParams(location.search).get("autostart") === "1") {
+      setTimeout(function() { startMode("tileFrenzy"); }, 250);
+    }
+  }
 }
 
 /* ── Three.js Scene ── */
 
 function createThreeScene() {
   state.scene = new THREE.Scene();
-  state.scene.background = new THREE.Color(0x1a1d23);
+  state.scene.background = new THREE.Color(0x0a1929);
 
   state.renderer = new THREE.WebGLRenderer({ antialias: true });
   state.renderer.setSize(window.innerWidth, window.innerHeight);
   state.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  state.renderer.setClearColor(0x1a1d23, 1);
+  state.renderer.setClearColor(0x0a1929, 1);
   state.renderer.domElement.style.display = 'block';
   state.renderer.domElement.style.position = 'absolute';
   state.renderer.domElement.style.top = '0';
@@ -228,7 +234,7 @@ function createThreeScene() {
 
   /* subtle floor plane */
   const floorGeo = new THREE.PlaneGeometry(30, 20);
-  const floorMat = new THREE.MeshStandardMaterial({ color: 0x2a2d33, roughness: 1, metalness: 0 });
+  const floorMat = new THREE.MeshStandardMaterial({ color: 0x0a2a4a, roughness: 1, metalness: 0 });
   const floor = new THREE.Mesh(floorGeo, floorMat);
   floor.rotation.x = -Math.PI / 2;
   floor.position.set(0, -WALL_HEIGHT / 2 - 0.5, -WALL_DISTANCE / 2);
@@ -309,22 +315,62 @@ function loadGunModel() {
     undefined,
     function(err){
       console.error('Failed to load gun model:', err);
-      var group = new THREE.Group();
-      var barrelGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.25, 8);
-      var barrelMat = new THREE.MeshStandardMaterial({color: 0x444444, metalness: 0.8, roughness: 0.3});
-      var barrel = new THREE.Mesh(barrelGeo, barrelMat);
-      barrel.rotation.x = Math.PI / 2;
-      barrel.position.z = -0.15;
-      group.add(barrel);
-      var bodyGeo = new THREE.BoxGeometry(0.06, 0.04, 0.1);
-      var bodyMat = new THREE.MeshStandardMaterial({color: 0x333333, metalness: 0.6, roughness: 0.4});
-      var body = new THREE.Mesh(bodyGeo, bodyMat);
-      body.position.z = 0.05;
-      group.add(body);
-      scene.add(group);
-      gun = group;
+      var gun = buildFallbackGun();
+      state.camera.add(gun);
+      state.gunRestPitch = 0;
     }
   );
+}
+
+function buildFallbackGun() {
+  var group = new THREE.Group();
+  // Teal/navy palette matching the ChillX theme (not silver/black).
+  var matDark = new THREE.MeshStandardMaterial({ color: 0x0d3b66, metalness: 0.55, roughness: 0.35 });
+  var matMetal = new THREE.MeshStandardMaterial({ color: 0x4a9ec4, metalness: 0.8, roughness: 0.28 });
+  var matAccent = new THREE.MeshStandardMaterial({ color: 0xd6e8f5, metalness: 0.3, roughness: 0.4 });
+
+  var barrelGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.3, 10);
+  var barrel = new THREE.Mesh(barrelGeo, matDark);
+  barrel.rotation.x = Math.PI / 2;
+  barrel.position.set(0, 0, -0.22);
+  group.add(barrel);
+
+  var barrelTipGeo = new THREE.CylinderGeometry(0.025, 0.02, 0.05, 10);
+  var barrelTip = new THREE.Mesh(barrelTipGeo, matAccent);
+  barrelTip.rotation.x = Math.PI / 2;
+  barrelTip.position.set(0, 0, -0.36);
+  group.add(barrelTip);
+
+  var bodyGeo = new THREE.BoxGeometry(0.07, 0.055, 0.16);
+  var body = new THREE.Mesh(bodyGeo, matMetal);
+  body.position.set(0, 0, -0.02);
+  group.add(body);
+
+  var frameGeo = new THREE.BoxGeometry(0.05, 0.045, 0.1);
+  var frame = new THREE.Mesh(frameGeo, matDark);
+  frame.position.set(0, 0, 0.09);
+  group.add(frame);
+
+  var gripGeo = new THREE.BoxGeometry(0.04, 0.09, 0.05);
+  var grip = new THREE.Mesh(gripGeo, matDark);
+  grip.position.set(0, -0.065, 0.06);
+  grip.rotation.x = 0.15;
+  group.add(grip);
+
+  var accentGeo = new THREE.BoxGeometry(0.03, 0.02, 0.03);
+  var accent = new THREE.Mesh(accentGeo, matAccent);
+  accent.position.set(0, 0.015, -0.05);
+  group.add(accent);
+
+  var triggerGuardGeo = new THREE.TorusGeometry(0.03, 0.005, 6, 12, Math.PI);
+  var triggerGuard = new THREE.Mesh(triggerGuardGeo, matMetal);
+  triggerGuard.position.set(0, -0.04, 0.05);
+  group.add(triggerGuard);
+
+  group.userData.isGun = true;
+  group.position.copy(state.gunRestPos);
+  group.rotation.set(state.gunRestRot.x, state.gunRestRot.y, state.gunRestRot.z);
+  return group;
 }
 
 function triggerGunFire() {
@@ -388,7 +434,7 @@ function createHexFloorTexture() {
   const c = document.createElement('canvas');
   c.width = c.height = S;
   const x = c.getContext('2d');
-  x.fillStyle = '#1a1d23';
+  x.fillStyle = '#0a1929';
   x.fillRect(0, 0, S, S);
   const r = 36;
   const dx = r * Math.sqrt(3);
@@ -406,11 +452,11 @@ function createHexFloorTexture() {
       }
       x.closePath();
       const g = x.createRadialGradient(cx, cy, 0, cx, cy, r);
-      g.addColorStop(0, '#2a2d33');
-      g.addColorStop(1, '#1a1d23');
+      g.addColorStop(0, '#0d3b66');
+      g.addColorStop(1, '#0a1929');
       x.fillStyle = g;
       x.fill();
-      x.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+      x.strokeStyle = 'rgba(74, 158, 196, 0.08)';
       x.lineWidth = 1;
       x.stroke();
     }
@@ -432,10 +478,10 @@ function buildRoom() {
   state.scene.add(floor);
 
   const panelMat = new THREE.MeshStandardMaterial({
-    color: 0x4a4f58, roughness: 0.85, metalness: 0.05
+    color: 0x0d3b66, roughness: 0.85, metalness: 0.05
   });
   const seamMat = new THREE.MeshStandardMaterial({
-    color: 0x1a1d23, roughness: 0.9, metalness: 0.1
+    color: 0x0a2a4a, roughness: 0.9, metalness: 0.1
   });
   const wallY = 0;
   const makePanelWall = (w, h, x, y, z, rotY) => {
@@ -471,7 +517,7 @@ function buildRoom() {
   ceil.position.set(0, H / 2, -D / 2);
   state.scene.add(ceil);
 
-  const accentMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.15 });
+  const accentMat = new THREE.MeshBasicMaterial({ color: 0x4a9ec4, side: THREE.DoubleSide, transparent: true, opacity: 0.25 });
   const strip = (x1, y1, z1, x2, y2, z2) => {
     const len = Math.hypot(x2 - x1, y2 - y1, z2 - z1);
     const m = new THREE.Mesh(new THREE.PlaneGeometry(len, 0.04), accentMat);
@@ -533,8 +579,8 @@ function createWallTexture() {
   canvas.height = H;
   const ctx = canvas.getContext('2d');
   const grad = ctx.createLinearGradient(0, 0, 0, H);
-  grad.addColorStop(0, '#4a4f58');
-  grad.addColorStop(1, '#3a3f48');
+  grad.addColorStop(0, '#0d3b66');
+  grad.addColorStop(1, '#0a2a4a');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, H);
   ctx.strokeStyle = 'rgba(0,0,0,0.15)';
@@ -874,6 +920,9 @@ function bindEvents() {
   document.addEventListener("mouseup", onPrimaryMouseUp);
   document.addEventListener("contextmenu", onContextMenu);
   document.addEventListener("pointerlockchange", onPointerLockChange);
+  document.addEventListener("touchstart", onTouchStart, { passive: false });
+  document.addEventListener("touchmove", onTouchMove, { passive: false });
+  document.addEventListener("touchend", onTouchEnd, { passive: false });
   els.crosshairSize.addEventListener("input", () => {
     state.settings.crosshairSize = Number(els.crosshairSize.value);
     applySettings(state.settings);
@@ -911,6 +960,8 @@ function onMouseMove(event) {
 }
 
 
+let touchSuppressMouseUntil = 0;
+
 function onPrimaryMouseDown(event) {
   if (state.screen !== "playing") return;
   if (event.target?.closest?.("button, select, input")) return;
@@ -920,6 +971,8 @@ function onPrimaryMouseDown(event) {
     return;
   }
   if (event.button !== 0) return;
+  if (performance.now() < touchSuppressMouseUntil) return;
+  if (!document.pointerLockElement) requestPointerLock();
   triggerGunFire();
   const target = getTargetFromRaycaster();
   if (target) { handleHit(target, event); return; }
@@ -937,6 +990,57 @@ function onPrimaryMouseUp(event) {
 function onContextMenu(event) {
   if (state.screen !== "playing") return;
   event.preventDefault();
+}
+
+/* ── Touch controls (mobile) ── */
+
+let touchDragId = null;
+let touchDragStart = null;
+let touchMoved = false;
+let touchFireQueued = false;
+
+function onTouchStart(event) {
+  if (state.screen !== "playing" && state.screen !== "countdown") return;
+  const t = event.changedTouches[0];
+  if (!t) return;
+  touchDragId = t.identifier;
+  touchDragStart = { x: t.clientX, y: t.clientY };
+  touchMoved = false;
+  touchFireQueued = false;
+}
+
+function onTouchMove(event) {
+  if (touchDragId === null) return;
+  for (let i = 0; i < event.changedTouches.length; i += 1) {
+    const t = event.changedTouches[i];
+    if (t.identifier !== touchDragId) continue;
+    const dx = t.clientX - touchDragStart.x;
+    const dy = t.clientY - touchDragStart.y;
+    if (Math.abs(dx) + Math.abs(dy) > 10) touchMoved = true;
+    const sens = state.settings.sensitivity ?? 1;
+    state.targetYaw -= dx * sens * 0.0045;
+    state.targetPitch -= dy * sens * 0.0045;
+    state.targetPitch = clamp(state.targetPitch, -1.2, 1.2);
+    touchDragStart = { x: t.clientX, y: t.clientY };
+    event.preventDefault();
+    break;
+  }
+}
+
+function onTouchEnd(event) {
+  for (let i = 0; i < event.changedTouches.length; i += 1) {
+    const t = event.changedTouches[i];
+    if (t.identifier !== touchDragId) continue;
+    touchDragId = null;
+    touchSuppressMouseUntil = performance.now() + 400;
+    if (state.screen === "playing" && !touchMoved) {
+      touchFireQueued = true;
+      triggerGunFire();
+      const target = getTargetFromRaycaster();
+      if (target) { handleHit(target, t); } else { handleMiss(t); }
+    }
+    break;
+  }
 }
 
 function toggleScope(force) {

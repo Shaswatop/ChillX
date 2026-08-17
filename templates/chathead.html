@@ -42,6 +42,13 @@
 #chMsgs .ch-msg.other{background:rgba(0,0,0,0.03);align-self:flex-start;border-bottom-left-radius:3px}
 #chMsgs::-webkit-scrollbar{width:3px}
 #chMsgs::-webkit-scrollbar-thumb{background:rgba(45,125,210,0.15);border-radius:3px}
+#chQuickRow{display:flex;align-items:center;gap:5px;padding:6px 10px 0;border-top:1px solid rgba(0,0,0,0.06);flex-shrink:0;flex-wrap:wrap}
+#chQuickRow.hidden{display:none}
+#chQuickRow .chq-label{font-size:.55rem;font-weight:700;color:#bbb;text-transform:uppercase;letter-spacing:.5px;margin-right:2px}
+#chQuickRow .chq-emoji{width:30px;height:30px;border-radius:50%;border:none;background:rgba(45,125,210,0.08);cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+#chQuickRow .chq-emoji:hover{background:rgba(45,125,210,0.2);transform:scale(1.12)}
+#chQuickRow .chq-phrase{padding:5px 10px;border-radius:14px;border:1px solid rgba(45,125,210,0.15);background:rgba(45,125,210,0.05);color:#1a1a2e;cursor:pointer;font-size:.62rem;font-weight:600;transition:all .15s;font-family:'Poppins',sans-serif}
+#chQuickRow .chq-phrase:hover{background:rgba(45,125,210,0.15);border-color:rgba(45,125,210,0.35)}
 #chInputRow{display:flex;align-items:center;gap:6px;padding:8px 10px 10px;border-top:1px solid rgba(0,0,0,0.06);flex-shrink:0}
 #chInputRow input{flex:1;padding:8px 12px;border-radius:10px;border:1px solid rgba(45,125,210,0.12);background:#f8faff;color:#1a1a2e;font-size:.72rem;outline:none;font-family:'Poppins',sans-serif;transition:border .2s}
 #chInputRow input:focus{border-color:#2d7dd2}
@@ -53,7 +60,7 @@
 </style>
 
 <div id="chHead">
-  <div id="chBubble" onclick="chToggle()" draggable="false">
+  <div id="chBubble" draggable="false">
     <i class="fas fa-user ch-inner-icon" id="chBubbleIcon"></i>
     <span id="chBadge" style="display:none">0</span>
   </div>
@@ -77,6 +84,18 @@
     </div>
   </div>
   <div id="chMsgs"><div class="ch-empty">Room chat — join a multiplayer room to chat</div></div>
+  <div id="chQuickRow">
+    <span class="chq-label">Quick</span>
+    <button class="chq-emoji" onclick="chQuickSend('❤️')" title="Love it">❤️</button>
+    <button class="chq-emoji" onclick="chQuickSend('😂')" title="Haha">😂</button>
+    <button class="chq-emoji" onclick="chQuickSend('🔥')" title="On fire">🔥</button>
+    <button class="chq-emoji" onclick="chQuickSend('👀')" title="Watching">👀</button>
+    <button class="chq-emoji" onclick="chQuickSend('😤')" title="Bring it">😤</button>
+    <button class="chq-phrase" onclick="chQuickSend('Good game! GG')">GG</button>
+    <button class="chq-phrase" onclick="chQuickSend('Watch my next move 😏')">Next move</button>
+    <button class="chq-phrase" onclick="chQuickSend('Nice one!')">Nice</button>
+    <button class="chq-phrase" onclick="chQuickSend('You got this! 💪')">You got this</button>
+  </div>
   <div id="chInputRow">
     <input id="chInput" type="text" placeholder="Type a message..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();chSend()}">
     <button id="chSendBtn" onclick="chSend()">Send</button>
@@ -98,7 +117,7 @@ try{
 if(!chUserId&&typeof window.callUserId!=='undefined')chUserId=window.callUserId;
 
 // hide text chat if no room
-if(!chRoomCode)document.getElementById('chInputRow').classList.add('hidden');
+if(!chRoomCode){document.getElementById('chInputRow').classList.add('hidden');document.getElementById('chQuickRow').classList.add('hidden');}
 
 // set bubble avatar
 var ic=document.getElementById('chBubbleIcon');
@@ -111,44 +130,80 @@ fetch('/api/shop/avatar/?user_id='+chUserId).then(function(r){
   bub.innerHTML='<img src="'+url+'" alt="" draggable="false">';
 }).catch(function(){});
 
-// ── DRAG ──
+// ── DRAG + TAP ──
+// A tap on the bubble toggles the panel; a drag moves it. On touch devices
+// the browser synthesizes mousedown/mouseup/click after touchend, so we must
+// (a) NOT preventDefault on touchstart (that would kill the tap), and
+// (b) ignore the synthetic mouse events that follow a real touch so the
+//     panel doesn't open then immediately close. lastTouchTime marks it.
+var chSuppressClick=false;
+var chLastTouchTime=0;
 ['mousedown','touchstart'].forEach(function(evt){
   document.getElementById('chBubble').addEventListener(evt,function(e){
-    var t=evt==='touchstart'?e.touches[0]:e;
     if(evt==='mousedown'&&e.button!==0)return;
+    // Synthetic mousedown fired right after a touchend — ignore it entirely.
+    if(evt==='mousedown'&&Date.now()-chLastTouchTime<700)return;
+    var t=evt==='touchstart'?e.touches[0]:e;
+    if(evt==='touchstart'){chLastTouchTime=Date.now();chSuppressClick=false;}
     chDrag.active=true;chDrag.x=t.clientX;chDrag.y=t.clientY;
+    chDrag.moved=false;
     var head=document.getElementById('chHead');
     chDrag.elX=parseInt(head.style.left)||parseInt(window.getComputedStyle(head).left)||0;chDrag.elY=parseInt(head.style.top)||parseInt(window.getComputedStyle(head).top)||0;
     var moveEvt=evt==='touchstart'?'touchmove':'mousemove',upEvt=evt==='touchstart'?'touchend':'mouseup';
     function onMove(ev){
       if(!chDrag.active)return;
       var p=ev.touches?ev.touches[0]:ev;
-      head.style.left=(chDrag.elX+(p.clientX-chDrag.x))+'px';
-      head.style.top=(chDrag.elY+(p.clientY-chDrag.y))+'px';
+      var dx=p.clientX-chDrag.x,dy=p.clientY-chDrag.y;
+      if(Math.abs(dx)>6||Math.abs(dy)>6)chDrag.moved=true;
+      if(chDrag.moved){head.style.left=(chDrag.elX+dx)+'px';head.style.top=(chDrag.elY+dy)+'px';}
+      if(evt==='touchstart'&&chDrag.moved)ev.preventDefault();
     }
     function onUp(){chDrag.active=false;document.removeEventListener(moveEvt,onMove);document.removeEventListener(upEvt,onUp)}
-    document.addEventListener(moveEvt,onMove);document.addEventListener(upEvt,onUp);
-    e.preventDefault();
+    document.addEventListener(moveEvt,onMove,{passive:false});document.addEventListener(upEvt,onUp);
   });
+});
+// Tap (no drag) toggles the panel — touch drag must not swallow clicks.
+// The click listener suppresses the synthetic click that follows a handled touch.
+document.getElementById('chBubble').addEventListener('touchend',function(){
+  chLastTouchTime=Date.now();
+  chSuppressClick=true;
+  if(!chDrag.moved)chToggle();
+});
+document.getElementById('chBubble').addEventListener('click',function(){
+  if(chSuppressClick){chSuppressClick=false;return;}
+  chToggle();
 });
 
 // ── TOGGLE / MINIMIZE / CLOSE ──
+// Background poll runs regardless of panel state so unread badges update
+// even when the panel is closed (that's the "notification" the user sees).
+function chStartPolling(){
+  if(chTimer)return;
+  chPoll();
+  chTimer=setInterval(chPoll,3000);
+  if(chCallCheckTimer)return;
+  chCallCheckTimer=setInterval(chUpdateCallBar,2000);
+}
+function chStopPolling(){
+  if(chTimer){clearInterval(chTimer);chTimer=null}
+  if(chCallCheckTimer){clearInterval(chCallCheckTimer);chCallCheckTimer=null}
+}
 function chToggle(){
   chOpen=!chOpen;
   document.getElementById('chPanel').classList.toggle('open',chOpen);
   if(chOpen){
     chUnread=0;document.getElementById('chBadge').style.display='none';
     chUpdateCallBar();chPoll();
-    if(chTimer)clearInterval(chTimer);chTimer=setInterval(chPoll,3000);
-    if(chCallCheckTimer)clearInterval(chCallCheckTimer);chCallCheckTimer=setInterval(chUpdateCallBar,2000);
+    chStartPolling();
     setTimeout(function(){document.getElementById('chInput').focus()},100);
   }else{
-    if(chTimer){clearInterval(chTimer);chTimer=null}
-    if(chCallCheckTimer){clearInterval(chCallCheckTimer);chCallCheckTimer=null}
+    chStopPolling();
   }
 }
-function chMinimize(){chOpen=false;document.getElementById('chPanel').classList.remove('open');if(chTimer){clearInterval(chTimer);chTimer=null}if(chCallCheckTimer){clearInterval(chCallCheckTimer);chCallCheckTimer=null}}
+function chMinimize(){chOpen=false;document.getElementById('chPanel').classList.remove('open');chStopPolling()}
 function chClose(){chMinimize()}
+// Always poll in the background so the badge updates while the panel is closed
+if(chRoomCode)chStartPolling();
 
 // ── CALL BAR ──
 function chUpdateCallBar(){
@@ -200,26 +255,43 @@ function chCallEnd(){
 }
 
 // ── TEXT CHAT ──
+function chQuickSend(text){
+  if(!chRoomCode)return;
+  fetch('/multiplayer/chat/send/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':chCSRF()},body:JSON.stringify({room_code:chRoomCode,message:text})})
+    .then(function(r){return r.json()}).then(function(d){
+      if(d.ok){
+        chLastId=Math.max(chLastId,d.message_id||0);
+        if(chOpen)chAppendMsg({sender_id:chUserId,sender_name:chUserName||'You',text:text,timestamp:Date.now()/1000});
+      }
+    }).catch(function(){});
+}
 function chSend(){
   var inp=document.getElementById('chInput'),btn=document.getElementById('chSendBtn'),text=inp.value.trim();
   if(!text||!chRoomCode)return;
   btn.disabled=true;
   fetch('/multiplayer/chat/send/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':chCSRF()},body:JSON.stringify({room_code:chRoomCode,message:text})})
-    .then(function(r){return r.json()}).then(function(d){if(d.ok){inp.value='';chLastId=Math.max(chLastId,d.message_id||0)}}).catch(function(){}).finally(function(){btn.disabled=false;inp.focus()});
+    .then(function(r){return r.json()}).then(function(d){if(d.ok){inp.value='';chLastId=Math.max(chLastId,d.message_id||0);if(chOpen)chAppendMsg({sender_id:chUserId,sender_name:chUserName||'You',text:text,timestamp:Date.now()/1000})}}).catch(function(){}).finally(function(){btn.disabled=false;inp.focus()});
+}
+function chAppendMsg(m){
+  var c=document.getElementById('chMsgs'),e=c.querySelector('.ch-empty');if(e)e.remove();
+  var div=document.createElement('div');div.className='ch-msg '+(m.sender_id===chUserId?'self':'other');
+  var t=new Date(m.timestamp*1000),ts=t.getHours().toString().padStart(2,'0')+':'+t.getMinutes().toString().padStart(2,'0');
+  div.innerHTML='<div class="ch-sender">'+chEsc(m.sender_name||'')+'</div><div class="ch-text">'+chEsc(m.text)+'</div><div class="ch-time">'+ts+'</div>';
+  c.appendChild(div);c.scrollTop=c.scrollHeight;
 }
 function chPoll(){
   if(!chRoomCode)return;
   fetch('/multiplayer/chat/poll/?room_code='+encodeURIComponent(chRoomCode)+'&after='+chLastId)
     .then(function(r){return r.json()}).then(function(d){
       if(d.messages&&d.messages.length){
-        var c=document.getElementById('chMsgs'),e=c.querySelector('.ch-empty');if(e)e.remove();
         d.messages.forEach(function(m){
           chLastId=Math.max(chLastId,m.id);
-          var div=document.createElement('div');div.className='ch-msg '+(m.sender_id===chUserId?'self':'other');
-          var t=new Date(m.timestamp*1000),ts=t.getHours().toString().padStart(2,'0')+':'+t.getMinutes().toString().padStart(2,'0');
-          div.innerHTML='<div class="ch-sender">'+chEsc(m.sender_name||'')+'</div><div class="ch-text">'+chEsc(m.text)+'</div><div class="ch-time">'+ts+'</div>';
-          c.appendChild(div);c.scrollTop=c.scrollHeight;
-          if(!chOpen){chUnread++;var b=document.getElementById('chBadge');b.textContent=chUnread;b.style.display=''}
+          if(chOpen){
+            chAppendMsg(m);
+          }else if(m.sender_id!==chUserId){
+            // Only badge OTHER players' messages when the panel is closed
+            chUnread++;var b=document.getElementById('chBadge');b.textContent=chUnread;b.style.display='';
+          }
         });
       }
     }).catch(function(){});

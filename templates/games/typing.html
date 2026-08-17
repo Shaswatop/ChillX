@@ -372,7 +372,6 @@ function submitResult(){
   xhr.send('challenge_id='+challengeId+'&score='+wpmVal+'&target='+challengeTarget+'&accuracy='+accVal+'&words='+curWord)
 }
 
-if(challengeId)setTimeout(submitResult,500)
 document.getElementById('wordsDisplay').innerHTML='<span style="color:var(--dim);font-size:1rem;margin:auto">Press Start to begin</span>'
 // ── Keyboard Sound FX (Web Audio API) ──
 var soundCtx=null;
@@ -404,7 +403,7 @@ document.getElementById('startBtn').onclick=startTest
 // backspace via keydown (independent of input handler)
 document.addEventListener('keydown',function(e){
   if(e.key==='Backspace'&&isRunning&&!isFinished)playBackspace()
-})
+});
 
 (function(){var h=document.getElementById('chillxHeader'),b=document.getElementById('hideHeaderBtn');if(!h||!b)return;b.addEventListener('click',function(){h.classList.toggle('hidden');b.innerHTML=h.classList.contains('hidden')?'<i class="fas fa-eye"></i>':'<i class="fas fa-eye-slash"></i>';});})();
 </script>

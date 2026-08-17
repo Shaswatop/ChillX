@@ -232,24 +232,18 @@ body > *{position:relative;z-index:1;}
   font-family:'Black Ops One',cursive;font-size:.85rem;color:var(--ink);
   text-align:center;line-height:1.25;letter-spacing:.5px;
 }
-.ch-card-back .card-desc{
-  font-family:'Poppins',sans-serif;font-size:.7rem;color:var(--ink-dim);
-  text-align:center;line-height:1.45;font-weight:500;flex:none;
+.ch-card-back .card-goal{
+  font-family:'Poppins',sans-serif;font-size:.72rem;color:var(--ink);
+  text-align:center;line-height:1.45;font-weight:600;flex:none;
 }
-.ch-card-back .card-rewards{
-  display:flex;align-items:center;justify-content:center;gap:8px;
-  font-family:'Black Ops One',cursive;font-size:.65rem;color:var(--ink-dim);
-  letter-spacing:.5px;
+.ch-card-back .card-goal i{color:var(--teal-3);font-size:.7rem;margin-right:3px;}
+.ch-card-back .card-meta{
+  display:flex;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap;
+  font-family:'Poppins',sans-serif;font-size:.6rem;color:var(--ink-dim);
+  font-weight:600;letter-spacing:.3px;flex:none;
 }
-.ch-card-back .card-rewards .rew{
-  display:inline-flex;align-items:center;gap:4px;
-  padding:3px 7px;border-radius:6px;
-  background:rgba(13,59,102,0.08);
-  border:1px solid rgba(13,59,102,0.18);
-}
-.ch-card-back .card-rewards .rew.coin{background:rgba(251,191,36,0.12);border-color:rgba(217,119,6,0.35);color:#92400e;}
-.ch-card-back .card-rewards .rew i{color:var(--teal-3);font-size:.65rem;}
-.ch-card-back .card-rewards .rew.coin i{color:#d97706;}
+.ch-card-back .card-meta .meta-xp{color:#2d7dd2;font-weight:700;}
+.ch-card-back .card-meta .meta-coin{color:#d97706;font-weight:700;}
 
 .card-btns{display:flex;gap:5px;width:100%;margin-top:2px;position:relative;}
 .card-btns::before{
@@ -579,6 +573,14 @@ body > *{position:relative;z-index:1;}
   .main{padding:14px 12px 30px;}
   .hero{flex-direction:column;gap:10px;text-align:center;}
   .hero-center{order:-1;}
+  .top-nav{padding:0 10px;height:52px;}
+  .nav-right{gap:6px;}
+  .coin-pill{padding:4px 8px 4px 7px;gap:4px;}
+  .coin-pill i{font-size:.65rem;}
+  .coin-val{font-size:.72rem;}
+}
+@media(max-width:400px){
+  .nav-right .coin-pill:has(.fa-bolt){display:none;}
 }
 </style>
 </head>
@@ -711,8 +713,8 @@ body > *{position:relative;z-index:1;}
         <div class="ch-card-back">
           <div class="card-diff {{ ch.difficulty }}">{{ ch.difficulty }}</div>
           <div class="card-title">{{ ch.title }}</div>
-          <div class="card-desc">{{ ch.description }}</div>
-          <div class="card-rewards"><span class="rew xp"><i class="fas fa-trophy"></i> {{ ch.xp_reward }} XP</span><span class="rew coin"><i class="fas fa-coins"></i> Rs {{ ch.coin_reward }}</span></div>
+          <div class="card-goal"><i class="fas fa-bolt"></i> {{ ch.objective|default:ch.description|default:'Complete the challenge' }}</div>
+          <div class="card-meta">{{ ch.difficulty|title }}{% if ch.estimated_duration %} · ~{{ ch.estimated_duration }}{% endif %} · <span class="meta-xp">+{{ ch.xp_reward }} XP</span> · <span class="meta-coin">+{{ ch.coin_reward }} coins</span></div>
           {% if ch.status == 'completed' %}
           <button class="card-join completed"><i class="fas fa-check"></i> Completed</button>
           {% else %}
@@ -720,7 +722,7 @@ body > *{position:relative;z-index:1;}
             {% if ch.link %}
             <button class="card-start" data-link="{{ ch.link }}" onclick="event.stopPropagation();openChallengeLink(this)"><i class="fas fa-external-link-alt"></i> Start</button>
             {% endif %}
-            <button class="card-join" onclick="event.stopPropagation();openModal({{ ch.id }}, '{{ ch.proof_type|escapejs }}')"><i class="fas fa-paper-plane"></i> Submit</button>
+            <button class="card-join" onclick="event.stopPropagation();openModal({{ ch.id }}, '{{ ch.proof_type|escapejs }}', '{{ ch.category|escapejs }}')"><i class="fas fa-paper-plane"></i> Submit</button>
           </div>
           {% endif %}
         </div>
@@ -741,6 +743,30 @@ body > *{position:relative;z-index:1;}
     </div>
   </div>
 
+  {% elif generating %}
+  <div class="empty-state" id="genLoadingState">
+    <div class="ei"><i class="fas fa-wand-magic-sparkles fa-spin"></i></div>
+    <h2>Generating Your Challenges…</h2>
+    <p>Our AI is crafting a fresh batch for you. This page will refresh automatically — no need to do anything.</p>
+  </div>
+  <script>
+  (function(){
+    var tries = 0;
+    var timer = setInterval(function(){
+      tries++;
+      if (tries > 60) { clearInterval(timer); return; } // give up after ~3 min
+      fetch('/challenges/', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function(r){ return r.text(); })
+        .then(function(html){
+          if (html.indexOf('ch-grid') !== -1 || html.indexOf('card-') !== -1) {
+            clearInterval(timer);
+            window.location.reload();
+          }
+        })
+        .catch(function(){});
+    }, 3000);
+  })();
+  </script>
   {% else %}
   <div class="empty-state">
     <div class="ei"><i class="fas fa-layer-group"></i></div>
@@ -768,8 +794,10 @@ body > *{position:relative;z-index:1;}
       <div class="proof-tabs" id="proofTabs">
         <button type="button" class="proof-tab active" data-mode="text">📝 Text</button>
         <button type="button" class="proof-tab" data-mode="image">📸 Image</button>
+        <button type="button" class="proof-tab" data-mode="code">💻 Code</button>
       </div>
       <textarea name="proof_text" id="proofText" placeholder="What did you accomplish? Describe your work..."></textarea>
+      <textarea name="proof_code" id="proofCode" style="display:none;" placeholder="Paste your code here..."></textarea>
       <input type="hidden" name="proof_image" id="proofImageData">
       <div class="upload-area" id="uploadArea" style="display:none;">
         <i class="fas fa-cloud-arrow-up"></i>
@@ -834,8 +862,8 @@ function openModal(id){
   var card=document.getElementById('card-'+id);
   if(!card)return;
   document.getElementById('modalTitle').textContent=card.querySelector('.card-title').textContent;
-  document.getElementById('modalDesc').textContent=card.querySelector('.card-desc').textContent;
-  document.getElementById('modalRewards').innerHTML=card.querySelector('.card-rewards').innerHTML;
+  document.getElementById('modalDesc').textContent=card.querySelector('.card-goal').textContent;
+  document.getElementById('modalRewards').innerHTML=card.querySelector('.card-meta').innerHTML;
   document.getElementById('modalChId').value=id;
   document.getElementById('modalResult').className='modal-result';
   document.getElementById('modalForm').reset();
@@ -1004,14 +1032,15 @@ function deleteBulk(){
 
 var currentProofMode='text';
 var currentProofType='text';
+var currentCategory='';
 var csrfToken='{{ csrf_token }}';
 
-function openModal(id, proofType){
+function openModal(id, proofType, category){
   var card=document.getElementById('card-'+id);
   if(!card)return;
   document.getElementById('modalTitle').textContent=card.querySelector('.card-title').textContent;
-  document.getElementById('modalDesc').textContent=card.querySelector('.card-desc').textContent;
-  document.getElementById('modalRewards').innerHTML=card.querySelector('.card-rewards').innerHTML;
+  document.getElementById('modalDesc').textContent=card.querySelector('.card-goal').textContent;
+  document.getElementById('modalRewards').innerHTML=card.querySelector('.card-meta').innerHTML;
   document.getElementById('modalChId').value=id;
   document.getElementById('modalResult').className='modal-result';
   document.getElementById('modalForm').reset();
@@ -1022,9 +1051,16 @@ function openModal(id, proofType){
   document.getElementById('uploadPreview').src='';
   document.getElementById('modalOverlay').classList.add('open');
 
+  currentCategory = category || '';
+  var catL = (currentCategory||'').toLowerCase();
+  var isCoding = catL.indexOf('cod')>=0 || catL.indexOf('program')>=0 || catL.indexOf('develop')>=0 || catL.indexOf('script')>=0;
   currentProofType = proofType || 'text';
   var tabsEl = document.getElementById('proofTabs');
-  if (currentProofType === 'image') {
+  if (isCoding) {
+    // Coding challenges: default to the code tab so users can paste + submit their code
+    tabsEl.style.display='flex';
+    setProofMode('code');
+  } else if (currentProofType === 'image') {
     tabsEl.style.display='flex';
     setProofMode('image');
   } else if (currentProofType === 'both') {
@@ -1042,14 +1078,24 @@ function setProofMode(mode){
     t.classList.toggle('active', t.dataset.mode===mode);
   });
   var ta=document.getElementById('proofText');
+  var code=document.getElementById('proofCode');
   var up=document.getElementById('uploadArea');
   if (mode==='image'){
     ta.style.display='none';
     ta.required=false;
+    if(code)code.style.display='none';
     up.style.display='flex';
+  } else if (mode==='code'){
+    ta.style.display='none';
+    ta.required=false;
+    if(code){code.style.display='';
+      code.placeholder='Paste your code here — an AI will check it and give hints if something is off...';
+    }
+    up.style.display='none';
   } else {
     ta.style.display='';
     ta.required=true;
+    if(code)code.style.display='none';
     up.style.display='none';
   }
 }
@@ -1193,6 +1239,8 @@ function showLevelUp(newLevel){
       'csrfmiddlewaretoken': form.querySelector('[name=csrfmiddlewaretoken]').value,
       'proof_text': form.querySelector('[name=proof_text]').value
     };
+    var codeEl=document.getElementById('proofCode');
+    if(codeEl && codeEl.value && currentProofMode==='code') payload['proof_code']=codeEl.value;
     var imgData=document.getElementById('proofImageData').value;
     if(imgData) payload['proof_image']=imgData;
     fetch('/challenges/submit/'+id+'/',{

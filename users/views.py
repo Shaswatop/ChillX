@@ -6,6 +6,9 @@ from .serializers import RegisterSerializer, UserSerializer
 User = get_user_model()
 
 
+# Creates a new account from the register form.
+# If removed, /users/register/ returns 404 and signup fails.
+# Change the route in users/urls.py (name='register').
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
@@ -21,6 +24,9 @@ class RegisterView(generics.CreateAPIView):
         })
 
 
+# Gets / updates the logged-in user's own profile data.
+# If removed, /users/profile/ breaks (used by frontend profile page).
+# Change the route in users/urls.py (name='profile').
 class ProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]

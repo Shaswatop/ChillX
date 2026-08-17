@@ -41,6 +41,34 @@
       try{localStorage.setItem('chatx_declined',JSON.stringify(Array.from(window.declinedInvites)));}catch(e){}
     }
   }
+  // Only show invites sent in the last N minutes — on a fresh browser
+  // the seen-message store is empty, so without this every historical
+  // invite message would pop up one after another (~50 modals to decline).
+  var INVITE_WINDOW_MS = 15*60*1000;
+  var pendingInvites=[];
+  var popupOpen=false;
+  function isFreshInvite(ts){
+    if(!ts)return false;
+    var t=new Date(ts).getTime();
+    if(isNaN(t))return false;
+    return (Date.now()-t)<=INVITE_WINDOW_MS;
+  }
+  function showNextPending(){
+    if(popupOpen||!pendingInvites.length)return;
+    var inv=pendingInvites.shift();
+    popupOpen=true;
+    var closed=false;
+    function closeIt(){
+      if(closed)return;
+      closed=true;
+      popupOpen=false;
+      if(o.parentNode)o.remove();
+      showNextPending();
+    }
+    var o=buildInvPopup(inv,closeIt);
+    document.body.appendChild(o);
+    setTimeout(closeIt,30000);
+  }
   setInterval(function(){
     fetch('/chatx/conversations/').then(function(r){return r.json();}).then(function(d){
       if(!d.conversations)return;
@@ -54,34 +82,36 @@
             if(seenMsgIds.has(m.id))continue;
             persistMsgId(m.id);
             var match=m.content&&m.content.match(/Multiplayer Arena Invite! Room: (\w+)/);
-            if(match&&!window.seenInviteRoomCodes.has(match[1])&&!window.declinedInvites.has(match[1])){
-              window.seenInviteRoomCodes.add(match[1]);
-              markSeen(match[1]);
-              showInvPopup(m.sender_name,match[1],m.sender_id,m.has_avatar);
-            }
+            if(!match)continue;
+            if(!isFreshInvite(m.timestamp))continue;
+            if(window.seenInviteRoomCodes.has(match[1])||window.declinedInvites.has(match[1]))continue;
+            window.seenInviteRoomCodes.add(match[1]);
+            markSeen(match[1]);
+            pendingInvites.push({name:m.sender_name,code:match[1],senderId:m.sender_id,hasAvatar:m.has_avatar});
+            showNextPending();
           }
         }).catch(function(){});
       });
     }).catch(function(){});
   },5000);
   function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-  function showInvPopup(name,code,senderId,hasAvatar){
-    var avHtml=senderId&&hasAvatar?'<img src="/api/shop/avatar/?user_id='+senderId+'" style="width:48px;height:48px;border-radius:50%;object-fit:cover;margin:0 auto 12px;display:block;border:2px solid rgba(124,92,252,0.3)">':'<div style="width:48px;height:48px;border-radius:50%;background:rgba(124,92,252,0.15);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:1.4rem;color:#7c5cfc">'+esc(name[0]||'?')+'</div>';
+  function buildInvPopup(inv,onClose){
+    var name=inv.name,code=inv.code,senderId=inv.senderId,hasAvatar=inv.hasAvatar;
+    var avHtml=senderId&&hasAvatar?'<img src="/api/shop/avatar/?user_id='+senderId+'" style="width:48px;height:48px;border-radius:50%;object-fit:cover;margin:0 auto 12px;display:block;border:2px solid rgba(74,158,196,0.4)">':'<div style="width:48px;height:48px;border-radius:50%;background:rgba(74,158,196,0.15);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:1.4rem;color:#4a9ec4">'+esc(name[0]||'?')+'</div>';
     var o=document.createElement('div');
     o.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:10000;display:flex;align-items:center;justify-content:center;';
     var b=document.createElement('div');
-    b.style.cssText='background:rgba(10,5,15,0.95);border:1px solid rgba(124,92,252,0.3);border-radius:16px;padding:28px 32px;max-width:380px;width:90%;text-align:center;font-family:inherit;';
-    b.innerHTML='<div style="font-size:2.5rem;margin-bottom:12px">🎮</div>'+avHtml+'<div style="color:#7c5cfc;font-weight:700;font-size:.9rem;margin-bottom:4px">ARENA INVITE</div><div style="color:#e8e0d0;font-size:.85rem;margin-bottom:16px"><strong style="color:#fff">'+esc(name)+'</strong> invited you to a multiplayer match!</div><div style="display:flex;gap:10px;justify-content:center"><a href="/multiplayer/?room='+code+'" target="_blank" style="padding:10px 24px;border-radius:10px;background:linear-gradient(135deg,#7c5cfc,#00d4aa);color:#fff;text-decoration:none;font-size:.8rem;font-weight:600">Join Arena</a><button data-code="'+code+'" style="padding:10px 24px;border-radius:10px;background:rgba(255,255,255,0.06);border:none;color:rgba(255,255,255,0.6);cursor:pointer;font-size:.8rem;font-family:inherit">Decline</button></div>';
+    b.style.cssText='background:linear-gradient(180deg,#134166,#0d3b66);border:1px solid rgba(74,158,196,0.35);border-radius:16px;padding:28px 32px;max-width:380px;width:90%;text-align:center;font-family:inherit;box-shadow:0 8px 40px rgba(0,0,0,0.4),inset 0 1px 0 rgba(74,158,196,0.15);';
+    b.innerHTML='<div style="font-size:2.5rem;margin-bottom:12px">🎮</div>'+avHtml+'<div style="color:#4a9ec4;font-weight:700;font-size:.9rem;margin-bottom:4px;letter-spacing:1px">ARENA INVITE</div><div style="color:rgba(255,255,255,0.85);font-size:.85rem;margin-bottom:16px"><strong style="color:#fff">'+esc(name)+'</strong> invited you to a multiplayer match!</div><div style="display:flex;gap:10px;justify-content:center"><a href="/multiplayer/?room='+code+'" target="_blank" style="padding:10px 24px;border-radius:10px;background:linear-gradient(180deg,#4a9ec4,#0d3b66);border:1px solid rgba(74,158,196,0.5);color:#fff;text-decoration:none;font-size:.8rem;font-weight:600">Join Arena</a><button data-code="'+code+'" style="padding:10px 24px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.65);cursor:pointer;font-size:.8rem;font-family:inherit">Decline</button></div>';
     o.appendChild(b);
     o.addEventListener('click',function(e){
-      if(e.target===o){o.remove();return;}
+      if(e.target===o){onClose();return;}
       if(e.target.tagName==='BUTTON'&&e.target.getAttribute('data-code')){
-        var code=e.target.getAttribute('data-code');
-        markDeclined(code);window.seenInviteRoomCodes.add(code);o.remove();
+        var c=e.target.getAttribute('data-code');
+        markDeclined(c);window.seenInviteRoomCodes.add(c);onClose();
       }
     });
-    document.body.appendChild(o);
-    setTimeout(function(){if(o.parentNode)o.remove();},30000);
+    return o;
   }
 })();
 </script>

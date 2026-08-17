@@ -197,7 +197,7 @@ function showResult(){
     btn.onclick=function(){submitResult(avg,best)}
     acts.appendChild(btn)
   }
-  sendComplete({attempts: count, avg: avg, best: best});
+  sendComplete({attempts: count, avg: avg, best: best, avg_time: avg, best_time: best});
   document.getElementById('resultOverlay').classList.add('show')
 }
 

@@ -3,6 +3,9 @@ from . import views
 from . import shop_views
 from . import achievement_views
 
+# All URL routes for the app.
+# If a route is removed, that page/API stops working.
+# Add new pages here with a name= so templates can use {% url 'name' %}.
 urlpatterns = [
     path('', views.home_view, name='home'),
     path('shop/', views.shop_page, name='shop'),
@@ -72,6 +75,7 @@ urlpatterns = [
     path('social/<int:post_id>/vote/', views.social_vote, name='social_vote'),
     path('social/<int:post_id>/comment/', views.social_comment, name='social_comment'),
     path('social/<int:post_id>/delete/', views.social_delete_post, name='social_delete_post'),
+    path('social/post-image/<int:post_id>/', views.social_post_image, name='social_post_image'),
     path('social/live/', views.social_live, name='social_live'),
     path('social/share/<int:challenge_id>/', views.social_share, name='social_share'),
     path('social/follow/<int:user_id>/', views.toggle_follow, name='toggle_follow'),
@@ -108,4 +112,5 @@ urlpatterns = [
     path('multiplayer/room/<str:room_code>/', views.multiplayer_room_state, name='multiplayer_room_state'),
     path('multiplayer/chat/send/', views.multiplayer_chat_send, name='multiplayer_chat_send'),
     path('multiplayer/chat/poll/', views.multiplayer_chat_poll, name='multiplayer_chat_poll'),
+    path('debug/room/<str:room_code>/', views.debug_room_dump, name='debug_room_dump'),
 ]
