@@ -514,34 +514,10 @@ function showRevealQuestion(){
 function handleGuess(){
   if(answered)return
   clearInterval(timerInterval)
-  var q=questions[currentQ]
   var input=guessInput.value.trim().toLowerCase()
   if(!input){guessInput.focus();return}
-  var target=(q.answer_en||q.answer).toLowerCase().trim()
-  var matched=input===target||target.indexOf(input)>-1||input.indexOf(target)>-1
-  if(!matched&&target.indexOf(' ')>-1){
-    var inputWords=input.split(/\s+/)
-    var targetWords=target.split(/\s+/)
-    matched=inputWords.some(function(w){return targetWords.indexOf(w)>-1})
-  }
   answered=true
-  guessInput.disabled=true
-  guessBtn.disabled=true
-  guessRow.style.display='none'
-  guessOr.style.display='none'
-  showAnswerBtn.style.display='none'
-  guessResult.style.display='flex'
-  guessResult.className='guess-result show'
-  if(matched){
-    guessResult.classList.add('ok')
-    guessFeedback.style.display='none'
-    guessAnswerReveal.textContent='Answer: '+q.answer+(q.answer_en?' ('+q.answer_en+')':'')
-  }else{
-    guessResult.classList.add('nok')
-    guessFeedback.style.display='none'
-    guessAnswerReveal.textContent='The answer was: '+q.answer+(q.answer_en?' ('+q.answer_en+')':'')
-  }
-  nextBtn.style.display='block'
+  advanceQuiz()
 }
 
 guessBtn.addEventListener('click',handleGuess)
