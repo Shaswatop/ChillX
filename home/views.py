@@ -1270,60 +1270,33 @@ def quiz_generate_questions(request):
     topics_map = {
         'gk': 'general knowledge (countries, history, science, geography)',
         'tech': 'technology, AI, programming, full forms, computer science',
-        'nepali_riddles': 'Nepali Gau Khane Katha riddles in Devnagari script (Nepali language) with double meanings, witty wordplay, and funny twists — like TikTok viral Nepali riddles',
-        'riddles': 'funny riddles with double meanings and witty wordplay in the style of Nepali Gau Khane Katha — creative, fresh, never obvious',
+        'nepali_riddles': 'simple Nepal GK questions written in Nepali Devnagari script (history, geography, culture, festivals) — plain knowledge questions only',
+        'riddles': 'fun easy trivia questions with one clear answer — simple word facts and everyday knowledge',
         'nepal': 'Nepal (history, geography, culture, famous figures)',
-        'mixed': 'mix of general knowledge, technology, riddles, world trivia, and Nepal GK',
+        'mixed': 'mix of general knowledge, technology, trivia, world facts, and Nepal GK',
     }
     topic_desc = topics_map.get(topic, 'general knowledge')
     is_nepali = topic == 'nepali_riddles'
-    # For remaining topics, use AI with examples
-    riddle_examples = ""
-    if topic in ('riddles', 'nepali_riddles'):
-        riddle_examples = f"""
-Here are examples of the style you must follow — funny double-meaning riddles like Nepali "Gau Khane Katha":
-Example riddles (DO NOT copy these verbatim, use them as style reference):
-- "त्यो कुन कोट हो जुन केटाहरूले बिहेमा लगाउन मिल्दैन?" → पेटकोट
-- "त्यो कुन चीज हो जुन तपाई एक पटक मात्रै लगाउन सक्नुहुन्छ?" → डाइपर
-- "त्यो कुन चीज हो जुन महिलाहरूले लगाउँछन् तर पुरुषहरूले खान्छन्?" → लिपस्टिक
-- "पेटमा छ औला, सिरमा छ पत्थर" → औठी
-- "त्यो कुन चीज हो जुन घाममा आउँछ तर छायामा जाँदा हराउँछ?" → पसिना
-- "त्यो कुन काम हो जुन गर्ने बित्तिकै बच्चा निस्कन्छन्?" → स्कुल छुट्टी
-- "बालापनमा सोझो हुन्छ, ठूलो भए बाङ्गो, सानो हुँदा लुगा लगाउँछ, ठूलो भए नाङ्गो" → बाँस
-- "त्यो कुन काम हो जुन सबैले अँध्यारोमै गर्छन्?" → बत्ती बाल्ने
-- "केटाहरूको त्यो कुन चीज हो जुन हरेक दिन उठाउने बसाल्ने गर्छन्?" → पैताला
-- "अँध्यारोमा बसेकी रानी, टाउकोमा छ आगो, शरीरमा छ पानी" → मैनबत्ती
-Rules for your {"Nepali Devnagari" if is_nepali else "English"} riddles:
-- {"Write the question in Nepali (Devnagari script)." if is_nepali else "Write the question in English."}
-- Use CORRECT Nepali spelling (चीज NOT चिज, छुट्टी NOT छुट्टि, etc.)
-- Create completely fresh, original riddles — never repeat common riddles or the examples above
-- Each riddle must have a clever double meaning or unexpected funny twist
-- Make the answer surprising and funny when revealed
-- Think of everyday objects, situations, body parts, or cultural references
-- The double meaning can be slightly cheeky/funny but keep it decent
-- Generate unique riddles every time — be creative and don't reuse patterns"""
-    prompt = f"""Generate {count} {"riddles" if topic in ('riddles', 'nepali_riddles') else "multiple-choice quiz questions"} about {topic_desc}.{riddle_examples}
-Each {"riddle" if topic in ('riddles', 'nepali_riddles') else "question"} MUST be a JSON object with these exact keys:
-- "question": the {"riddle in Nepali Devnagari" if topic == 'nepali_riddles' else "question text"} (string)
-- "options": an array of exactly 4 answer choices (strings) {"" if topic in ('riddles', 'nepali_riddles') else ""}
+    prompt = f"""Generate {count} multiple-choice quiz questions about {topic_desc}.
+Each question MUST be a JSON object with these exact keys:
+- "question": the question text (string)
+- "options": an array of exactly 4 answer choices (strings)
 - "answer": the correct answer (string, must be one of the 4 options)
-- "answer_en": the answer in simple English transliteration for text-input matching (string, e.g. "petticoat" for "पेटकोट")
+- "answer_en": the answer in simple English transliteration for text-input matching (string)
 - "explanation": a brief 1-sentence explanation of why the answer is correct (string)
-- "language": "ne" for Nepali riddles, "en" for English questions{"(for Nepali riddles, write both question and options in Devnagari)" if is_nepali else ""}
-- REQUIRED "taunt_correct": a playful roasting message when user gets it RIGHT (still tease them, like "Wow you got it right? Mark the calendar 📅" / "Correct! I'm shocked but ok 🎉" / "You got lucky, try the next one 🍀"). Write in the user's language (Nepali for Nepali, English otherwise).
-- REQUIRED "taunt_wrong": a funny roasting taunt when user gets it WRONG (like "That was your best guess? 💀" / "Brain: 404 not found 💻" / "Bro thought he cooked but he just burnt water 🍳🔥"). Must be creative, spicy, and actually funny. Write in the user's language (Nepali for Nepali, English otherwise).
+- "language": {"\"ne\" (write question and options in Nepali Devnagari with correct spelling)" if is_nepali else "\"en\""}
 Rules:
-- {"For Nepali riddles (nepali_riddles), write the question and options in Devnagari Nepali with correct spelling." if topic == 'nepali_riddles' else ""}
-- Make questions decent and fun, not too easy
+- Every question must be straightforward with ONE clear meaning — NO double meanings, NO wordplay tricks, NO cheeky or suggestive content
+- Make questions decent, fun and educational
 - Each question must have exactly 4 unique options
 - The correct answer must be exactly one of the 4 options
-- The "answer_en" field is key: provide a simple English transliteration so users typing in English letters can match it (e.g., "petticoat" for "पेटकोट", "lipstick" for "लिपस्टिक")
+- The "answer_en" field is key: provide a simple English transliteration so users typing in English letters can match it
 - Vary difficulty within the set
 - Do NOT number the questions in the text
 - Output ONLY a valid JSON array, no markdown, no prose
 Example format:
 [
-  {{"question": "What has keys but can't open locks?", "options": ["A piano", "A keychain", "A map", "A computer"], "answer": "A piano", "answer_en": "piano", "explanation": "A piano has musical keys, not lock keys.", "taunt_correct": "You actually got that? Guess I underestimated you 🎹", "taunt_wrong": "A piano plays tunes, not your brain cells apparently 🎹💀", "language": "en"}}
+  {{"question": "Which planet is closest to the Sun?", "options": ["Mercury", "Venus", "Mars", "Earth"], "answer": "Mercury", "answer_en": "mercury", "explanation": "Mercury orbits closest to the Sun.", "language": "en"}}
 ]"""
     result = _groq_request([{"role": "user", "content": prompt}], model="llama3-8b-8192", temperature=0.9, max_tokens=4096)
     if not result:
@@ -1332,31 +1305,36 @@ Example format:
         result = _gemini_request(prompt)
     if not result:
         result = _openrouter_request([{"role": "user", "content": prompt}], temperature=0.9, max_tokens=4096)
-    if not result:
-        return JsonResponse({"error": "AI failed to generate questions"}, status=503)
     # Parse the JSON result
-    try:
-        # Strip any markdown fences
-        cleaned = result.strip()
-        if cleaned.startswith("```"):
-            cleaned = cleaned.split("\n", 1)[1]
-            cleaned = cleaned.rsplit("```", 1)[0]
-        questions = json.loads(cleaned.strip())
-        if not isinstance(questions, list):
-            raise ValueError("Not a list")
-        # Validate structure
-        for q in questions:
-            for k in ("question", "options", "answer", "explanation"):
-                if k not in q:
-                    raise ValueError("Missing keys")
-            if len(q["options"]) != 4:
-                raise ValueError("Need exactly 4 options")
-            if q["answer"] not in q["options"]:
-                q["answer"] = q["options"][0]  # fix if AI messes up
-        random.shuffle(questions)
-        return JsonResponse({"questions": questions})
-    except (json.JSONDecodeError, ValueError, KeyError) as e:
-        return JsonResponse({"error": f"Invalid AI response: {e}"}, status=502)
+    questions = None
+    if result:
+        try:
+            # Strip any markdown fences
+            cleaned = result.strip()
+            if cleaned.startswith("```"):
+                cleaned = cleaned.split("\n", 1)[1]
+                cleaned = cleaned.rsplit("```", 1)[0]
+            questions = json.loads(cleaned.strip())
+            if not isinstance(questions, list):
+                raise ValueError("Not a list")
+            # Validate structure
+            for q in questions:
+                for k in ("question", "options", "answer", "explanation"):
+                    if k not in q:
+                        raise ValueError("Missing keys")
+                if len(q["options"]) != 4:
+                    raise ValueError("Need exactly 4 options")
+                if q["answer"] not in q["options"]:
+                    q["answer"] = q["options"][0]  # fix if AI messes up
+            random.shuffle(questions)
+        except (json.JSONDecodeError, ValueError, KeyError):
+            questions = None
+    if not questions:
+        # No AI key configured or every provider failed — serve the offline
+        # bank so the quiz still works (e.g. Render free tier without keys).
+        from .quiz_bank import get_local_questions
+        questions = get_local_questions(topic, count)
+    return JsonResponse({"questions": questions})
 
 
 # Api endpoint that returns the users stats as json for the dashboard.

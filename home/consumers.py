@@ -646,7 +646,6 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
                 'correct_answer': entry.get('answer'),
                 'correct_answer_en': entry.get('answer_en', ''),
                 'explanation': entry.get('explanation', ''),
-                'taunt': entry.get('taunt_correct') if correct else entry.get('taunt_wrong'),
             }
         )
 
@@ -661,7 +660,6 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
             'correct_answer': event.get('correct_answer'),
             'correct_answer_en': event.get('correct_answer_en', ''),
             'explanation': event.get('explanation', ''),
-            'taunt': event.get('taunt', ''),
         }))
 
 # Stores CPS results and resolves the winner.
@@ -1288,8 +1286,6 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
                     'answer': q.get('answer'),
                     'answer_en': q.get('answer_en', ''),
                     'explanation': q.get('explanation', ''),
-                    'taunt_correct': q.get('taunt_correct', ''),
-                    'taunt_wrong': q.get('taunt_wrong', ''),
                 }
             if room is not None:
                 room['quiz_answers'] = quiz_answers
@@ -1427,17 +1423,17 @@ class MultiplayerConsumer(AsyncWebsocketConsumer):
 
 
 # Generates quiz questions for multiplayer. Tries the AI fallback chain
-# (groq -> gemini -> openrouter). Returns None when every provider fails so
-# the caller can abort the game start gracefully — never serves a static bank.
+# (groq -> gemini -> openrouter), then falls back to the local offline
+# bank so quiz rooms still start on hosts with no AI keys (e.g. Render).
 # If removed, multiplayer quiz questions can never be generated.
     async def _generate_quiz_questions(self, topic, count):
         topics_map = {
             'gk': 'general knowledge (countries, history, science, geography)',
             'tech': 'technology, AI, programming, full forms, computer science',
-            'nepali_riddles': 'Nepali Gau Khane Katha riddles in Devnagari script (Nepali language) with double meanings and witty wordplay',
-            'riddles': 'funny riddles with double meanings and witty wordplay in the style of Nepali Gau Khane Katha',
+            'nepali_riddles': 'simple Nepal GK questions written in Nepali Devnagari script — plain knowledge questions only',
+            'riddles': 'fun easy trivia questions with one clear answer',
             'nepal': 'Nepal (history, geography, culture, famous figures)',
-            'mixed': 'mix of general knowledge, technology, riddles, world trivia, and Nepal GK',
+            'mixed': 'mix of general knowledge, technology, trivia, world facts, and Nepal GK',
         }
         topic_desc = topics_map.get(topic, 'general knowledge')
         is_nepali = topic == 'nepali_riddles'
@@ -1448,12 +1444,10 @@ Each question MUST be a JSON object with these exact keys:
 - "answer": the correct answer (string, must be one of the 4 options)
 - "answer_en": the answer in simple English transliteration (string)
 - "explanation": a brief 1-sentence explanation (string)
-- "language": "ne" for Nepali riddles, "en" otherwise
-- "taunt_correct": a playful roasting message when the player is RIGHT
-- "taunt_wrong": a funny roasting taunt when the player is WRONG
+- "language": {"\"ne\" (write question and options in Nepali Devnagari with correct spelling)" if is_nepali else "\"en\""}
 Rules:
-- {"For Nepali riddles, write question and options in Devnagari Nepali." if is_nepali else ""}
-- Make questions decent and fun, not too easy
+- Every question must be straightforward with ONE clear meaning — NO double meanings, NO wordplay tricks, NO cheeky or suggestive content
+- Make questions decent, fun and educational
 - Exactly 4 unique options, answer must be one of the options
 - Vary difficulty within the set
 - Output ONLY a valid JSON array, no markdown, no prose"""
@@ -1471,7 +1465,8 @@ Rules:
                 return questions
         except Exception:
             pass
-        return None
+        from .quiz_bank import get_local_questions
+        return get_local_questions(topic, count)
 
 # Parses and validates the AI quiz JSON response.
 # If removed, malformed AI answers crash the quiz generator.

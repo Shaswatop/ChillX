@@ -108,22 +108,6 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;background:radial-grad
 .guess-feedback.ok{color:#4ade80}
 .guess-feedback.nok{color:#ef4444}
 .guess-answer-reveal{font-size:.85rem;color:rgba(214,232,245,0.7);font-weight:500;margin-top:4px}
-.taunt-text{font-size:.8rem;color:#4a9ec4;font-style:italic;font-weight:500;padding:6px 0;display:none;text-align:center}
-.taunt-text.show{display:block}
-.taunt-toggle{display:flex;align-items:center;gap:6px;font-size:.65rem;color:rgba(214,232,245,0.5);cursor:pointer;user-select:none;margin-left:auto;padding:0 4px;font-family:Poppins}
-.taunt-toggle input{display:none}
-.taunt-slider{width:30px;height:16px;background:rgba(255,255,255,0.08);border-radius:10px;position:relative;transition:all .3s;border:1px solid rgba(255,255,255,0.05)}
-.taunt-slider:before{content:'';position:absolute;width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.15);top:1px;left:2px;transition:all .3s}
-.taunt-toggle input:checked+.taunt-slider{background:#4a9ec4;border-color:#4a9ec4}
-.taunt-toggle input:checked+.taunt-slider:before{background:#1a1a2e;transform:translateX(13px)}
-.taunt-toggle.active{color:#4a9ec4}
-.taunt-popup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);background:linear-gradient(135deg,#1a1a2e,#16213e);border:2px solid #4a9ec4;border-radius:20px;padding:30px 40px;text-align:center;z-index:999;box-shadow:0 0 60px rgba(74,158,196,0.2);transition:transform .4s cubic-bezier(.34,1.56,.64,1),opacity .3s;opacity:0;pointer-events:none;max-width:90vw}
-.taunt-popup.show{transform:translate(-50%,-50%) scale(1);opacity:1;pointer-events:auto}
-.taunt-popup-icon{font-size:3rem;margin-bottom:10px}
-.taunt-popup-text{font-size:1.1rem;color:#4a9ec4;font-weight:600;line-height:1.6}
-.taunt-popup-sub{font-size:.75rem;color:rgba(214,232,245,0.4);margin-top:8px}
-.taunt-popup-btn{background:#4a9ec4;color:#1a1a2e;border:none;border-radius:10px;padding:10px 30px;font-family:Poppins;font-weight:600;font-size:.85rem;cursor:pointer;margin-top:16px;transition:all .2s}
-.taunt-popup-btn:hover{transform:scale(1.05)}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:998;display:none}
 .overlay.show{display:block}
 .guess-or{color:rgba(214,232,245,0.2);font-size:.65rem;letter-spacing:2px;text-transform:uppercase}
@@ -177,10 +161,6 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;background:radial-grad
     <div class="streak" id="streakDisplay"></div>
     <div class="score-hud" id="scoreHud">0 / 0</div>
     <div class="timer" id="timerDisplay" style="font-family:'Black Ops One',cursive;font-size:.8rem;color:#172033;background:#fff;border:1px solid rgba(37,99,235,.12);padding:4px 10px;border-radius:999px;min-width:40px;text-align:center;transition:all .3s">10s</div>
-    <label class="taunt-toggle" id="tauntToggle">
-      <input type="checkbox" id="tauntToggleInput">
-      <span class="taunt-slider"></span>
-    </label>
   </div>
 
   <div class="picker" id="topicPicker">
@@ -189,7 +169,7 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;background:radial-grad
     <button data-topic="tech">Tech & AI</button>
     <button data-topic="riddles">Riddles</button>
     <button data-topic="nepal">Nepal</button>
-    <button data-topic="nepali_riddles">गाउँखाने कथा</button>
+    <button data-topic="nepali_riddles">नेपाली ज्ञान</button>
   </div>
 
   <div class="quiz-area" id="quizArea">
@@ -207,7 +187,6 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;background:radial-grad
       <div class="q-text" id="qText">Loading...</div>
       <div class="options" id="optionsContainer"></div>
       <div class="explanation-text" id="explanationText"></div>
-      <div class="taunt-text" id="tauntText"></div>
       <div class="reveal-area" id="revealArea">
         <div class="guess-row" id="guessRow">
           <input type="text" class="guess-input" id="guessInput" placeholder="Guess in English..." autocomplete="off" autocapitalize="off">
@@ -242,14 +221,6 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;background:radial-grad
 
 <div id="challengeResult" style="display:none;margin-top:12px;padding:12px;border-radius:10px;font-size:.8rem;font-weight:500;background:#1a1a2e;border:1px solid rgba(74,158,196,.2);color:rgba(214,232,245,0.8)"></div>
 
-<div class="overlay" id="tauntOverlay"></div>
-<div class="taunt-popup" id="tauntPopup">
-  <div class="taunt-popup-icon">😈</div>
-  <div class="taunt-popup-text">You will regret that!<br>THIS WAY IT'S MUCH FUN NA? 🔥</div>
-  <div class="taunt-popup-sub">Roasting mode: ACTIVATED</div>
-  <button class="taunt-popup-btn" id="popupCloseBtn">BRING IT ON 🎯</button>
-</div>
-
 <script>
 var questions=[]
 var currentQ=0
@@ -278,7 +249,6 @@ var nextBtn=document.getElementById('nextBtn')
 var progressFill=document.getElementById('progressFill')
 var scoreHud=document.getElementById('scoreHud')
 var explanationText=document.getElementById('explanationText')
-var tauntText=document.getElementById('tauntText')
 var startBtn=document.getElementById('startBtn')
 var retryBtn=document.getElementById('retryBtn')
 var resultsScore=document.getElementById('resultsScore')
@@ -481,8 +451,6 @@ function showMCQQuestion(){
   answered=false
   explanationText.classList.remove('show')
   explanationText.textContent=''
-  tauntText.classList.remove('show')
-  tauntText.textContent=''
   nextBtn.style.display='none'
   revealArea.style.display='none'
   optionsContainer.style.display='flex'
@@ -526,7 +494,6 @@ function selectOption(btn,selected,q){
     scoreHud.textContent=score+' / '+(currentQ+1)
     playSound(880,0.12)
     sendProgress({score: score, target: total || 10, percent_complete: Math.min(100, Math.round(score / (total || 10) * 100))});
-    if(tauntToggleInput.checked&&q.taunt_correct){tauntText.textContent='😂 '+q.taunt_correct;tauntText.classList.add('show')}else{tauntText.classList.remove('show')}
   }else{
     btn.classList.add('wrong')
     quizCard.classList.remove('shake')
@@ -538,7 +505,6 @@ function selectOption(btn,selected,q){
     allBtns.forEach(function(b){
       if(b.textContent===correct)b.classList.add('reveal-correct')
     })
-    if(tauntToggleInput.checked&&q.taunt_wrong){tauntText.textContent='😭 '+q.taunt_wrong;tauntText.classList.add('show')}else{tauntText.classList.remove('show')}
   }
   explanationText.textContent=q.explanation
   explanationText.classList.add('show')
@@ -564,13 +530,11 @@ function advanceQuiz(){
 
 function showRevealQuestion(){
   var q=questions[currentQ]
-  var label=currentTopic==='nepali_riddles'?'गाउँखाने कथा':'Riddle'
+  var label=currentTopic==='nepali_riddles'?'नेपाली ज्ञान':'Riddle'
   qNumber.textContent=label+' '+(currentQ+1)+' / '+questions.length
   qText.textContent=q.question
   progressFill.style.width=((currentQ/questions.length)*100)+'%'
   scoreHud.textContent='🎯 FUN'
-  tauntText.classList.remove('show')
-  tauntText.textContent=''
   answered=false
   nextBtn.style.display='none'
   optionsContainer.style.display='none'
@@ -617,12 +581,10 @@ function handleGuess(){
     guessResult.classList.add('ok')
     guessFeedback.style.display='none'
     guessAnswerReveal.textContent='Answer: '+q.answer+(q.answer_en?' ('+q.answer_en+')':'')
-    if(tauntToggleInput.checked&&q.taunt_correct){tauntText.textContent='😂 '+q.taunt_correct;tauntText.classList.add('show')}else{tauntText.classList.remove('show')}
   }else{
     guessResult.classList.add('nok')
     guessFeedback.style.display='none'
     guessAnswerReveal.textContent='The answer was: '+q.answer+(q.answer_en?' ('+q.answer_en+')':'')
-    if(tauntToggleInput.checked&&q.taunt_wrong){tauntText.textContent='😭 '+q.taunt_wrong;tauntText.classList.add('show')}else{tauntText.classList.remove('show')}
   }
   setTimeout(advanceQuiz, 1500);
 }
@@ -652,7 +614,6 @@ showAnswerBtn.addEventListener('click',function(){
   correctBtn.style.display='none'
   incorrectBtn.style.display='none'
   setTimeout(advanceQuiz, 1500);
-  if(tauntToggleInput.checked&&q.taunt_wrong){tauntText.textContent='😏 '+q.taunt_wrong;tauntText.classList.add('show')}else if(tauntToggleInput.checked&&q.taunt_correct){tauntText.textContent='😏 '+q.taunt_correct;tauntText.classList.add('show')}
 })
 
 function handleSelfEval(isCorrect){
@@ -719,22 +680,6 @@ retryBtn.addEventListener('click',function(){
 
 startBtn.addEventListener('click',loadQuestions)
 window.addEventListener('beforeunload',function(){window.currentQuizQuestions=null;var m=setTimeout(function(){},0);for(var i=0;i<=m;i++)clearInterval(i);clearTimeout(m)})
-
-// Taunt toggle popup
-document.getElementById('tauntToggleInput').addEventListener('change',function(){
-  if(this.checked){
-    document.getElementById('tauntPopup').classList.add('show')
-    document.getElementById('tauntOverlay').classList.add('show')
-  }
-})
-document.getElementById('popupCloseBtn').addEventListener('click',function(){
-  document.getElementById('tauntPopup').classList.remove('show')
-  document.getElementById('tauntOverlay').classList.remove('show')
-})
-document.getElementById('tauntOverlay').addEventListener('click',function(){
-  document.getElementById('tauntPopup').classList.remove('show')
-  document.getElementById('tauntOverlay').classList.remove('show')
-})
 
 // ── Challenge auto-submit ──
 var challengeId=null, challengeTarget=null
@@ -833,7 +778,6 @@ window.addEventListener('message', function(e){
         scoreHud.textContent = score+' / '+(currentQ+1)
         playSound(880,0.12)
         if(matchedBtn)matchedBtn.classList.add('correct')
-        if(tauntToggleInput.checked && msg.taunt){tauntText.textContent = '😂 '+msg.taunt;tauntText.classList.add('show')}else{tauntText.classList.remove('show')}
       }else{
         streak = 0
         updateStreak()
@@ -843,7 +787,6 @@ window.addEventListener('message', function(e){
         quizCard.classList.add('shake')
         if(mpChosenBtn)mpChosenBtn.classList.add('wrong')
         if(matchedBtn)matchedBtn.classList.add('reveal-correct')
-        if(tauntToggleInput.checked && msg.taunt){tauntText.textContent = '😭 '+msg.taunt;tauntText.classList.add('show')}else{tauntText.classList.remove('show')}
       }
       explanationText.textContent = msg.explanation || ''
       explanationText.classList.add('show')

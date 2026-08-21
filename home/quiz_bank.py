@@ -1,0 +1,202 @@
+# Local offline quiz bank — served when no AI key is configured or every
+# AI provider fails, so /games/quiz/ and multiplayer quiz still work on
+# hosts like Render where GROQ/GEMINI/OPENROUTER keys may be unset.
+# All questions are straightforward with a single clear meaning.
+import random
+
+
+def _q(question, options, answer, explanation, answer_en=None, language='en'):
+    return {
+        'question': question,
+        'options': options,
+        'answer': answer,
+        'answer_en': answer_en or answer,
+        'explanation': explanation,
+        'language': language,
+    }
+
+
+_GK = [
+    _q("What is the capital of Japan?", ["Tokyo", "Seoul", "Beijing", "Bangkok"], "Tokyo",
+       "Tokyo has been Japan's capital since 1868."),
+    _q("Which is the largest ocean on Earth?", ["Pacific Ocean", "Atlantic Ocean", "Indian Ocean", "Arctic Ocean"], "Pacific Ocean",
+       "The Pacific covers more area than all land combined."),
+    _q("How many continents are there?", ["7", "5", "6", "8"], "7",
+       "Africa, Antarctica, Asia, Australia, Europe, North America, South America."),
+    _q("Which planet is known as the Red Planet?", ["Mars", "Venus", "Jupiter", "Mercury"], "Mars",
+       "Iron oxide (rust) on its surface gives Mars its red color."),
+    _q("What is the longest river in the world?", ["Nile", "Amazon", "Yangtze", "Ganges"], "Nile",
+       "The Nile runs about 6,650 km through northeastern Africa."),
+    _q("What is the currency of the United Kingdom?", ["Pound Sterling", "Euro", "Dollar", "Krona"], "Pound Sterling",
+       "The UK kept its pound instead of adopting the euro."),
+    _q("Who painted the Mona Lisa?", ["Leonardo da Vinci", "Pablo Picasso", "Vincent van Gogh", "Michelangelo"], "Leonardo da Vinci",
+       "Da Vinci painted it in the early 1500s; it now hangs in the Louvre."),
+    _q("What is the tallest mountain in the world?", ["Mount Everest", "K2", "Kangchenjunga", "Denali"], "Mount Everest",
+       "Everest peaks at 8,848.86 m above sea level."),
+    _q("Which gas do plants absorb from the air?", ["Carbon dioxide", "Oxygen", "Nitrogen", "Hydrogen"], "Carbon dioxide",
+       "Plants use CO2 for photosynthesis and release oxygen."),
+    _q("How many players from one football team are on the pitch?", ["11", "9", "10", "12"], "11",
+       "Eleven players per side, including the goalkeeper."),
+    _q("What is the largest hot desert in the world?", ["Sahara", "Gobi", "Kalahari", "Thar"], "Sahara",
+       "The Sahara spans 9+ million km² across North Africa."),
+    _q("Which country currently has the largest population?", ["India", "China", "USA", "Indonesia"], "India",
+       "India overtook China in 2023."),
+    _q("What does H2O mean?", ["Water", "Salt", "Oxygen", "Hydrogen peroxide"], "Water",
+       "Two hydrogen atoms bonded to one oxygen atom."),
+    _q("Approximately how fast does light travel?", ["300,000 km/s", "300,000 km/h", "150,000 km/s", "1,000 km/s"], "300,000 km/s",
+       "Light moves at about 299,792 km/s in a vacuum."),
+    _q("What is the smallest country in the world?", ["Vatican City", "Monaco", "Maldives", "San Marino"], "Vatican City",
+       "Vatican City covers just 0.49 km²."),
+    _q("How many sides does a hexagon have?", ["6", "5", "7", "8"], "6",
+       "Hexa means six in Greek."),
+]
+
+_TECH = [
+    _q("What does CPU stand for?", ["Central Processing Unit", "Computer Personal Unit", "Central Program Utility", "Core Processing Utility"], "Central Processing Unit",
+       "The CPU is the main processor that executes instructions."),
+    _q("What does HTML stand for?", ["HyperText Markup Language", "High Tech Modern Language", "Hyper Transfer Markup Logic", "Home Tool Markup Language"], "HyperText Markup Language",
+       "HTML structures content on the web."),
+    _q("What does RAM stand for?", ["Random Access Memory", "Rapid Active Memory", "Read Access Module", "Runtime Allocated Memory"], "Random Access Memory",
+       "RAM stores working data for quick access by the CPU."),
+    _q("What does URL stand for?", ["Uniform Resource Locator", "Universal Reference Link", "United Router Line", "User Request Location"], "Uniform Resource Locator",
+       "A URL is the address of a resource on the internet."),
+    _q("What is the binary representation of decimal 5?", ["101", "110", "011", "100"], "101",
+       "5 = 4 + 1 = 2² + 2⁰ = 101 in binary."),
+    _q("Which company created Windows?", ["Microsoft", "Apple", "IBM", "Google"], "Microsoft",
+       "Windows launched in 1985 under Bill Gates' Microsoft."),
+    _q("What does AI stand for?", ["Artificial Intelligence", "Automated Internet", "Advanced Input", "Applied Informatics"], "Artificial Intelligence",
+       "AI refers to machines performing tasks that typically need human intelligence."),
+    _q("CSS is mainly used for...", ["Styling web pages", "Database queries", "Server logic", "Compressing files"], "Styling web pages",
+       "Cascading Style Sheets control the look and layout of HTML."),
+    _q("Who is considered the first computer programmer?", ["Ada Lovelace", "Alan Turing", "Charles Babbage", "Grace Hopper"], "Ada Lovelace",
+       "Ada Lovelace wrote the first algorithm for Babbage's Analytical Engine in the 1840s."),
+    _q("Which data structure follows Last In, First Out?", ["Stack", "Queue", "Linked List", "Tree"], "Stack",
+       "A stack pushes and pops from the same end."),
+    _q("What does GPU stand for?", ["Graphics Processing Unit", "General Purpose Unit", "Global Processing Utility", "Graphical Program Unit"], "Graphics Processing Unit",
+       "GPUs render images and video, and accelerate parallel computing."),
+    _q("What does SQL stand for?", ["Structured Query Language", "Simple Question Language", "System Quality Layer", "Sequential Query Logic"], "Structured Query Language",
+       "SQL is the standard language for relational databases."),
+    _q("Python is named after...", ["Monty Python comedy group", "The snake", "A Greek myth", "An acronym"], "Monty Python comedy group",
+       "Guido van Rossum named it after Monty Python's Flying Circus."),
+    _q("What does HTTP stand for?", ["HyperText Transfer Protocol", "High Transfer Text Protocol", "Hyperlink Text Transport Process", "Host Transfer Type Protocol"], "HyperText Transfer Protocol",
+       "HTTP is the protocol browsers use to communicate with web servers."),
+    _q("What does USB stand for?", ["Universal Serial Bus", "United System Board", "Universal Storage Box", "User Service Port"], "Universal Serial Bus",
+       "USB is the standard connector for peripherals and charging."),
+    _q("Which of these is a version control system?", ["Git", "Get", "Gist", "Goof"], "Git",
+       "Git tracks changes to code and powers platforms like GitHub."),
+]
+
+_NEPAL = [
+    _q("What is the capital of Nepal?", ["Kathmandu", "Pokhara", "Lalitpur", "Biratnagar"], "Kathmandu",
+       "Kathmandu is Nepal's largest city and capital."),
+    _q("What is the national animal of Nepal?", ["Cow", "Tiger", "Yak", "Elephant"], "Cow",
+       "The cow is revered in Hinduism and is Nepal's national animal."),
+    _q("What is the shape of Nepal's national flag?", ["Two stacked triangles", "Rectangle", "Square", "Circle"], "Two stacked triangles",
+       "Nepal's flag is the only non-quadrilateral national flag in the world."),
+    _q("'Sagarmatha' is the Nepali name for which mountain?", ["Mount Everest", "K2", "Annapurna", "Machhapuchhre"], "Mount Everest",
+       "Sagarmatha means 'Forehead in the Sky'."),
+    _q("What is the currency of Nepal?", ["Nepalese Rupee", "Taka", "Rupee (Indian)", "Ngultrum"], "Nepalese Rupee",
+       "One Nepalese rupee equals 100 paisa."),
+    _q("Who is the living goddess worshipped in Nepal?", ["Kumari", "Sita", "Parvati", "Laxmi"], "Kumari",
+       "The Kumari is a prepubescent girl worshipped as the living goddess in Kathmandu."),
+    _q("Which city is famous as the 'Lake City' of Nepal?", ["Pokhara", "Birgunj", "Butwal", "Dharan"], "Pokhara",
+       "Pokhara sits beside Phewa Lake with views of the Annapurnas."),
+    _q("What is the national flower of Nepal?", ["Rhododendron", "Lotus", "Marigold", "Sunflower"], "Rhododendron",
+       "Lali Gurans (rhododendron) blooms red across Nepali hills each spring."),
+    _q("Who unified Nepal in the 18th century?", ["Prithvi Narayan Shah", "Bhimsen Thapa", "Jung Bahadur Rana", "Amar Singh Thapa"], "Prithvi Narayan Shah",
+       "He conquered the Kathmandu Valley in 1768-69 and founded the Shah dynasty."),
+    _q("Where was Gautam Buddha born?", ["Lumbini", "Kapilvastu, India", "Bodh Gaya", "Kathmandu"], "Lumbini",
+       "Lumbini in southern Nepal is Buddha's birthplace, a UNESCO site."),
+    _q("Which festival is known as the festival of lights in Nepal?", ["Tihar", "Dashain", "Holi", "Chhath"], "Tihar",
+       "Tihar celebrates with diyos, candles, rangoli and Deusi-Bhailo."),
+    _q("What is Nepal's time zone offset from UTC?", ["UTC+5:45", "UTC+5:30", "UTC+6:00", "UTC+5:00"], "UTC+5:45",
+       "Nepal is one of the few countries with a :45 offset."),
+    _q("Which is the longest river flowing through Nepal?", ["Karnali", "Bagmati", "Koshi", "Trishuli"], "Karnali",
+       "The Karnali is Nepal's longest river and joins the Ganges in India."),
+    _q("Nepal is famous for never having been...", ["Colonized by any country", "In a war", "Ruled by kings", "Visited by foreigners"], "Colonized by any country",
+       "Nepal remained independent throughout the colonial era."),
+]
+
+# Simple trivia with one clear meaning (no wordplay).
+_TRIVIA = [
+    _q("Which animal is known as the King of the Jungle?", ["Lion", "Tiger", "Elephant", "Wolf"], "Lion",
+       "The lion has long been called the king of beasts."),
+    _q("How many days are there in a leap year?", ["366", "365", "364", "367"], "366",
+       "February gets an extra day every four years."),
+    _q("Which fruit is said to keep the doctor away?", ["Apple", "Banana", "Mango", "Orange"], "Apple",
+       "From the famous English proverb."),
+    _q("What color do you get by mixing blue and yellow?", ["Green", "Purple", "Brown", "Orange"], "Green",
+       "Blue and yellow paint mix to make green."),
+    _q("How many legs does a spider have?", ["8", "6", "10", "4"], "8",
+       "Spiders are arachnids — eight legs, unlike insects' six."),
+    _q("Which bird cannot fly but swims very well?", ["Penguin", "Eagle", "Parrot", "Sparrow"], "Penguin",
+       "Penguins use their flippers to swim instead of flying."),
+    _q("What do bees make?", ["Honey", "Milk", "Silk", "Wax paper"], "Honey",
+       "Bees collect nectar and turn it into honey."),
+    _q("Which is the largest planet in our solar system?", ["Jupiter", "Saturn", "Earth", "Neptune"], "Jupiter",
+       "Jupiter is more massive than all other planets combined."),
+    _q("How many minutes are there in an hour?", ["60", "30", "100", "24"], "60",
+       "One hour equals sixty minutes."),
+    _q("Which season comes right after winter?", ["Spring", "Autumn", "Summer", "Monsoon"], "Spring",
+       "Spring follows winter with blooming flowers."),
+    _q("What is a baby cat called?", ["Kitten", "Puppy", "Calf", "Cub"], "Kitten",
+       "A young cat is called a kitten."),
+    _q("Which shape has exactly three sides?", ["Triangle", "Square", "Circle", "Pentagon"], "Triangle",
+       "Tri means three."),
+    _q("Which metal is liquid at room temperature?", ["Mercury", "Iron", "Gold", "Aluminum"], "Mercury",
+       "Mercury melts at -39°C, so it stays liquid."),
+    _q("How many strings does a standard guitar have?", ["6", "4", "5", "7"], "6",
+       "Standard guitars have six strings tuned E-A-D-G-B-E."),
+    _q("Which sport uses a bat, ball and wickets?", ["Cricket", "Football", "Tennis", "Hockey"], "Cricket",
+       "Two batsmen defend the wickets in cricket."),
+    _q("What is the hardest natural substance on Earth?", ["Diamond", "Gold", "Steel", "Granite"], "Diamond",
+       "Diamond scores 10 on the Mohs hardness scale."),
+]
+
+# Simple Nepal GK in Nepali (Devnagari) — plain knowledge, no wordplay.
+_NEPALI_GK = [
+    _q("नेपालको राजधानी कुन हो?", ["काठमाडौं", "पोखरा", "विराटनगर", "बीरगंज"], "काठमाडौं",
+       "काठमाडौं नेपालको राजधानी र सबैभन्दा ठूलो सहर हो।", "kathmandu", "ne"),
+    _q("सगरमाथा विश्वको कतिऔँ अग्लो हिमाल हो?", ["पहिलो", "दोस्रो", "तेस्रो", "चौथो"], "पहिलो",
+       "सगरमाथा (एभरेष्ट) ८,८४८.८६ मिटरसँग विश्वकै सर्वोच्च हो।", "first", "ne"),
+    _q("नेपालको राष्ट्रिय फूल कुन हो?", ["लाली गुराँस", "कमल", "सयपत्री", "गुलाब"], "लाली गुराँस",
+       "लाली गुराँस वसन्तमा पहाडहरू रातो बनाउँछ।", "rhododendron", "ne"),
+    _q("गौतम बुद्धको जन्मस्थल कुन हो?", ["लुम्बिनी", "काठमाडौं", "पोखरा", "जनकपुर"], "लुम्बिनी",
+       "लुम्बिनी युनेस्को विश्व सम्पदा क्षेत्र हो।", "lumbini", "ne"),
+    _q("नेपालको राष्ट्रिय चरा कुन हो?", ["डाँफे", "गौरैया", "काग", "हाँस"], "डाँफे",
+       "डाँफे (हिमाली मोनाल) रङ्गीन प्वाँख भएको चरा हो।", "danphe", "ne"),
+    _q("नेपालको राष्ट्रिय खेल कुन हो?", ["भलिबल", "फुटबल", "क्रिकेट", "दन्दी बियो"], "भलिबल",
+       "वि.सं. २०७३ मा भलिबललाई राष्ट्रिय खेल घोषणा गरियो।", "volleyball", "ne"),
+    _q("पोखरा कुन तालको लागि प्रसिद्ध छ?", ["फेवा ताल", "रारा ताल", "सेढी गण्डकी", "टिलिचो ताल"], "फेवा ताल",
+       "फेवा तालमा तालबाराही मन्दिर र अन्नपूर्णको छाया देखिन्छ।", "phewa lake", "ne"),
+    _q("नेपालको झन्डामा कति त्रिभुज छन्?", ["दुई", "एक", "तीन", "चार"], "दुई",
+       "नेपालको झन्डा विश्वकै एक मात्र गैर-आयताकार राष्ट्रिय झन्डा हो।", "two", "ne"),
+    _q("नेपालको मुद्रा के हो?", ["नेपाली रुपैयाँ", "टका", "डलर", "युरो"], "नेपाली रुपैयाँ",
+       "एक रुपैयाँ बराबर १०० पैसा हुन्छ।", "nepalese rupee", "ne"),
+    _q("पृथ्वीनारायण शाहले कुन सहर जितेर नेपाल एकीकरण सुरु गरे?", ["काठमाडौं", "गोरखा", "पाल्पा", "जुम्ला"], "काठमाडौं",
+       "वि.सं. १८२५ मा काठमाडौं उपर विजय प्राप्त भयो।", "kathmandu", "ne"),
+    _q("तिहारलाई के पर्व भनेर पनि चिनिन्छ?", ["झिली पर्व", "दशैं", "छठ", "होली"], "झिली पर्व",
+       "तिहारमा दियो, माया र रंगोलीले घर झिलिउँछन्।", "tihar", "ne"),
+    _q("नेपालको सबैभन्दा ठूलो जिल्ला कुन हो?", ["डोल्पा", "काठमाडौं", "मोरङ", "चितवन"], "डोल्पा",
+       "डोल्पा क्षेत्रफलका आधारमा सबैभन्दा ठूलो जिल्ला हो।", "dolpa", "ne"),
+    _q("मुक्तिनाथ मन्दिर कुन जिल्लामा पर्छ?", ["मुस्ताङ", "मनाङ", "लमजुङ", "गोरखा"], "मुस्ताङ",
+       "मुक्तिनाथ ३,८०० मिटरको उचाइमा अवस्थित छ।", "mustang", "ne"),
+    _q("जनकपुरधाम कुन धार्मिक पात्रसँग सम्बन्धित छ?", ["सीता", "कृष्ण", "शिव", "हनुमान"], "सीता",
+       "जनकपुरधाम राजा जनकको राज्य र सीताको जन्मस्थल मानिन्छ।", "sita", "ne"),
+]
+
+BANKS = {
+    'gk': _GK,
+    'tech': _TECH,
+    'nepal': _NEPAL,
+    'riddles': _TRIVIA,
+    'nepali_riddles': _NEPALI_GK,
+}
+BANKS['mixed'] = _GK + _TECH + _NEPAL + _TRIVIA
+
+
+def get_local_questions(topic, count=10):
+    """Returns up to `count` shuffled questions from the offline bank."""
+    pool = list(BANKS.get((topic or '').lower().strip()) or BANKS['mixed'])
+    random.shuffle(pool)
+    return pool[:max(1, int(count))]

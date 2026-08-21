@@ -121,6 +121,13 @@
 - **BUG FIX — stale "Calling..." after call ended**: `endCall` never reset `callStatus`, so the caller's UI kept showing "Calling..." after the overlay closed. Now set to "Call ended".
 - **Calls verified E2E**: two headless Chromes with fake media — A calls B (video), B sees incoming popup with caller name, accepts, both reach `Connected`, remote video renders on A, hang-up ends both sides, decline closes B's popup and A's overlay + releases A's local stream.
 
+### Done This Session
+- **Render shop-empty diagnosed**: seeds only run via `preDeployCommand` in `render.yaml` (migrate + seed_shop + seed_achievements). Verified `seed_shop` works on a fresh DB (69 items + raffle). Fix for a live service: run the commands in the Render Shell tab (or re-apply Blueprint). Local DB has 70 shop items, 46 gaming challenges, 366 total challenges.
+- **FEATURE — quiz works offline (no AI keys)**: `/quiz/generate-questions/` and multiplayer `_generate_quiz_questions` were AI-only → 503/None on Render without keys. Added `home/quiz_bank.py` offline bank; both endpoints now fall back to `get_local_questions(topic, count)` when all AI providers fail (AI-first, Groq primary — no hardcoded-primary).
+- **REWRITE — quiz content: NO double meanings, NO roasts**: `quiz_bank.py` rewritten — `_RIDDLES` puns replaced with `_TRIVIA` (simple one-clear-answer trivia), `_NEPALI_RIDDLES` Gau Khane Katha replaced with `_NEPALI_GK` (plain Nepal GK in Devnagari); taunt fields removed everywhere. AI prompts in `views.py quiz_generate_questions` + `consumers.py _generate_quiz_questions` rewritten: topics_map now describes riddles as fun easy trivia and nepali_riddles as simple Nepal GK Devnagari; added rule "NO double meanings, NO wordplay tricks, NO cheeky or suggestive content"; removed all taunt_correct/taunt_wrong requirements and examples.
+- **REMOVED — roast/"regret mode" toggle from quiz UI**: stripped ALL taunt code from `templates/games/quiz.html` + `templates/games/multiplayer/quiz.html` (taunt CSS, topbar toggle label, tauntText div, 😈 popup + overlay HTML, popup JS handlers, per-answer taunt show/hide lines, `msg.taunt` handling in multiplayer answer_result). Topic button "गाउँखाने कथा" relabeled to "नेपाली ज्ञान" in both pickers + reveal labels. Cleaned dead taunt passthroughs in `home/consumers.py` (`answer_result`, `quiz_answers`, challenge gen).
+- **Verified**: py_compile clean on consumers/views/quiz_bank; mocked no-key endpoint test returns 200 + 10 valid questions, taunt-free, for all 6 topics (gk, tech, nepal, riddles, nepali_riddles, mixed).
+
 ### Blocked
 - Nothing — core multiplayer flow verified. (Remaining untested: invite-accept flow, 8-player lobby, reset-replay flow — see Next Steps.)
 
