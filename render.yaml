@@ -54,13 +54,12 @@ services:
           type: keyvalue
           name: chillx-redis
           property: connectionString
-      # Optional AI keys — leave blank and the app runs in offline mode.
+      # Optional AI keys — Render prompts for these during Blueprint creation.
+      # Leave blank and the app runs in offline mode (local quiz bank + challenges).
+      # Get free keys: Groq https://console.groq.com/keys  Gemini https://aistudio.google.com/apikey
       - key: GROQ_KEY
-        sync: false
       - key: GEMINI_KEY
-        sync: false
       - key: OPENROUTER_KEY
-        sync: false
 
   # Render Key Value = Redis. The web service connects over Render's
   # private network (internal URL) which is always allowed in the same
