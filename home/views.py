@@ -371,7 +371,10 @@ def settings_view(request):
         user.groq_model = request.POST.get('groq_model', 'llama-3.3-70b-versatile')
         user.gemini_model = request.POST.get('gemini_model', 'gemini-1.5-flash')
         user.openrouter_model = request.POST.get('openrouter_model', 'openai/gpt-4o-mini')
-        # Password change
+        # Save ALL settings first (API keys, AI name, etc.) — this must happen
+        # BEFORE password validation so a wrong password doesn't silently discard them.
+        user.save()
+        # Password change (after save so settings are already persisted)
         cp = request.POST.get('current_password', '')
         np = request.POST.get('new_password', '')
         confirm = request.POST.get('confirm_password', '')
@@ -389,8 +392,7 @@ def settings_view(request):
                 ctx = dict(SETTINGS_CONTEXT, error='New password must be at least 6 characters.', user_prefs=user.preferences or [], **_player_context(user))
                 return render(request, 'dashboard/settings.html', ctx)
             user.set_password(np)
-        user.save()
-        if cp or np or confirm:
+            user.save()
             update_session_auth_hash(request, user)
         ctx = dict(SETTINGS_CONTEXT, success='All changes saved successfully.', user_prefs=user.preferences or [], **_player_context(user))
         return render(request, 'dashboard/settings.html', ctx)
@@ -1206,9 +1208,9 @@ def challenge_chat(request):
             "openrouter": getattr(request.user, 'openrouter_api_key', '') or None,
         }
         models = {
-            "groq": 'llama-3.3-70b-versatile',
-            "gemini": 'gemini-2.0-flash',
-            "openrouter": 'openai/gpt-4o-mini',
+            "groq": getattr(request.user, 'groq_model', '') or 'llama-3.3-70b-versatile',
+            "gemini": getattr(request.user, 'gemini_model', '') or 'gemini-2.0-flash',
+            "openrouter": getattr(request.user, 'openrouter_model', '') or 'openai/gpt-4o-mini',
         }
         reply = chat_response(
             message, ctx, history=history, custom_keys=custom_keys, models=models,
