@@ -27,6 +27,11 @@ OPENROUTER_KEY = os.environ.get("OPENROUTER_KEY", "")
 OPENROUTER_KEY2 = os.environ.get("OPENROUTER_KEY2", "")
 
 
+def _get_keys(name):
+    """Read env var at call time so Render env changes take effect without restart."""
+    return os.environ.get(name, "")
+
+
 # Sends the messages to the Groq API and returns the reply text.
 # If removed, Groq chat and challenge generation stop working.
 # Add your Groq key in settings (user.groq_api_key) or in the .env file.
@@ -34,7 +39,7 @@ def _groq_request(messages, model="llama-3.3-70b-versatile", temperature=0.7, ma
     if custom_key:
         keys = [custom_key]
     else:
-        keys = [GROQ_KEY, GROQ_KEY2]
+        keys = [_get_keys("GROQ_KEY"), _get_keys("GROQ_KEY2")]
     valid_keys = []
     for k in keys:
         if k:
@@ -84,7 +89,7 @@ def _gemini_request(prompt, image_data=None, custom_key=None, model="gemini-2.5-
     if custom_key:
         keys = [custom_key]
     else:
-        keys = [GEMINI_KEY, GEMINI_KEY2]
+        keys = [_get_keys("GEMINI_KEY"), _get_keys("GEMINI_KEY2")]
     valid_keys = [k for k in keys if k]
     if not valid_keys:
         return None
@@ -529,7 +534,7 @@ def _gemini_image_generate(image_data, prompt, custom_key=None):
     if custom_key:
         keys = [custom_key]
     else:
-        keys = [GEMINI_KEY, GEMINI_KEY2]
+        keys = [_get_keys("GEMINI_KEY"), _get_keys("GEMINI_KEY2")]
 
     # Step 1: Try Gemini image models directly
     result = _try_gemini_image_models(image_data, prompt, keys)
@@ -583,7 +588,7 @@ def _openrouter_request(messages, model="openai/gpt-4o-mini", temperature=0.7, m
     if custom_key:
         keys = [custom_key]
     else:
-        keys = [OPENROUTER_KEY, OPENROUTER_KEY2]
+        keys = [_get_keys("OPENROUTER_KEY"), _get_keys("OPENROUTER_KEY2")]
     valid_keys = [k for k in keys if k]
     if not valid_keys:
         return None
@@ -618,7 +623,7 @@ def _openrouter_request(messages, model="openai/gpt-4o-mini", temperature=0.7, m
 # If removed, streaming challenge generation breaks (no live loading).
 # Used by generate_challenges_stream.
 def _groq_request_stream(messages, model="llama-3.3-70b-versatile", temperature=0.9, max_tokens=3000):
-    valid_keys = [k for k in [GROQ_KEY, GROQ_KEY2] if k]
+    valid_keys = [k for k in [_get_keys("GROQ_KEY"), _get_keys("GROQ_KEY2")] if k]
     if not valid_keys:
         return
     for key in valid_keys:
@@ -736,7 +741,7 @@ def chat_response(user_message, challenge_context, history=None, ai_name="ChillX
     gemini_model = models.get("gemini", "gemini-2.0-flash")
     openrouter_model = models.get("openrouter", "openai/gpt-4o-mini")
 
-    if not groq_key and not GROQ_KEY and not gemini_key and not GEMINI_KEY and not openrouter_key and not OPENROUTER_KEY:
+    if not groq_key and not _get_keys("GROQ_KEY") and not gemini_key and not _get_keys("GEMINI_KEY") and not openrouter_key and not _get_keys("OPENROUTER_KEY"):
         # No AI keys configured — answer from a small built-in brain so the
         # chat still works the moment someone opens the site.
         return _local_chat_reply(user_message, challenge_context, ai_name)

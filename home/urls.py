@@ -113,4 +113,6 @@ urlpatterns = [
     path('multiplayer/chat/send/', views.multiplayer_chat_send, name='multiplayer_chat_send'),
     path('multiplayer/chat/poll/', views.multiplayer_chat_poll, name='multiplayer_chat_poll'),
     path('debug/room/<str:room_code>/', views.debug_room_dump, name='debug_room_dump'),
+    path('debug/ai-keys/', views.debug_ai_keys, name='debug_ai_keys'),
+    path('debug/ai-test/', views.debug_ai_test, name='debug_ai_test'),
 ]

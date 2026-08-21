@@ -2783,3 +2783,47 @@ def multiplayer_room_state(request, room_code):
         'winner_username': room.get('winner_username', ''),
     })
 
+
+def debug_ai_keys(request):
+    """Shows which AI keys are configured (masked) — for diagnosing offline mode."""
+    if not request.user.is_staff:
+        return JsonResponse({'error': 'staff only'}, status=403)
+    import os
+    from .ai_service import _get_keys
+    def mask(v):
+        if not v:
+            return None
+        return v[:6] + '...' + v[-4:] if len(v) > 12 else '***'
+    return JsonResponse({
+        'env': {
+            'GROQ_KEY': mask(_get_keys('GROQ_KEY')),
+            'GROQ_KEY2': mask(_get_keys('GROQ_KEY2')),
+            'GEMINI_KEY': mask(_get_keys('GEMINI_KEY')),
+            'GEMINI_KEY2': mask(os.environ.get('GEMINI_KEY2', '')),
+            'OPENROUTER_KEY': mask(_get_keys('OPENROUTER_KEY')),
+            'OPENROUTER_KEY2': mask(os.environ.get('OPENROUTER_KEY2', '')),
+        },
+        'user_db_keys': {
+            'groq_api_key': mask(getattr(request.user, 'groq_api_key', '') or ''),
+            'gemini_api_key': mask(getattr(request.user, 'gemini_api_key', '') or ''),
+            'openrouter_api_key': mask(getattr(request.user, 'openrouter_api_key', '') or ''),
+        },
+        'user_models': {
+            'groq_model': getattr(request.user, 'groq_model', ''),
+            'gemini_model': getattr(request.user, 'gemini_model', ''),
+            'openrouter_model': getattr(request.user, 'openrouter_model', ''),
+        },
+    })
+
+
+def debug_ai_test(request):
+    """Live-fires a tiny Groq request to prove the key works end-to-end."""
+    if not request.user.is_staff:
+        return JsonResponse({'error': 'staff only'}, status=403)
+    from .ai_service import _groq_request
+    reply = _groq_request(
+        [{"role": "user", "content": "Reply with exactly: OK"}],
+        max_tokens=5,
+    )
+    return JsonResponse({'groq_live_reply': reply})
+
